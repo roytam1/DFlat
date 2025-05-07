@@ -152,6 +152,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
                     TestAttribute(wnd, CONTROLBOX))    {
                 SysMenuOpen = TRUE;
                 BuildSystemMenu(wnd);
+				return TRUE;
             }
             break;
         case CTRL_F4:
@@ -363,6 +364,10 @@ void SetDlgTextString(DBOX *db, enum commands cmd,
     if (ct != NULL)    {
         ct->itext = DFrealloc(ct->itext, strlen(text)+1);
         strcpy(ct->itext, text);
+		if (ct->wnd != NULL)	{
+            SendMessage(ct->wnd, SETTEXT, (PARAM) text, 0);
+			SendMessage(ct->wnd, PAINT, 0, 0);
+		}
     }
 }
 

@@ -529,19 +529,30 @@ void UnLoadHelpFile(void)
 /* ---------- display a specified help text ----------- */
 BOOL DisplayHelp(WINDOW wnd, char *Help)
 {
+	char FixedHelp[30];
 	BOOL rtn = FALSE;
+	char *fh = FixedHelp, *hp = Help;
+
     if (Helping)
         return TRUE;
+	/* ---- strip any tildes from the help name ---- */
+	while (*hp)	{
+		if (*hp != '~')
+			*fh++ = *hp;
+		hp++;
+	}
+	*fh = '\0';
+
 	wnd->isHelping++;
-    FindHelp(Help);
+    FindHelp(FixedHelp);
     if (ThisHelp != NULL)    {
         if (LastStack == NULL ||
-                stricmp(Help, LastStack->hname))    {
+                stricmp(FixedHelp, LastStack->hname))    {
             /* ---- add the window to the history stack ---- */
             ThisStack = DFcalloc(1,sizeof(struct HelpStack));
             ThisStack->hname = DFmalloc(strlen(Help)+1);
             if (ThisStack->hname != NULL)
-                strcpy(ThisStack->hname, Help);
+                strcpy(ThisStack->hname, FixedHelp);
             ThisStack->PrevStack = LastStack;
             LastStack = ThisStack;
         }

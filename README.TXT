@@ -1,19 +1,15 @@
-November, 1992
+D-Flat Version 16
 
-D-Flat Version 15
-
-The source files in the DFLAT archive constitute the D-Flat windowing
-system. This is public domain code. You may use it in your
+The D-Flat windowing system is public domain code. You may use it in your
 applications without restriction. You may freely distribute source
 code. It would be nice if you would give credit to Dr. Dobb's Journal
 as the original publisher of the source code.
 
 The software build procedure makes a program named memopad.exe. It is
 a multiple-document notepad program. Observe the #define VERSION
-statement in dflat.h. The version number should correspond with the n
-in the DFLATn.ARC and DFnTXT.ARC filenames that you downloaded. Check
-the uploads periodically to see if there is a more recent version
-available.
+statement in dflat.h. The version number should correspond with the
+nn in the DFLTnn.ARC filename that you downloaded. Check the uploads
+periodically to see if there is a more recent version available.
 
 My CompuServe ID is 71101,1262. I monitor the DDJFORUM every day and
 prefer that you discuss D-Flat there so that every one can benefit
@@ -68,33 +64,15 @@ the memopad program and reload it immediately.
 
 ===============================================
 
-This is version 15. It fixes these problems:
+This is version 16. It fixes these problems:
 
-1. Titles did not always repaint correctly.
+1. Changing focus on a dialog box caused all controls to be
+repainted.
 
-2. Marking text with the mouse and scrolling at the same time by
-dragging the mouse to the frame caused the system to hang in some
-circumstances.
+2. Menubar labels could not have shortcut keys other than the first
+letter of the label.
 
-3. Dialog Boxes did not recover focus properly after moving.
-
-4. Popdown menus would display off-screen when the application window
-was moved near the edges.
-
-5. Combobox listboxes were hidden during the display of help windows.
-Added the isHelping variable to the window structure so a window
-would know if a help window is being displayed for it.
-
-6. Alt Down/Up got a phony Up event when Alt+key did not make it to
-the application window.
-
-7. Marking an editbox block of text was not always clear because the
-block cursor masked the text block. Changed the marked block to a
-different color and the cursor to the underline configuration while
-the marking is underway.
-
-8. Moving a dialog box with the mouse caused the document windows to
-be unnecessarily repainted first.
+3. SetDlgTextString did not work for a dialog box that was active.
 
 ----------------------------------------------------------------------
 Calendar of D-Flat Source Code Published in the C Programming Column
@@ -194,10 +172,9 @@ September: The HELPBOX window class
 October:   Help Database compression, File Open and File Save dialog boxes.
 November:  Official launch of D-Flat++
 
-Buy back issues or Bound editions from M&T to get the complete D-Flat
-narrative from May '91 to October '92. These columns describe the
-development of D-Flat and serve as a tutorial on its use. The D-Flat
-reference manual is DFLAT.DOC.
+The complete D-Flat narrative runs in my columns from May '91 to 
+October '92. These columns describe the development of D-Flat and 
+serve as a tutorial on its use. The D-Flat reference manual is DFLAT.DOC.
 
 
-
+

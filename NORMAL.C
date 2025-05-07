@@ -417,6 +417,7 @@ static void MaximizeMsg(WINDOW wnd)
         rc = ClientRect(GetParent(wnd));
     wnd->oldcondition = wnd->condition;
     wnd->condition = ISMAXIMIZED;
+	wnd->wasCleared = FALSE;
     SendMessage(wnd, HIDE_WINDOW, 0, 0);
     SendMessage(wnd, MOVE,
         RectLeft(rc), RectTop(rc));
@@ -441,6 +442,7 @@ static void MinimizeMsg(WINDOW wnd)
     rc = PositionIcon(wnd);
     wnd->oldcondition = wnd->condition;
     wnd->condition = ISMINIMIZED;
+	wnd->wasCleared = FALSE;
     SendMessage(wnd, HIDE_WINDOW, 0, 0);
     SendMessage(wnd, MOVE,
         RectLeft(rc), RectTop(rc));
@@ -466,6 +468,7 @@ static void RestoreMsg(WINDOW wnd)
     holdrc = wnd->RestoredRC;
     wnd->oldcondition = wnd->condition;
     wnd->condition = ISRESTORED;
+	wnd->wasCleared = FALSE;
     SendMessage(wnd, HIDE_WINDOW, 0, 0);
     wnd->attrib = wnd->restored_attrib;
     wnd->restored_attrib = 0;
@@ -491,6 +494,7 @@ static void MoveMsg(WINDOW wnd, PARAM p1, PARAM p2)
 
     if (xdif == 0 && ydif == 0)
         return;
+	wnd->wasCleared = FALSE;
     if (wasVisible)
         SendMessage(wnd, HIDE_WINDOW, 0, 0);
     wnd->rc.lf = (int) p1;
@@ -520,6 +524,7 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
 
     if (xdif == 0 && ydif == 0)
         return;
+	wnd->wasCleared = FALSE;
     if (wasVisible)
         SendMessage(wnd, HIDE_WINDOW, 0, 0);
     wnd->rc.rt = (int) p1;
@@ -609,8 +614,14 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 PostMessage(GetParent(wnd), msg, p1, p2);
             break;
         case PAINT:
-            if (isVisible(wnd))    
-                ClearWindow(wnd, (RECT *)p1, ' ');
+            if (isVisible(wnd))	{
+				if (wnd->wasCleared)
+					PaintUnderLappers(wnd);
+				else	{
+					wnd->wasCleared = TRUE;
+	                ClearWindow(wnd, (RECT *)p1, ' ');
+				}
+			}
             break;
         case BORDER:
             if (isVisible(wnd))    {

@@ -295,10 +295,6 @@ static void near collect_events(void)
 /* ----- post a message and parameters to msg queue ---- */
 void PostMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-	if (msg == ENDDIALOG)	{
-		msg++;
-		--msg;
-	}
     if (MsgQueueCtr != MAXMESSAGES)    {
         MsgQueue[MsgQueueOnCtr].wnd = wnd;
         MsgQueue[MsgQueueOnCtr].msg = msg;

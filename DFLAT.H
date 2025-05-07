@@ -29,7 +29,7 @@
 #include <setjmp.h>
 
 #ifndef VERSION
-#define VERSION "Version 15"
+#define VERSION "Version 17"
 #endif
 
 void *DFcalloc(size_t, size_t);
@@ -88,6 +88,7 @@ typedef struct window {
     enum Condition condition;   /* Restored, Maximized,
                                    Minimized, Closing       */
     enum Condition oldcondition;/* previous condition       */
+	BOOL wasCleared;
     int restored_attrib;        /* attributes when restored */
     void *extension;      /* menus, dialogs, documents, etc */
     struct window *PrevMouse;

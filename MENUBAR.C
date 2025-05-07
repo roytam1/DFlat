@@ -155,7 +155,7 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
 			mnu = ActiveMenu+sel;
 			if (mwnd == NULL ||
 					mnu->Selections[0].SelectionTitle == NULL) {
-               	DisplayHelp(wnd,mnu->Title+1);
+               	DisplayHelp(wnd,mnu->Title);
             	return;
 			}
             break;

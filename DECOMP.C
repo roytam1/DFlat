@@ -119,17 +119,13 @@ void HelpFilePosition(long *offset, int *bit)
 /* -- position the database to the specified byte and bit -- */
 void SeekHelpLine(long offset, int bit)
 {
-    int i;
     fseek(fi, offset, 0);
     if (!LoadingASCII)    {
         ct8 = bit;
         if (ct8 < 8)    {
             in8 = fgetc(fi);
-            for (i = 0; i < bit; i++)
-                in8 <<= 1;
+			in8 <<= bit;
         }
     }
 }
 
-
-
