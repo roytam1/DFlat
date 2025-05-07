@@ -2,10 +2,14 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#if MSC | WATCOM
+#if MSC | __WATCOMC__
 #include <direct.h>
 #else
 #include <dir.h>
+#endif
+
+#if defined (__WATCOMC__) && defined (__386__)
+//#define far   
 #endif
 
 #define swap(a,b){int x=a;a=b;b=x;}
@@ -23,10 +27,26 @@
 #define COUNT (1193280L / FREQUENCY)
 #define ZEROFLAG 0x40
 #define MAXSAVES 50
+
+#if defined (__WATCOMC__) && defined(__386__)
+//#define SCREENWIDTH  (peekb(0x400,0x4a) & 255)
+#define SCREENWIDTH    ((*(char *)(0x044a)) )
+//#define SCREENHEIGHT (isVGA() || isEGA() ? peekb(0x400,0x84)+1 : 25)
+#define SCREENHEIGHT (isVGA() || isEGA() ? peekb(0x400,0x84)+1 : 25)
+
+#else
 #define SCREENWIDTH  (peekb(0x40,0x4a) & 255)
 #define SCREENHEIGHT (isVGA() || isEGA() ? peekb(0x40,0x84)+1 : 25)
-#define clearBIOSbuffer() *(int far *)(MK_FP(0x40,0x1a)) = \
-		        	      *(int far *)(MK_FP(0x40,0x1c));
+#endif
+
+#if defined (__WATCOMC__) && defined (__386__)
+#define clearBIOSbuffer() *(short *)0x401a = *(short  *)0x41c;
+#else
+#define clearBIOSbuffer() *(short far *)(MK_FP(0x40,0x1a)) = \
+                            *(short far *)(MK_FP(0x40,0x1c));
+#endif
+
+
 #define waitforkeyboard() while ((keyportvalue & 0x80) == 0) \
 						  clearBIOSbuffer()
 /* ----- keyboard BIOS (0x16) functions -------- */
@@ -40,9 +60,15 @@
 #define WRITEATTRCHAR 9
 #define HIDECURSOR 0x20
 /* ------- the interrupt function registers -------- */
+#if defined (__WATCOMC__) && defined (__386__)
+typedef struct {
+    int bp,di,si,ds,es,edx,ecx,ebx,eax,ip,cs,fl;
+} IREGS;
+#else
 typedef struct {
     int bp,di,si,ds,es,dx,cx,bx,ax,ip,cs,fl;
 } IREGS;
+#endif
 /* ---------- keyboard prototypes -------- */
 int AltConvert(int);
 int getkey(void);
@@ -112,28 +138,58 @@ void Set50(void);
 #endif
 #endif
 
-#if MSC | WATCOM
+#if MSC | __WATCOMC__
 /* ============= Compatibility Macros ============ */
 #define asm __asm
+
+
+#if defined (__WATCOMC__) && defined (__386__)
+/*
 #undef FP_OFF
 #undef FP_SEG
 #undef MK_FP
+#define FP_OFF(p)    ((unsigned short) (p) & 0x0f)
+#define FP_SEG(p)    ((unsigned short) ((unsigned long)(p) >> 4))
+#define MK_FP(s,o)   ((void *) \
+               (((unsigned long)(s) << 4) | (unsigned short) (o)))
+*/
+#else
+#undef FP_OFF
+#undef FP_SEG
+#undef MK_FP
+
 #define FP_OFF(p)    ((unsigned)(p))
 #define FP_SEG(p)    ((unsigned)((unsigned long)(p) >> 16))
 #define MK_FP(s,o)   ((void far *) \
                (((unsigned long)(s) << 16) | (unsigned)(o)))
+#endif
+
+
+
+
+
 #define findfirst(p,f,a) _dos_findfirst(p,a,f)
 #define findnext(f)      _dos_findnext(f)
 #define ffblk            find_t
 #define ff_name          name
 #define ff_fsize         size
 #define ff_attrib        attrib
-#define poke(a,b,c)  (*((int  far*)MK_FP((a),(b))) = (int)(c))
+
+#if defined (__WATCOMC__) && defined (__386__)
+#define poke(a,b,c)  (*(short *)(a|b) = (short)(c))
+#define pokeb(a,b,c) (*(char  *)(a|b) = (char)(c))
+#define peek(a,b)    (*(short *)(a|b))
+#define peekb(a,b)   (*(char  *)(a|b))
+#else
+#define poke(a,b,c)  (*((short  far*)MK_FP((a),(b))) = (int)(c))
 #define pokeb(a,b,c) (*((char far*)MK_FP((a),(b))) = (char)(c))
-#define peek(a,b)    (*((int  far*)MK_FP((a),(b))))
+#define peek(a,b)    (*((short  far*)MK_FP((a),(b))))
 #define peekb(a,b)   (*((char far*)MK_FP((a),(b))))
+#endif
+
 #define getvect(v)   _dos_getvect(v)
 #define setvect(v,f) _dos_setvect(v,f)
+/*#define interrupt	__interrupt__*/
 #define fnsplit          _splitpath
 #define fnmerge          _makepath
 #define EXTENSION         2
@@ -151,7 +207,7 @@ int getdisk(void);
 #endif
 
 typedef enum messages {
-#ifdef WATCOM
+#ifdef __WATCOMC__
 	WATCOMFIX1 = -1,
 #endif
 	#undef DFlatMsg
@@ -161,7 +217,7 @@ typedef enum messages {
 } MESSAGE;
 
 typedef enum window_class    {
-#ifdef WATCOM
+#ifdef __WATCOMC__
 	WATCOMFIX2 = -1,
 #endif
 	#define ClassDef(c,b,p,a) c,

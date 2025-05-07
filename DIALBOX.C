@@ -22,13 +22,13 @@ void ClearDialogBoxes(void)
     for (i = 0; i < dbct; i++)    {
         CTLWINDOW *ct = (*(dbs+i))->ctl;
         while (ct->Class)    {
-            if ((ct->Class == EDITBOX ||
-				 ct->Class == TEXTBOX ||
+            if ((ct->Class == EDITBOX || ct->Class == VALUEBOX ||
+                                 ct->Class == TEXTBOX ||
                  ct->Class == COMBOBOX) &&
-                    ct->itext != NULL)	{
+                    ct->itext != NULL)  {
                 free(ct->itext);
-				ct->itext = NULL;
-			}
+                                ct->itext = NULL;
+                        }
             ct++;
         }
     }
@@ -63,10 +63,10 @@ static int CreateWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
         if (wnd->Modal)
             attrib |= SAVESELF;
         ct->setting = ct->isetting;
-        if (ct->Class == EDITBOX && ct->dwnd.h > 1)
+        if ((ct->Class == EDITBOX || ct->Class == VALUEBOX) && ct->dwnd.h > 1)
             attrib |= (MULTILINE | HASBORDER);
         else if ((ct->Class == LISTBOX || ct->Class == TEXTBOX) &&
-				ct->dwnd.h > 2)
+                                ct->dwnd.h > 2)
             attrib |= HASBORDER;
         cwnd = CreateWindow(ct->Class,
                         ct->dwnd.title,
@@ -78,7 +78,7 @@ static int CreateWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
                         wnd,
                         ControlProc,
                         attrib);
-        if ((ct->Class == EDITBOX || ct->Class == TEXTBOX ||
+        if ((ct->Class == EDITBOX  || ct->Class == VALUEBOX || ct->Class == TEXTBOX ||
                 ct->Class == COMBOBOX) &&
                     ct->itext != NULL)
             SendMessage(cwnd, SETTEXT, (PARAM) ct->itext, 0);
@@ -155,7 +155,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
                     TestAttribute(wnd, CONTROLBOX))    {
                 SysMenuOpen = TRUE;
                 BuildSystemMenu(wnd);
-				return TRUE;
+                                return TRUE;
             }
             break;
         case CTRL_F4:
@@ -165,7 +165,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         default:
             /* ------ search all the shortcut keys ----- */
             if (dbShortcutKeys(db, (int) p1))
-				return TRUE;
+                                return TRUE;
             break;
     }
     return wnd->Modal;
@@ -199,7 +199,7 @@ static BOOL CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* ----- window-processing module, DIALOG window class ----- */
 int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-	int rtn;
+        int rtn;
     DBOX *db = wnd->extension;
 
     switch (msg)    {
@@ -226,10 +226,10 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 return TRUE;
             SendMessage(wnd, COMMAND, inFocusCommand(db), msg);
             break;
-		case SETFOCUS:
-			if ((int)p1 && wnd->dfocus != NULL && isVisible(wnd))
-				return SendMessage(wnd->dfocus, SETFOCUS, TRUE, 0);
-			break;
+                case SETFOCUS:
+                        if ((int)p1 && wnd->dfocus != NULL && isVisible(wnd))
+                                return SendMessage(wnd->dfocus, SETFOCUS, TRUE, 0);
+                        break;
         case COMMAND:
             if (CommandMsg(wnd, p1, p2))
                 return TRUE;
@@ -237,12 +237,12 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case PAINT:
             p2 = TRUE;
             break;
-		case MOVE:
-		case SIZE:
-		    rtn = BaseWndProc(DIALOG, wnd, msg, p1, p2);
-			if (wnd->dfocus != NULL && isVisible(wnd))
-				SendMessage(wnd->dfocus, SETFOCUS, TRUE, 0);
-			return rtn;
+                case MOVE:
+                case SIZE:
+                    rtn = BaseWndProc(DIALOG, wnd, msg, p1, p2);
+                        if (wnd->dfocus != NULL && isVisible(wnd))
+                                SendMessage(wnd->dfocus, SETFOCUS, TRUE, 0);
+                        return rtn;
         case CLOSE_WINDOW:
             if (!p1)    {
                 SendMessage(wnd, COMMAND, ID_CANCEL, 0);
@@ -272,19 +272,19 @@ BOOL DialogBox(WINDOW wnd, DBOX *db, BOOL Modal,
                         wnd,
                         wndproc,
                         (Modal ? SAVESELF : 0));
-	SendMessage(DialogWnd, SETFOCUS, TRUE, 0);
+        SendMessage(DialogWnd, SETFOCUS, TRUE, 0);
     DialogWnd->Modal = Modal;
-	FirstFocus(db);
+        FirstFocus(db);
     PostMessage(DialogWnd, INITIATE_DIALOG, 0, 0);
     if (Modal)    {
         SendMessage(DialogWnd, CAPTURE_MOUSE, 0, 0);
         SendMessage(DialogWnd, CAPTURE_KEYBOARD, 0, 0);
-	    while (dispatch_message())
-    	    ;
+            while (dispatch_message())
+            ;
         rtn = DialogWnd->ReturnCode == ID_OK;
         SendMessage(DialogWnd, RELEASE_MOUSE, 0, 0);
         SendMessage(DialogWnd, RELEASE_KEYBOARD, 0, 0);
-	    SendMessage(DialogWnd, CLOSE_WINDOW, TRUE, 0);
+            SendMessage(DialogWnd, CLOSE_WINDOW, TRUE, 0);
     }
     return rtn;
 }
@@ -343,11 +343,11 @@ void ControlSetting(DBOX *db, enum commands cmd,
                                 int Class, int setting)
 {
     CTLWINDOW *ct = FindCommand(db, cmd, Class);
-    if (ct != NULL)	{
+    if (ct != NULL)     {
         ct->isetting = setting;
-		if (ct->wnd != NULL)
-			ct->setting = setting;
-	}
+                if (ct->wnd != NULL)
+                        ct->setting = setting;
+        }
 }
 
 /* ----- test if a control is on or off ----- */
@@ -373,29 +373,29 @@ void SetDlgTextString(DBOX *db, enum commands cmd,
 {
     CTLWINDOW *ct = FindCommand(db, cmd, Class);
     if (ct != NULL)    {
-		if (text != NULL)	{
-			if (ct->Class == TEXT)
-				ct->itext = text;  /* text may not go out of scope */
-			else 	{
-		        ct->itext = DFrealloc(ct->itext, strlen(text)+1);
-    		    strcpy(ct->itext, text);
-			}
-		}
-		else	{
-			if (ct->Class == TEXT)
-				ct->itext = "";
-			else 	{
-				free(ct->itext);
-				ct->itext = NULL;
-			}
-		}
-		if (ct->wnd != NULL)	{
-			if (text != NULL)
-	            SendMessage(ct->wnd, SETTEXT, (PARAM) text, 0);
-			else
-	            SendMessage(ct->wnd, CLEARTEXT, 0, 0);
-			SendMessage(ct->wnd, PAINT, 0, 0);
-		}
+                if (text != NULL)       {
+                        if (ct->Class == TEXT)
+                                ct->itext = text;  /* text may not go out of scope */
+                        else    {
+                        ct->itext = DFrealloc(ct->itext, strlen(text)+1);
+                    strcpy(ct->itext, text);
+                        }
+                }
+                else    {
+                        if (ct->Class == TEXT)
+                                ct->itext = "";
+                        else    {
+                                free(ct->itext);
+                                ct->itext = NULL;
+                        }
+                }
+                if (ct->wnd != NULL)    {
+                        if (text != NULL)
+                    SendMessage(ct->wnd, SETTEXT, (PARAM) text, 0);
+                        else
+                    SendMessage(ct->wnd, CLEARTEXT, 0, 0);
+                        SendMessage(ct->wnd, PAINT, 0, 0);
+                }
     }
 }
 
@@ -404,6 +404,8 @@ void PutItemText(WINDOW wnd, enum commands cmd, char *text)
 {
     CTLWINDOW *ct = FindCommand(wnd->extension, cmd, EDITBOX);
 
+    if (ct == NULL)
+        ct = FindCommand(wnd->extension, cmd, VALUEBOX);
     if (ct == NULL)
         ct = FindCommand(wnd->extension, cmd, TEXTBOX);
     if (ct == NULL)
@@ -418,6 +420,7 @@ void PutItemText(WINDOW wnd, enum commands cmd, char *text)
         WINDOW cwnd = (WINDOW) (ct->wnd);
         switch (ct->Class)    {
             case COMBOBOX:
+            case VALUEBOX:
             case EDITBOX:
                 SendMessage(cwnd, CLEARTEXT, 0, 0);
                 SendMessage(cwnd, ADDTEXT, (PARAM) text, 0);
@@ -448,6 +451,8 @@ void GetItemText(WINDOW wnd, enum commands cmd,
     CTLWINDOW *ct = FindCommand(wnd->extension, cmd, EDITBOX);
     unsigned char *cp;
 
+   if (ct == NULL)
+        ct = FindCommand(wnd->extension, cmd, VALUEBOX);
     if (ct == NULL)
         ct = FindCommand(wnd->extension, cmd, COMBOBOX);
     if (ct == NULL)
@@ -472,6 +477,7 @@ void GetItemText(WINDOW wnd, enum commands cmd,
                         strncpy(text, GetText(cwnd), len);
                     break;
                 case COMBOBOX:
+                case VALUEBOX:
                 case EDITBOX:
                     SendMessage(cwnd,GETTEXT,(PARAM)text,len);
                     break;
@@ -536,7 +542,7 @@ static BOOL dbShortcutKeys(DBOX *db, int ky)
             ct++;
         }
     }
-	return FALSE;
+        return FALSE;
 }
 
 /* --- dynamically add or remove scroll bars
@@ -588,7 +594,7 @@ static BOOL CtlKeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         default:
             break;
     }
-    if (GetClass(wnd) == EDITBOX)
+    if (GetClass(wnd) == EDITBOX || GetClass(wnd) == VALUEBOX)
         if (isMultiLine(wnd))
             return FALSE;
     if (GetClass(wnd) == TEXTBOX)
@@ -638,16 +644,16 @@ static void CtlCloseWindowMsg(WINDOW wnd)
     CTLWINDOW *ct = GetControl(wnd);
     if (ct != NULL)    {
         ct->wnd = NULL;
-        if (GetParent(wnd)->ReturnCode == ID_OK)	{
-            if (ct->Class == EDITBOX || ct->Class == COMBOBOX)	{
-               	ct->itext=DFrealloc(ct->itext,strlen(wnd->text)+1);
-               	strcpy(ct->itext, wnd->text);
-               	if (!isMultiLine(wnd))    {
-                   	char *cp = ct->itext+strlen(ct->itext)-1;
-                   	if (*cp == '\n')
-                       	*cp = '\0';
-            	}
-			}
+        if (GetParent(wnd)->ReturnCode == ID_OK)        {
+            if (ct->Class == EDITBOX || ct->Class == VALUEBOX || ct->Class == COMBOBOX) {
+                ct->itext=DFrealloc(ct->itext,strlen(wnd->text)+1);
+                strcpy(ct->itext, wnd->text);
+                if (!isMultiLine(wnd))    {
+                        char *cp = ct->itext+strlen(ct->itext)-1;
+                        if (*cp == '\n')
+                        *cp = '\0';
+                }
+                        }
             else if (ct->Class == RADIOBUTTON || ct->Class == CHECKBOX)
                 ct->isetting = ct->setting;
         }
@@ -657,20 +663,20 @@ static void CtlCloseWindowMsg(WINDOW wnd)
 static void FixColors(WINDOW wnd)
 {
     CTLWINDOW *ct = wnd->ct;
-	if (ct->Class != BUTTON)	{
-		if (ct->Class != SPINBUTTON && ct->Class != COMBOBOX)	{
-			if (ct->Class != EDITBOX && ct->Class != LISTBOX)	{
-				wnd->WindowColors[FRAME_COLOR][FG] = 
-					GetParent(wnd)->WindowColors[FRAME_COLOR][FG];
-				wnd->WindowColors[FRAME_COLOR][BG] = 
-					GetParent(wnd)->WindowColors[FRAME_COLOR][BG];
-				wnd->WindowColors[STD_COLOR][FG] = 
-					GetParent(wnd)->WindowColors[STD_COLOR][FG];
-				wnd->WindowColors[STD_COLOR][BG] = 
-					GetParent(wnd)->WindowColors[STD_COLOR][BG];
-			}
-		}
-	}
+        if (ct->Class != BUTTON)        {
+                if (ct->Class != SPINBUTTON && ct->Class != COMBOBOX)   {
+                        if (ct->Class != EDITBOX &&ct->Class != VALUEBOX && ct->Class != LISTBOX)       {
+                                wnd->WindowColors[FRAME_COLOR][FG] = 
+                                        GetParent(wnd)->WindowColors[FRAME_COLOR][FG];
+                                wnd->WindowColors[FRAME_COLOR][BG] = 
+                                        GetParent(wnd)->WindowColors[FRAME_COLOR][BG];
+                                wnd->WindowColors[STD_COLOR][FG] = 
+                                        GetParent(wnd)->WindowColors[STD_COLOR][FG];
+                                wnd->WindowColors[STD_COLOR][BG] = 
+                                        GetParent(wnd)->WindowColors[STD_COLOR][BG];
+                        }
+                }
+        }
 }
 
 /* -- generic window processor used by dialog box controls -- */
@@ -691,15 +697,15 @@ static int ControlProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
                 return TRUE;
             break;
         case PAINT:
-			FixColors(wnd);
-            if (GetClass(wnd) == EDITBOX ||
+                        FixColors(wnd);
+            if (GetClass(wnd) == EDITBOX || GetClass(wnd) == VALUEBOX  ||
                     GetClass(wnd) == LISTBOX ||
                         GetClass(wnd) == TEXTBOX)
                 SetScrollBars(wnd);
             break;
         case BORDER:
-			FixColors(wnd);
-            if (GetClass(wnd) == EDITBOX)    {
+                        FixColors(wnd);
+            if (GetClass(wnd) == EDITBOX || GetClass(wnd) == VALUEBOX)    {
                 WINDOW oldFocus = inFocus;
                 inFocus = NULL;
                 DefaultWndProc(wnd, msg, p1, p2);
@@ -707,35 +713,35 @@ static int ControlProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
                 return TRUE;
             }
             break;
-        case SETFOCUS:	{
-			WINDOW pwnd = GetParent(wnd);
+        case SETFOCUS:  {
+                        WINDOW pwnd = GetParent(wnd);
             if (p1)    {
-				WINDOW oldFocus = inFocus;
-				if (pwnd && GetClass(oldFocus) != APPLICATION &&
-						!isAncestor(inFocus, pwnd))	{
-					inFocus = NULL;
-					SendMessage(oldFocus, BORDER, 0, 0);
-					SendMessage(pwnd, SHOW_WINDOW, 0, 0);
-					inFocus = oldFocus;
-					ClearVisible(oldFocus);
-				}
-				if (GetClass(oldFocus) == APPLICATION &&
-						NextWindow(pwnd) != NULL)
-					pwnd->wasCleared = FALSE;
+                                WINDOW oldFocus = inFocus;
+                                if (pwnd && GetClass(oldFocus) != APPLICATION &&
+                                                !isAncestor(inFocus, pwnd))     {
+                                        inFocus = NULL;
+                                        SendMessage(oldFocus, BORDER, 0, 0);
+                                        SendMessage(pwnd, SHOW_WINDOW, 0, 0);
+                                        inFocus = oldFocus;
+                                        ClearVisible(oldFocus);
+                                }
+                                if (GetClass(oldFocus) == APPLICATION &&
+                                                NextWindow(pwnd) != NULL)
+                                        pwnd->wasCleared = FALSE;
                 DefaultWndProc(wnd, msg, p1, p2);
-				SetVisible(oldFocus);
-				if (pwnd != NULL)	{
-					pwnd->dfocus = wnd;
-	                SendMessage(pwnd, COMMAND,
-    	                inFocusCommand(db), ENTERFOCUS);
-				}
+                                SetVisible(oldFocus);
+                                if (pwnd != NULL)       {
+                                        pwnd->dfocus = wnd;
+                        SendMessage(pwnd, COMMAND,
+                        inFocusCommand(db), ENTERFOCUS);
+                                }
                 return TRUE;
             }
             else
                 SendMessage(pwnd, COMMAND,
                     inFocusCommand(db), LEAVEFOCUS);
             break;
-		}
+                }
         case CLOSE_WINDOW:
             CtlCloseWindowMsg(wnd);
             break;
@@ -749,53 +755,53 @@ static int ControlProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 static void FirstFocus(DBOX *db)
 {
     CTLWINDOW *ct = db->ctl;
-	if (ct != NULL)	{
-		while (ct->Class == TEXT || ct->Class == BOX)	{
-			ct++;
-			if (ct->Class == 0)
-				return;
-		}
-		SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
-	}
+        if (ct != NULL) {
+                while (ct->Class == TEXT || ct->Class == BOX)   {
+                        ct++;
+                        if (ct->Class == 0)
+                                return;
+                }
+                SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+        }
 }
 
 /* ---- change the focus to the next control --- */
 static void NextFocus(DBOX *db)
 {
     CTLWINDOW *ct = WindowControl(db, inFocus);
-	int looped = 0;
-	if (ct != NULL)	{
-		do	{
-			ct++;
-			if (ct->Class == 0)	{
-				if (looped)
-					return;
-				looped++;
-				ct = db->ctl;
-			}
-		} while (ct->Class == TEXT || ct->Class == BOX);
-		SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
-	}
+        int looped = 0;
+        if (ct != NULL) {
+                do      {
+                        ct++;
+                        if (ct->Class == 0)     {
+                                if (looped)
+                                        return;
+                                looped++;
+                                ct = db->ctl;
+                        }
+                } while (ct->Class == TEXT || ct->Class == BOX);
+                SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+        }
 }
 
 /* ---- change the focus to the previous control --- */
 static void PrevFocus(DBOX *db)
 {
     CTLWINDOW *ct = WindowControl(db, inFocus);
-	int looped = 0;
-	if (ct != NULL)	{
-		do	{
-			if (ct == db->ctl)	{
-				if (looped)
-					return;
-				looped++;
-				while (ct->Class)
-					ct++;
-			}
-			--ct;
-		} while (ct->Class == TEXT || ct->Class == BOX);
-		SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
-	}
+        int looped = 0;
+        if (ct != NULL) {
+                do      {
+                        if (ct == db->ctl)      {
+                                if (looped)
+                                        return;
+                                looped++;
+                                while (ct->Class)
+                                        ct++;
+                        }
+                        --ct;
+                } while (ct->Class == TEXT || ct->Class == BOX);
+                SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+        }
 }
 
 void SetFocusCursor(WINDOW wnd)
@@ -805,4 +811,154 @@ void SetFocusCursor(WINDOW wnd)
         SendMessage(wnd, KEYBOARD_CURSOR, 1, 0);
     }
 }
-
+
+/* ------- set the Min/Max/Int of a control window ------ */
+void PutItemMinMax(WINDOW wnd, enum commands cmd, MINMAXVALUE mmi)
+{
+    CTLWINDOW *ct = FindCommand(wnd->extension, cmd, VALUEBOX);
+    if (ct != NULL)
+    {
+            WINDOW cwnd = (WINDOW) (ct->wnd);
+            SendMessage(cwnd, ADDMINMAX, (PARAM) mmi, 0);
+    }
+}
+
+/* ------- get the Min/Max/Int  of a control window ------ */
+void GetItemMinMax (WINDOW wnd, enum commands cmd, MINMAXVALUE *mmi)     
+{
+    CTLWINDOW *ct = FindCommand(wnd->extension, cmd, VALUEBOX);
+    MINMAXVALUE *cp;                 
+    if (ct != NULL)    {
+        WINDOW cwnd = (WINDOW) (ct->wnd);
+        SendMessage(cwnd,GETMINMAX,(PARAM)mmi,0);
+    }
+}
+
+
+/* ------- set the Value of a control window ------ */
+int PutItemValue(WINDOW wnd, enum commands cmd, double value)
+{   char text[80],tex[5],**endptr;
+   struct MinMaxValue mmi;
+   WINDOW wn;
+   long i_value,i;
+
+    CTLWINDOW *ct = FindCommand(wnd->extension, cmd,VALUEBOX);
+    if (ct != NULL)        
+       {
+          wn=ct->wnd;
+          if ( wn->MinMax->Int==FALSE) {
+/*                        sprintf(text,"%*f",wn->MaxTextLength,value);*/
+                        sprintf(text,"%g",value);
+
+                        wn->CurrCol=1;
+                        SendMessage(ct->wnd, CLEARTEXT, 0, 0);
+                        SendMessage(ct->wnd, ADDTEXT, (PARAM) text, 0);
+                        return TRUE;
+          } else {
+                        i_value=0+value;
+                        sprintf(text,"%d",i_value);
+                        wn->CurrCol=1;
+                        SendMessage(ct->wnd, CLEARTEXT, 0, 0);
+                        SendMessage(ct->wnd, ADDTEXT, (PARAM) text, 0);
+                        return TRUE;
+          }
+       }
+    return FALSE;
+}
+
+/* ------- get the Value of a control window ------ */
+double GetItemValue(WINDOW wnd, enum commands cmd)
+{
+    CTLWINDOW *ct = FindCommand(wnd->extension, cmd, VALUEBOX);
+    unsigned char *cp,text[80],*endptr;
+    int len=80;
+    double value;
+
+    if (ct != NULL)    {
+                    SendMessage(ct->wnd,GETTEXT,(PARAM)text,len);
+                    value=strtod(text,&endptr);
+                    return value;
+                    }
+return -10e100;
+}
+
+
+int CheckValue(WINDOW wnd, enum commands cmd)
+{
+        int rtn;
+        double Tempvalue;
+        long Tempval_i, Min,Max;
+        struct MinMaxValue TempMinMax;
+        char Tempstr[80], *endptr;
+        WINDOW cwnd;
+        DBOX *db;
+        CTLWINDOW *ct;
+
+        GetItemMinMax(wnd,cmd,&TempMinMax);                                      
+        ct = FindCommand(wnd->extension, cmd, VALUEBOX);
+        cwnd=ct->wnd;
+        
+        if (TempMinMax.Int==FALSE)
+           {
+            Tempvalue=strtod(cwnd->text,&endptr);
+
+                               if (!(*endptr==0 || *endptr=='\r' || *endptr=='\n'))
+                                  {
+                                    MessageBox("Value Input","Wrong Input");
+                                    cwnd->CurrCol=(long)endptr - (long)cwnd->text;
+                                    SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+                                    return FALSE;
+                                   }
+
+                                if (Tempvalue<TempMinMax.Min || Tempvalue>TempMinMax.Max) 
+                                   {
+                                          sprintf(Tempstr,"Out of range : %g .. %g",TempMinMax.Min,TempMinMax.Max);
+                                          MessageBox("Value Input", Tempstr);
+                                          if (Tempvalue<TempMinMax.Min) 
+                                             {
+                                                     PutItemValue(wnd, cmd, TempMinMax.Min);
+                                              } else {
+                                                     PutItemValue(wnd, cmd, TempMinMax.Max);
+                                              }
+                                          SendMessage(ct->wnd, PAINT,0,0);
+                                          SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+                                          return FALSE;
+                                     } else {
+                                       //   MessageBox("Value Input", "O.K.");
+                                          return TRUE;
+                                     }
+           } else { /*TempMinMax.Int==TRUE*/
+            Tempval_i=strtol(cwnd->text,&endptr,10);
+
+                               if (!(*endptr==0 || *endptr==13  || *endptr==10))
+                                  {
+                                    MessageBox("Value Input","Wrong Input");
+                                    cwnd->CurrCol=(long)endptr - (long)cwnd->text;
+                                    SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+                                    return FALSE;
+                                   }
+
+                                if (Tempval_i<TempMinMax.Min || Tempval_i>TempMinMax.Max)
+                                   {
+                                          Min=0+TempMinMax.Min;
+                                          Max=0+TempMinMax.Max;
+                                          sprintf(Tempstr,"Out of range : %d .. %d",Min,Max);
+                                          MessageBox("Value Input", Tempstr);
+                                          ct = FindCommand(wnd->extension, cmd, VALUEBOX);
+                                          if (Tempval_i<TempMinMax.Min)
+                                             {
+                                                     PutItemValue(wnd, cmd, TempMinMax.Min);
+                                              } else {
+                                                     PutItemValue(wnd, cmd, TempMinMax.Max);
+                                              }
+                                          SendMessage(ct->wnd, PAINT,0,0);
+                                          SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+                                          return FALSE;
+                                     } else {
+/*                                          MessageBox("Value Input", "O.K.");*/
+                                          return TRUE;
+                                     }
+           }
+
+
+}

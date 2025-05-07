@@ -4,10 +4,10 @@
 #define CONFIG_H
 
 enum colortypes {
-	STD_COLOR,
-	SELECT_COLOR,
-	FRAME_COLOR,
-	HILITE_COLOR
+        STD_COLOR,
+        SELECT_COLOR,
+        FRAME_COLOR,
+        HILITE_COLOR
 };
 
 enum grounds { FG, BG };
@@ -16,25 +16,26 @@ enum grounds { FG, BG };
 typedef struct config {
     char version[sizeof VERSION];
     char mono;         /* 0=color, 1=mono, 2=reverse mono    */
-	BOOL snowy;        /* TRUE = snowy CGA display           */
+        BOOL snowy;        /* TRUE = snowy CGA display           */
     BOOL InsertMode;   /* Editor insert mode                 */
     int Tabs;          /* Editor tab stops                   */
     BOOL WordWrap;     /* True to word wrap editor           */
 #ifdef INCLUDE_WINDOWOPTIONS
     BOOL Border;       /* True for application window border */
     BOOL Title;        /* True for application window title  */
-	BOOL StatusBar;    /* True for appl'n window status bar  */
+        BOOL StatusBar;    /* True for appl'n window status bar  */
 #endif
     BOOL Texture;      /* True for textured appl window      */
     int ScreenLines;   /* Number of screen lines (25/43/50)  */
-	char PrinterPort[5];
-	int LinesPage;     /* Lines per printer page             */
-	int CharsLine;	   /* Characters per printer line        */
-	int LeftMargin;	   /* Printer margins                    */
-	int RightMargin;
-	int TopMargin;
-	int BottomMargin;
+        char PrinterPort[5];
+        int LinesPage;     /* Lines per printer page             */
+        int CharsLine;     /* Characters per printer line        */
+        int LeftMargin;    /* Printer margins                    */
+        int RightMargin;
+        int TopMargin;
+        int BottomMargin;
     unsigned char clr[CLASSCOUNT] [4] [2]; /* Colors         */
+      
 } CONFIG;
 
 extern CONFIG cfg;
@@ -48,4 +49,3 @@ FILE *OpenConfig(char *);
 
 #endif
 
-

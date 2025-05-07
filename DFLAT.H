@@ -1,4 +1,7 @@
-/* ------------- dflat.h ----------- */
+#ifndef BUILD_FULL_DFLAT
+#define BUILD_FULL_DFLAT
+#endif
+
 #ifndef DFLAT_H
 #define DFLAT_H
 
@@ -45,7 +48,12 @@ typedef enum {FALSE, TRUE} BOOL;
 #define FIRSTDELAY 7
 #define DOUBLETICKS 5
 
+#if defined (__WATCOMC__) && defined (__386__)
+#define MAXTEXTLEN 5000000U /* maximum text buffer            */
+#else
 #define MAXTEXTLEN 65000U /* maximum text buffer            */
+#endif
+
 #define EDITLEN     1024  /* starting length for multiliner */
 #define ENTRYLEN     256  /* starting length for one-liner  */
 #define GROWLENGTH    64  /* buffers grow by this much      */
@@ -66,6 +74,14 @@ enum Condition     {
     ISRESTORED, ISMINIMIZED, ISMAXIMIZED, ISCLOSING
 };
 
+typedef struct MinMaxValue {
+        double Min;
+        double Max;
+        BOOL  Int;
+        double Diff;
+        } * MINMAXVALUE;
+
+
 typedef struct window {
     CLASS Class;           /* window class                  */
     char *title;           /* window title                  */
@@ -76,8 +92,8 @@ typedef struct window {
                                             (0/0 to 79/24)  */
     int ht, wd;            /* window height and width       */
     RECT RestoredRC;       /* restored condition rect       */
-	/* ----------------- window colors -------------------- */
-	char WindowColors[4][2];
+        /* ----------------- window colors -------------------- */
+        char WindowColors[4][2];
     /* -------------- linked list pointers ---------------- */
     struct window *parent; /* parent window                 */
     struct window *firstchild;  /* first child this parent  */
@@ -85,22 +101,22 @@ typedef struct window {
     struct window *nextsibling; /* next sibling             */
     struct window *prevsibling; /* previous sibling         */
 
-	struct window *childfocus;	/* child that ha(s/d) focus */
+        struct window *childfocus;      /* child that ha(s/d) focus */
     int attrib;                 /* Window attributes        */
     char *videosave;            /* video save buffer        */
     enum Condition condition;   /* Restored, Maximized,
                                    Minimized, Closing       */
     enum Condition oldcondition;/* previous condition       */
-	BOOL wasCleared;
+        BOOL wasCleared;
     int restored_attrib;        /* attributes when restored */
     void *extension;      /* menus, dialogs, documents, etc */
-	void *wrapper;             /* used by C++ wrapper class */
+        void *wrapper;             /* used by C++ wrapper class */
     struct window *PrevMouse;   /* previous mouse capture   */
     struct window *PrevKeyboard;/* previous keyboard capture*/
-	struct window *PrevClock;   /* previous clock capture   */
-	struct window *MenuBarWnd;/* menu bar                   */
-	struct window *StatusBar; /* status bar                 */
-	int isHelping;	    /* > 0 when help is being displayed */
+        struct window *PrevClock;   /* previous clock capture   */
+        struct window *MenuBarWnd;/* menu bar                   */
+        struct window *StatusBar; /* status bar                 */
+        int isHelping;      /* > 0 when help is being displayed */
     /* ----------------- text box fields ------------------ */
     int wlines;     /* number of lines of text              */
     int wtop;       /* text line that is on the top display */
@@ -114,7 +130,7 @@ typedef struct window {
     int BlkEndCol;  /* ending column of marked block        */
     int HScrollBox; /* position of horizontal scroll box    */
     int VScrollBox; /* position of vertical scroll box      */
-	unsigned int *TextPointers; /* -> list of line offsets	*/
+        unsigned int *TextPointers; /* -> list of line offsets  */
     /* ----------------- list box fields ------------------ */
     int selection;  /* current selection                    */
     BOOL AddMode;   /* adding extended selections mode      */
@@ -125,29 +141,34 @@ typedef struct window {
     int CurrLine;     /* Current line                       */
     int WndRow;       /* Current window row                 */
     BOOL TextChanged; /* TRUE if text has changed           */
-	BOOL protect;	  /* TRUE to display '*'                */
+        BOOL protect;     /* TRUE to display '*'                */
     unsigned char *DeletedText; /* for undo                 */
     unsigned DeletedLength; /* Length of deleted field      */
-	BOOL InsertMode;   /* TRUE or FALSE for text insert     */
-	BOOL WordWrapMode; /* TRUE or FALSE for word wrap       */
-	unsigned int MaxTextLength; /* maximum text length      */
+        BOOL InsertMode;   /* TRUE or FALSE for text insert     */
+        BOOL WordWrapMode; /* TRUE or FALSE for word wrap       */
+        unsigned int MaxTextLength; /* maximum text length      */
     /* ---------------- dialog box fields ----------------- */
     int ReturnCode;        /* return code from a dialog box */
-	BOOL Modal;		       /* True if a modeless dialog box */
-	CTLWINDOW *ct;		   /* control structure             */
-	struct window *dfocus; /* control window that has focus */
-	/* -------------- popdownmenu fields ------------------ */
-	MENU *mnu;		/* points to menu structure             */
-	MBAR *holdmenu; /* previous active menu                 */
-	struct window *oldFocus;
-	/* -------------- status bar fields ------------------- */
-	BOOL TimePosted; /* True if time has been posted        */
+        BOOL Modal;                    /* True if a modeless dialog box */
+        CTLWINDOW *ct;             /* control structure             */
+        struct window *dfocus; /* control window that has focus */
+        /* -------------- popdownmenu fields ------------------ */
+        MENU *mnu;              /* points to menu structure             */
+        MBAR *holdmenu; /* previous active menu                 */
+        struct window *oldFocus;
+        /* -------------- status bar fields ------------------- */
+        BOOL TimePosted; /* True if time has been posted        */
 #ifdef INCLUDE_PICTUREBOX
-	/* ------------- picture box fields ------------------- */
-	int VectorCount;  /* number of vectors in vector list   */
-	void *VectorList; /* list of picture box vectors        */
+        /* ------------- picture box fields ------------------- */
+        int VectorCount;  /* number of vectors in vector list   */
+        void *VectorList; /* list of picture box vectors        */
 #endif
+        /* ------------- value box fields ------------------- */
+        struct MinMaxValue *MinMax; /* Min, Max and Int Value        */
+
 } * WINDOW;
+
+
 
 #include "classdef.h"
 #include "video.h"
@@ -223,8 +244,8 @@ void PutWindowLine(WINDOW, void *,int,int);
 #define BaseWndProc(Class,wnd,msg,p1,p2)    \
     (*classdefs[(classdefs[Class].base)].wndproc)(wnd,msg,p1,p2)
 #define DefaultWndProc(wnd,msg,p1,p2)         \
-	(classdefs[wnd->Class].wndproc == NULL) ? \
-	BaseWndProc(wnd->Class,wnd,msg,p1,p2) :	  \
+        (classdefs[wnd->Class].wndproc == NULL) ? \
+        BaseWndProc(wnd->Class,wnd,msg,p1,p2) :   \
     (*classdefs[wnd->Class].wndproc)(wnd,msg,p1,p2)
 struct LinkedList    {
     WINDOW FirstWindow;
@@ -296,6 +317,7 @@ int NormalProc(WINDOW, MESSAGE, PARAM, PARAM);
 int TextBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int ListBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int EditBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+int ValueBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int EditorProc(WINDOW, MESSAGE, PARAM, PARAM);
 int PictureProc(WINDOW, MESSAGE, PARAM, PARAM);
 int MenuBarProc(WINDOW, MESSAGE, PARAM, PARAM);
@@ -323,30 +345,30 @@ BOOL isAncestor(WINDOW, WINDOW);
 #define HitControlBox(wnd, p1, p2)     \
      (TestAttribute(wnd, CONTROLBOX) && \
      p1 == 2 && p2 == 0)
-#define WndForeground(wnd) 		\
-	(wnd->WindowColors [STD_COLOR] [FG])
-#define WndBackground(wnd) 		\
-	(wnd->WindowColors [STD_COLOR] [BG])
-#define FrameForeground(wnd) 	\
-	(wnd->WindowColors [FRAME_COLOR] [FG])
-#define FrameBackground(wnd) 	\
-	(wnd->WindowColors [FRAME_COLOR] [BG])
-#define SelectForeground(wnd) 	\
-	(wnd->WindowColors [SELECT_COLOR] [FG])
-#define SelectBackground(wnd) 	\
-	(wnd->WindowColors [SELECT_COLOR] [BG])
-#define HighlightForeground(wnd) 	\
-	(wnd->WindowColors [HILITE_COLOR] [FG])
-#define HighlightBackground(wnd) 	\
-	(wnd->WindowColors [HILITE_COLOR] [BG])
-#define WindowClientColor(wnd, fg, bg) 	\
-		WndForeground(wnd) = fg, WndBackground(wnd) = bg
+#define WndForeground(wnd)              \
+        (wnd->WindowColors [STD_COLOR] [FG])
+#define WndBackground(wnd)              \
+        (wnd->WindowColors [STD_COLOR] [BG])
+#define FrameForeground(wnd)    \
+        (wnd->WindowColors [FRAME_COLOR] [FG])
+#define FrameBackground(wnd)    \
+        (wnd->WindowColors [FRAME_COLOR] [BG])
+#define SelectForeground(wnd)   \
+        (wnd->WindowColors [SELECT_COLOR] [FG])
+#define SelectBackground(wnd)   \
+        (wnd->WindowColors [SELECT_COLOR] [BG])
+#define HighlightForeground(wnd)        \
+        (wnd->WindowColors [HILITE_COLOR] [FG])
+#define HighlightBackground(wnd)        \
+        (wnd->WindowColors [HILITE_COLOR] [BG])
+#define WindowClientColor(wnd, fg, bg)  \
+                WndForeground(wnd) = fg, WndBackground(wnd) = bg
 #define WindowReverseColor(wnd, fg, bg) \
-		SelectForeground(wnd) = fg, SelectBackground(wnd) = bg
+                SelectForeground(wnd) = fg, SelectBackground(wnd) = bg
 #define WindowFrameColor(wnd, fg, bg) \
-		FrameForeground(wnd) = fg, FrameBackground(wnd) = bg
+                FrameForeground(wnd) = fg, FrameBackground(wnd) = bg
 #define WindowHighlightColor(wnd, fg, bg) \
-		HighlightForeground(wnd) = fg, HighlightBackground(wnd) = bg
+                HighlightForeground(wnd) = fg, HighlightBackground(wnd) = bg
 /* -------- text box prototypes ---------- */
 #define TextLine(wnd, sel) \
       (wnd->text + *((wnd->TextPointers) + sel))
@@ -405,23 +427,23 @@ void ExpandTabs(WINDOW wnd);
 WINDOW SliderBox(int, char *, char *);
 BOOL InputBox(WINDOW, char *, char *, char *, int, int);
 BOOL GenericMessage(WINDOW, char *, char *, int,
-	int (*)(struct window *, enum messages, PARAM, PARAM),
-	char *, char *, int, int, int);
-#define TestErrorMessage(msg)	\
-	GenericMessage(NULL, "Error", msg, 2, ErrorBoxProc,	  \
-		Ok, Cancel, ID_OK, ID_CANCEL, TRUE)
+        int (*)(struct window *, enum messages, PARAM, PARAM),
+        char *, char *, int, int, int);
+#define TestErrorMessage(msg)   \
+        GenericMessage(NULL, "Error", msg, 2, ErrorBoxProc,       \
+                Ok, Cancel, ID_OK, ID_CANCEL, TRUE)
 #define ErrorMessage(msg) \
-	GenericMessage(NULL, "Error", msg, 1, ErrorBoxProc,   \
-		Ok, NULL, ID_OK, 0, TRUE)
+        GenericMessage(NULL, "Error", msg, 1, ErrorBoxProc,   \
+                Ok, NULL, ID_OK, 0, TRUE)
 #define MessageBox(ttl, msg) \
-	GenericMessage(NULL, ttl, msg, 1, MessageBoxProc, \
-		Ok, NULL, ID_OK, 0, TRUE)
-#define YesNoBox(msg)	\
-	GenericMessage(NULL, NULL, msg, 2, YesNoBoxProc,   \
-		Yes, No, ID_OK, ID_CANCEL, TRUE)
+        GenericMessage(NULL, ttl, msg, 1, MessageBoxProc, \
+                Ok, NULL, ID_OK, 0, TRUE)
+#define YesNoBox(msg)   \
+        GenericMessage(NULL, NULL, msg, 2, YesNoBoxProc,   \
+                Yes, No, ID_OK, ID_CANCEL, TRUE)
 #define CancelBox(wnd, msg) \
-	GenericMessage(wnd, "Wait...", msg, 1, CancelBoxProc, \
-		Cancel, NULL, ID_CANCEL, 0, FALSE)
+        GenericMessage(wnd, "Wait...", msg, 1, CancelBoxProc, \
+                Cancel, NULL, ID_CANCEL, 0, FALSE)
 void CloseCancelBox(void);
 WINDOW MomentaryMessage(char *);
 int MsgHeight(char *);
@@ -449,6 +471,13 @@ void SetRadioButton(DBOX *, CTLWINDOW *);
 void ControlSetting(DBOX *, enum commands, int, int);
 BOOL isControlOn(DBOX *, enum commands, int);
 void SetFocusCursor(WINDOW);
+
+int CheckValue(WINDOW wnd, enum commands cmd);/*Check if Value is in Range and string is a Value*/
+double GetItemValue(WINDOW wnd, enum commands cmd);/*get the Value of a control window*/
+int PutItemValue(WINDOW wnd, enum commands cmd, double value);/*set the Value of a control window*/
+void GetItemMinMax (WINDOW wnd, enum commands cmd, MINMAXVALUE *mmi);/*get Min/Max/Int/Diff of c-wnd*/
+void PutItemMinMax(WINDOW wnd, enum commands cmd, MINMAXVALUE mmi);/*set Min/Max/Int/Diff of c-wnd*/
+
 
 #define GetControl(wnd)             (wnd->ct)
 #define GetDlgText(db, cmd)         GetDlgTextString(db, cmd, TEXT)

@@ -39,16 +39,16 @@ static int lagdelay = FIRSTDELAY;
 static void (interrupt far *oldtimer)(void);
 static void (interrupt far *oldkeyboard)(void);
 
-static int keyportvalue;	/* for watching for key release */
+volatile int keyportvalue;	/* for watching for key release */
 
 WINDOW CaptureMouse;
 WINDOW CaptureKeyboard;
 static BOOL NoChildCaptureMouse;
 static BOOL NoChildCaptureKeyboard;
 
-static int doubletimer = -1;
-static int delaytimer  = -1;
-static int clocktimer  = -1;
+volatile int doubletimer = -1;
+volatile int delaytimer  = -1;
+volatile int clocktimer  = -1;
 char time_string[] = "         ";
 
 static WINDOW Cwnd;
@@ -56,7 +56,7 @@ static WINDOW Cwnd;
 static void interrupt far newkeyboard(void)
 {
 	keyportvalue = inp(KEYBOARDPORT);
-	oldkeyboard();
+	_chain_intr ( oldkeyboard );
 }
 
 /* ------- timer interrupt service routine ------- */
@@ -68,7 +68,7 @@ static void interrupt far newtimer(void)
         countdown(delaytimer);
     if (timer_running(clocktimer))
         countdown(clocktimer);
-    oldtimer();
+    _chain_intr ( oldtimer );
 }
 
 static char ermsg[] = "Error accessing drive x";
@@ -89,23 +89,47 @@ int TestCriticalError(void)
 /* ------ critical error interrupt service routine ------ */
 static void interrupt far newcrit(IREGS ir)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    if (!(ir.eax & 0x8000))     {
+        ermsg[sizeof(ermsg) - 2] = (ir.eax & 0xff) + 'A';
+        CriticalError = TRUE;
+    }
+    ir.eax = 0;
+#else
     if (!(ir.ax & 0x8000))     {
         ermsg[sizeof(ermsg) - 2] = (ir.ax & 0xff) + 'A';
         CriticalError = TRUE;
     }
     ir.ax = 0;
+#endif
 }
 
 static void StopMsg(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+union REGS r;
+   r.x.eax = 0x205;
+   r.h.bl = TIMER;
+   r.x.ecx = FP_SEG(oldtimer);
+   r.x.edx = FP_OFF(oldtimer);
+   int386 (0x31, &r, &r);              /* Restore old pm INT 1ch handler */
+
+   r.x.eax = 0x205;
+   r.h.bl = KEYBOARDVECT;
+   r.x.ecx = FP_SEG(oldkeyboard);
+   r.x.edx = FP_OFF(oldkeyboard);
+   int386 (0x31, &r, &r);              /* Restore old pm INT 09h handler */
+
+#else
     if (oldtimer != NULL)    {
-        setvect(TIMER, oldtimer);
+		  setvect(TIMER, oldtimer);
         oldtimer = NULL;
     }
     if (oldkeyboard != NULL)    {
         setvect(KEYBOARDVECT, oldkeyboard);
         oldkeyboard = NULL;
     }
+#endif
 	ClearClipboard();
 	ClearDialogBoxes();
 	restorecursor();	
@@ -116,6 +140,10 @@ static void StopMsg(void)
 /* ------------ initialize the message system --------- */
 BOOL init_messages(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+  union REGS r;
+#endif
+
 	AllocTesting = TRUE;
 	if (setjmp(AllocError) != 0)	{
 		StopMsg();
@@ -133,6 +161,37 @@ BOOL init_messages(void)
     NoChildCaptureKeyboard = FALSE;
     MsgQueueOnCtr = MsgQueueOffCtr = MsgQueueCtr = 0;
     EventQueueOnCtr = EventQueueOffCtr = EventQueueCtr = 0;
+ 
+#if defined (__WATCOMC__) && defined (__386__)
+    if (oldtimer == NULL)    {
+       r.x.eax = 0x204;
+       r.h.bl = TIMER;
+       int386 (0x31, &r, &r);              /* Get old pm INT 1Ch handler */
+       oldtimer = MK_FP(r.w.cx, r.x.edx);
+       r.x.eax = 0x205;
+       r.h.bl = TIMER;
+       r.x.ecx = FP_SEG(newtimer);
+       r.x.edx = FP_OFF(newtimer);
+       int386 (0x31, &r, &r);              /* Set new pm INT 1Ch handler */
+    }
+    if (oldkeyboard == NULL)    {
+       r.x.eax = 0x204;
+       r.h.bl = KEYBOARDVECT;
+       int386 (0x31, &r, &r);              /* Get old pm INT 09h handler */
+       oldkeyboard = MK_FP(r.w.cx, r.x.edx);
+       r.x.eax = 0x205;
+       r.h.bl = 0x09;
+       r.x.ecx = FP_SEG (newkeyboard);
+       r.x.edx = FP_OFF (newkeyboard);
+       int386 (0x31, &r, &r);              /* Set new pm INT 09h handler */
+    }
+       r.x.eax = 0x205;
+       r.h.bl = CRIT;
+       r.x.ecx = FP_SEG (newcrit);
+       r.x.edx = FP_OFF (newcrit);
+       int386 (0x31, &r, &r);              /* Set new pm Crit Err handler */
+
+#else
     if (oldtimer == NULL)    {
         oldtimer = getvect(TIMER);
         setvect(TIMER, newtimer);
@@ -142,6 +201,7 @@ BOOL init_messages(void)
         setvect(KEYBOARDVECT, newkeyboard);
     }
     setvect(CRIT, newcrit);
+#endif 
     PostMessage(NULL,START,0,0);
     lagdelay = FIRSTDELAY;
 	return TRUE;
@@ -619,7 +679,7 @@ BOOL dispatch_message(void)
                 break;
             case CLOCKTICK:
                 SendMessage(Cwnd, ev.event,
-                    (PARAM) MK_FP(ev.mx, ev.my), 0);
+                    (PARAM) MK_FP(ev.mx, ev.my), 0);  /*ask*/
 				break;
             default:
                 break;
@@ -645,3 +705,4 @@ BOOL dispatch_message(void)
 }
 
 
+

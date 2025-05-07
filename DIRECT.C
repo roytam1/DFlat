@@ -152,16 +152,33 @@ void BuildDriveList(WINDOW wnd)
         	if (ndr == dr)    {
             	/* ----- test for remapped B drive ----- */
             	if (dr == 1)    {
+#if defined (__WATCOMC__) && defined (__386__)
+                	regs.x.eax = 0x440e; /* IOCTL func 14 */
+                	regs.h.bl = dr+1;
+                	int386(DOS, &regs, &regs);
+                	if (regs.h.al != 0)
+#else
                 	regs.x.ax = 0x440e; /* IOCTL func 14 */
                 	regs.h.bl = dr+1;
                 	int86(DOS, &regs, &regs);
                 	if (regs.h.al != 0)
+#endif
                     	continue;
             	}
 
             	sprintf(drname, "%c:", dr+'A');
 
             	/* ---- test for network or RAM disk ---- */
+#if defined (__WATCOMC__) && defined (__386__)
+            	regs.x.eax = 0x4409;     /* IOCTL func 9 */
+            	regs.h.bl = dr+1;
+            	int386(DOS, &regs, &regs);
+            	if (!regs.x.cflag)    {
+                	if (regs.x.edx & 0x1000)
+                    	strcat(drname, " (Net)");
+                	else if (regs.x.edx == 0x0800)
+                    	strcat(drname, " (RAM)");
+#else
             	regs.x.ax = 0x4409;     /* IOCTL func 9 */
             	regs.h.bl = dr+1;
             	int86(DOS, &regs, &regs);
@@ -170,6 +187,7 @@ void BuildDriveList(WINDOW wnd)
                     	strcat(drname, " (Net)");
                 	else if (regs.x.dx == 0x0800)
                     	strcat(drname, " (RAM)");
+#endif
             	}
             	SendMessage(lwnd,ADDTEXT,(PARAM)drname,0);
         	}
@@ -195,3 +213,4 @@ void BuildPathDisplay(WINDOW wnd)
 }
 
 
+

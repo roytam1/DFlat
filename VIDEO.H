@@ -5,8 +5,13 @@
 
 #include "rect.h"
 
+#if defined (__WATCOMC__) && defined (__386__)
+void getvideo(RECT, void  *);
+void storevideo(RECT, void  *);
+#else
 void getvideo(RECT, void far *);
 void storevideo(RECT, void far *);
+#endif
 extern unsigned video_mode;
 extern unsigned video_page;
 void wputch(WINDOW, int, int, int);

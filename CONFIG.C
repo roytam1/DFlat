@@ -34,6 +34,13 @@ unsigned char color[CLASSCOUNT] [4] [2] = {
     {LIGHTGRAY, BLUE},  /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
+    /* ----------- VALUEBOX ------------ */
+   {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
+    {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
+    {LIGHTGRAY, BLUE},  /* FRAME_COLOR  */
+    {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
+
+
     /* ---------- MENUBAR ------------- */
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
     {BLACK, CYAN},      /* SELECT_COLOR */
@@ -62,7 +69,7 @@ unsigned char color[CLASSCOUNT] [4] [2] = {
     {LIGHTGRAY, BLUE},  /* FRAME_COLOR  */
     {LIGHTGRAY, BLUE}}, /* HILITE_COLOR */
 
-	/* ------------ BOX --------------- */
+        /* ------------ BOX --------------- */
    {{LIGHTGRAY, BLUE},  /* STD_COLOR    */
     {LIGHTGRAY, BLUE},  /* SELECT_COLOR */
     {LIGHTGRAY, BLUE},  /* FRAME_COLOR  */
@@ -207,7 +214,7 @@ unsigned char bw[CLASSCOUNT] [4] [2] = {
     {LIGHTGRAY, BLACK},  /* FRAME_COLOR  */
     {LIGHTGRAY, BLACK}}, /* HILITE_COLOR */
 
-	/* ------------ BOX --------------- */
+        /* ------------ BOX --------------- */
    {{LIGHTGRAY, BLACK},  /* STD_COLOR    */
     {LIGHTGRAY, BLACK},  /* SELECT_COLOR */
     {LIGHTGRAY, BLACK},  /* FRAME_COLOR  */
@@ -351,7 +358,7 @@ unsigned char reverse[CLASSCOUNT] [4] [2] = {
     {BLACK, LIGHTGRAY},  /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}}, /* HILITE_COLOR */
 
-	/* ------------ BOX --------------- */
+        /* ------------ BOX --------------- */
    {{BLACK, LIGHTGRAY},  /* STD_COLOR    */
     {BLACK, LIGHTGRAY},  /* SELECT_COLOR */
     {BLACK, LIGHTGRAY},  /* FRAME_COLOR  */
@@ -423,7 +430,7 @@ unsigned char reverse[CLASSCOUNT] [4] [2] = {
     {LIGHTGRAY, BLACK}, /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
-	/* ---------- TITLEBAR ------------ */
+        /* ---------- TITLEBAR ------------ */
    {{LIGHTGRAY, BLACK},      /* STD_COLOR    */
     {LIGHTGRAY, BLACK},      /* SELECT_COLOR */
     {LIGHTGRAY, BLACK},      /* FRAME_COLOR  */
@@ -440,7 +447,7 @@ unsigned char reverse[CLASSCOUNT] [4] [2] = {
 CONFIG cfg = {
     VERSION,
     0,               /* Color                       */
-	FALSE,			 /* Snowy CGA                   */
+        FALSE,                   /* Snowy CGA                   */
     TRUE,            /* Editor Insert Mode          */
     4,               /* Editor tab stops            */
     TRUE,            /* Editor word wrap            */
@@ -451,59 +458,60 @@ CONFIG cfg = {
 #endif
     TRUE,            /* Textured application window */
     25,              /* Number of screen lines      */
-	"Lpt1",			 /* Printer Port                */
-	66,              /* Lines per printer page      */
-	80,				 /* characters per printer line */
-	6,				 /* Left printer margin			*/
-	70,				 /* Right printer margin		*/
-	3,				 /* Top printer margin			*/
-	55				 /* Bottom printer margin		*/
+        "Lpt1",                  /* Printer Port                */
+        66,              /* Lines per printer page      */
+        80,                              /* characters per printer line */
+        6,                               /* Left printer margin                 */
+        70,                              /* Right printer margin                */
+        3,                               /* Top printer margin                  */
+        55                              /* Bottom printer margin               */
+    
 };
 
 void BuildFileName(char *path, const char *fn, const char *ext)
 {
     char *cp;
 
-	strcpy(path, Argv[0]);
-	cp = strrchr(path, '\\');
-	if (cp == NULL)
-		cp = path;
-	else 
-		cp++;
-	strcpy(cp, fn);
-	strcat(cp, ext);
+        strcpy(path, Argv[0]);
+        cp = strrchr(path, '\\');
+        if (cp == NULL)
+                cp = path;
+        else 
+                cp++;
+        strcpy(cp, fn);
+        strcat(cp, ext);
 }
 
 FILE *OpenConfig(char *mode)
 {
-	char path[64];
-	BuildFileName(path, DFlatApplication, ".cfg");
-	return fopen(path, mode);
+        char path[64];
+        BuildFileName(path, DFlatApplication, ".cfg");
+        return fopen(path, mode);
 }
 
 /* ------ load a configuration file from disk ------- */
 BOOL LoadConfig(void)
 {
-	static BOOL ConfigLoaded = FALSE;
-	if (ConfigLoaded == FALSE)	{
-	    FILE *fp = OpenConfig("rb");
-    	if (fp != NULL)    {
-        	fread(cfg.version, sizeof cfg.version+1, 1, fp);
-        	if (strcmp(cfg.version, VERSION) == 0)    {
-            	fseek(fp, 0L, SEEK_SET);
-            	fread(&cfg, sizeof(CONFIG), 1, fp);
- 		       	fclose(fp);
-        	}
-        	else	{
-				char path[64];
-				BuildFileName(path, DFlatApplication, ".cfg");
-	        	fclose(fp);
-				unlink(path);
-            	strcpy(cfg.version, VERSION);
-			}
-			ConfigLoaded = TRUE;
-    	}
-	}
+        static BOOL ConfigLoaded = FALSE;
+        if (ConfigLoaded == FALSE)      {
+            FILE *fp = OpenConfig("rb");
+        if (fp != NULL)    {
+                fread(cfg.version, sizeof cfg.version+1, 1, fp);
+                if (strcmp(cfg.version, VERSION) == 0)    {
+                fseek(fp, 0L, SEEK_SET);
+                fread(&cfg, sizeof(CONFIG), 1, fp);
+                        fclose(fp);
+                }
+                else    {
+                                char path[64];
+                                BuildFileName(path, DFlatApplication, ".cfg");
+                        fclose(fp);
+                                unlink(path);
+                strcpy(cfg.version, VERSION);
+                        }
+                        ConfigLoaded = TRUE;
+        }
+        }
     return ConfigLoaded;
 }
 
@@ -529,4 +537,3 @@ void SetReverseColor(WINDOW wnd)
     foreground = SelectForeground(wnd);
     background = SelectBackground(wnd);
 }
-

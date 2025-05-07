@@ -21,6 +21,15 @@ enum commands {
     ID_PRINTSETUP,
     ID_DOS,
     ID_EXIT,
+    ID_G_Syntax,
+    ID_x_pos,
+    ID_y_pos,
+    ID_z_pos,
+    ID_AUSGABE,
+    ID_START,
+    ID_STOP,
+    ID_TEST,
+    ID_EINGABE,
     /* --------------- Edit menu ---------------- */
     ID_UNDO,
     ID_CUT,
@@ -33,9 +42,9 @@ enum commands {
     ID_SEARCH,
     ID_REPLACE,
     ID_SEARCHNEXT,
-	/* --------------- Utilities Menu ------------- */
-	ID_CALENDAR,
-	ID_BARCHART,
+        /* --------------- Utilities Menu ------------- */
+        ID_CALENDAR,
+        ID_BARCHART,
     /* -------------- Options menu -------------- */
     ID_INSERT,
     ID_WRAP,
@@ -46,7 +55,7 @@ enum commands {
     /* --------------- Window menu -------------- */
     ID_CLOSEALL,
     ID_WINDOW,
-	ID_MOREWINDOWS,
+        ID_MOREWINDOWS,
     /* --------------- Help menu ---------------- */
     ID_HELPHELP,
     ID_EXTHELP,
@@ -93,7 +102,7 @@ enum commands {
     ID_TITLE,
     ID_STATUSBAR,
     ID_TEXTURE,
-	ID_SNOWY,
+        ID_SNOWY,
     ID_COLOR,
     ID_MONO,
     ID_REVERSE,
@@ -108,15 +117,14 @@ enum commands {
     ID_BACK,
     ID_PREV,
     ID_NEXT,
-	/* ---------- Print Select dialog box --------- */
-	ID_PRINTERPORT,
-	ID_LEFTMARGIN,
-	ID_RIGHTMARGIN,
-	ID_TOPMARGIN,
-	ID_BOTTOMMARGIN,
-	/* ----------- InputBox dialog box ------------ */
-	ID_INPUTTEXT
+        /* ---------- Print Select dialog box --------- */
+        ID_PRINTERPORT,
+        ID_LEFTMARGIN,
+        ID_RIGHTMARGIN,
+        ID_TOPMARGIN,
+        ID_BOTTOMMARGIN,
+        /* ----------- InputBox dialog box ------------ */
+        ID_INPUTTEXT
 };
 
 #endif
-

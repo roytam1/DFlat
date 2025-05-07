@@ -107,6 +107,9 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             SendMessage(cwnd, SETFOCUS, TRUE, 0);
             return TRUE;
         case CLOSE_WINDOW:
+           SendMessage(cwnd, CLOSE_WINDOW, 0, 0);
+//	SendMessage(wnd, HIDE_WINDOW, 0, 0);
+//                	wnd->ct->setting = OFF;
             if (wnd->ct != NULL)
                 free(wnd->ct);
             wnd->ct = NULL;

@@ -15,6 +15,7 @@ DEFMENU(MainMenu)
         SEPARATOR
         SELECTION( "~Print",      ID_PRINT,        0, INACTIVE)
         SELECTION( "P~rinter setup...", ID_PRINTSETUP, 0, 0   )
+        SELECTION( "~Test", ID_TEST, 0, 0   )
         SEPARATOR
         SELECTION( "~DOS",        ID_DOS,          0, 0 )
         SELECTION( "E~xit",       ID_EXIT,     ALT_X, 0 )
@@ -41,11 +42,11 @@ DEFMENU(MainMenu)
         SELECTION( "~Next",      ID_SEARCHNEXT,  F3,   INACTIVE)
     ENDPOPDOWN
 
-	/* ------------ the Utilities popdown menu --------------- */
-	POPDOWN( "~Utilities", NULL, "Utility programs" )
-		SELECTION( "~Calendar",   ID_CALENDAR,     0,   0)
-		SELECTION( "~Bar chart",  ID_BARCHART,     0,   0)
-	ENDPOPDOWN
+        /* ------------ the Utilities popdown menu --------------- */
+        POPDOWN( "~Utilities", NULL, "Utility programs" )
+                SELECTION( "~Calendar",   ID_CALENDAR,     0,   0)
+                SELECTION( "~Bar chart",  ID_BARCHART,     0,   0)
+        ENDPOPDOWN
 
     /* ------------- the Options popdown menu ---------------*/
     POPDOWN( "~Options", NULL, "Editor and display options" )
@@ -91,12 +92,12 @@ DEFMENU(MainMenu)
         SELECTION(  "~About...",          ID_ABOUT,     0, 0 )
     ENDPOPDOWN
 
-	/* ----- cascaded pulldown from Tabs... above ----- */
-	CASCADED_POPDOWN( ID_TABS, NULL )
-		SELECTION( "~2 tab stops", ID_TAB2, 0, 0)
-		SELECTION( "~4 tab stops", ID_TAB4, 0, 0)
-		SELECTION( "~6 tab stops", ID_TAB6, 0, 0)
-		SELECTION( "~8 tab stops", ID_TAB8, 0, 0)
+        /* ----- cascaded pulldown from Tabs... above ----- */
+        CASCADED_POPDOWN( ID_TABS, NULL )
+                SELECTION( "~2 tab stops", ID_TAB2, 0, 0)
+                SELECTION( "~4 tab stops", ID_TAB4, 0, 0)
+                SELECTION( "~6 tab stops", ID_TAB6, 0, 0)
+                SELECTION( "~8 tab stops", ID_TAB8, 0, 0)
     ENDPOPDOWN
 
 ENDMENU
@@ -120,4 +121,3 @@ DEFMENU(SystemMenu)
     ENDPOPDOWN
 ENDMENU
 
-

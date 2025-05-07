@@ -17,6 +17,7 @@ ClassDef(  APPLICATION, NORMAL,  ApplicationProc, VISIBLE   |
 ClassDef(  TEXTBOX,     NORMAL,  TextBoxProc,     0          )
 ClassDef(  LISTBOX,     TEXTBOX, ListBoxProc,     0          )
 ClassDef(  EDITBOX,     TEXTBOX, EditBoxProc,     0          )
+ClassDef(  VALUEBOX,   EDITBOX, ValueBoxProc,     0          )
 ClassDef(  MENUBAR,     NORMAL,  MenuBarProc,     NOCLIP     )
 ClassDef(  POPDOWNMENU, LISTBOX, PopDownProc,     SAVESELF  |
                                                   NOCLIP    |

@@ -742,4 +742,3 @@ static void SelectTitle(WINDOW wnd)
 
 #endif
 
-

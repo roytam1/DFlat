@@ -5,7 +5,7 @@
 typedef struct    {
     int lf,tp,rt,bt;
 } RECT;
-#define within(p,v1,v2)   ((p)>=(v1)&&(p)<=(v2))
+#define within(p,v1,v2)   ((p)>=(v1) && (p)<=(v2))
 #define RectTop(r)        (r.tp)
 #define RectBottom(r)     (r.bt)
 #define RectLeft(r)       (r.lf)

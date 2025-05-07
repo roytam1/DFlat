@@ -23,26 +23,33 @@ static union REGS regs;
 /* ------------- clear the screen -------------- */
 void clearscreen(void)
 {
-	int ht = SCREENHEIGHT;
-	int wd = SCREENWIDTH;
-	cursor(0, 0);
-	regs.h.al = ' ';
-	regs.h.ah = 9;
-	regs.x.bx = 7;
-	regs.x.cx = ht * wd;
-	int86(VIDEO, &regs, &regs);
+    int ht = SCREENHEIGHT;
+    int wd = SCREENWIDTH;
+    cursor(0, 0);
+    regs.h.al = ' ';
+    regs.h.ah = 9;
+#if defined(__WATCOMC__) && defined(__386__)
+    regs.x.ebx = 7;
+    regs.x.ecx = ht * wd;
+    int386(VIDEO, &regs, &regs);
+#else
+    regs.x.bx = 7;
+    regs.x.cx = ht * wd;
+    int86(VIDEO, &regs, &regs);
+#endif
 }
+
 
 void SwapCursorStack(void)
 {
-	if (cs > 1)	{
-		swap(cursorpos[cs-2], cursorpos[cs-1]);
-		swap(cursorshape[cs-2], cursorshape[cs-1]);
-	}
+  if (cs > 1)	{
+    swap(cursorpos[cs-2], cursorpos[cs-1]);
+    swap(cursorshape[cs-2], cursorshape[cs-1]);
+  }
 }
 
 #ifndef MSC
-#ifndef WATCOM
+#ifndef __WATCOMC__
 #define ZEROFLAG 0x40
 /* ---- Test for keystroke ---- */
 BOOL keyhit(void)
@@ -70,12 +77,22 @@ int getkey(void)
 /* ---------- read the keyboard shift status --------- */
 int getshift(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    regs.h.ah = 2;
+    int386(KEYBRD, &regs, &regs);
+    return regs.h.al;
+#else
     regs.h.ah = 2;
     int86(KEYBRD, &regs, &regs);
     return regs.h.al;
+#endif
 }
 
-static int far *clk = MK_FP(0x40,0x6c);
+#if defined (__WATCOMC__) && defined (__386__)
+static volatile int  *clk =0x046c;
+#else
+static volatile int far *clk = MK_FP(0x40,0x6c);
+#endif
 /* ------- macro to wait one clock tick -------- */
 #define wait()          \
 {                       \
@@ -99,31 +116,55 @@ void beep(void)
 /* -------- get the video mode and page from BIOS -------- */
 void videomode(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    regs.h.ah = 15;
+    int386(VIDEO, &regs, &regs);
+    video_mode = regs.h.al;
+    video_page = regs.x.ebx;
+    video_page &= 0xff00;
+    video_mode &= 0x7f;
+#else
     regs.h.ah = 15;
     int86(VIDEO, &regs, &regs);
     video_mode = regs.h.al;
     video_page = regs.x.bx;
     video_page &= 0xff00;
     video_mode &= 0x7f;
+#endif
 }
 
 /* ------ position the cursor ------ */
 void cursor(int x, int y)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    videomode();
+    regs.x.edx = ((y << 8) & 0xff00) + x;
+    regs.h.ah = SETCURSOR;
+    regs.x.ebx = video_page;
+    int386(VIDEO, &regs, &regs);
+#else
     videomode();
     regs.x.dx = ((y << 8) & 0xff00) + x;
     regs.h.ah = SETCURSOR;
     regs.x.bx = video_page;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 /* ------ get cursor shape and position ------ */
 static void near getcursor(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    videomode();
+    regs.h.ah = READCURSOR;
+    regs.x.ebx = video_page;
+    int386(VIDEO, &regs, &regs);
+#else
     videomode();
     regs.h.ah = READCURSOR;
     regs.x.bx = video_page;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 /* ------- get the current cursor position ------- */
@@ -137,17 +178,37 @@ void curr_cursor(int *x, int *y)
 /* ------ save the current cursor configuration ------ */
 void savecursor(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    if (cs < MAXSAVES)    {
+        getcursor();
+        cursorshape[cs] = regs.x.ecx;
+        cursorpos[cs] = regs.x.edx;
+        cs++;
+    }
+#else
     if (cs < MAXSAVES)    {
         getcursor();
         cursorshape[cs] = regs.x.cx;
         cursorpos[cs] = regs.x.dx;
         cs++;
     }
+#endif
 }
 
 /* ---- restore the saved cursor configuration ---- */
 void restorecursor(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    if (cs)    {
+        --cs;
+        videomode();
+        regs.x.edx = cursorpos[cs];
+        regs.h.ah = SETCURSOR;
+        regs.x.ebx = video_page;
+        int386(VIDEO, &regs, &regs);
+        set_cursor_type(cursorshape[cs]);
+    }
+#else
     if (cs)    {
         --cs;
         videomode();
@@ -157,6 +218,7 @@ void restorecursor(void)
         int86(VIDEO, &regs, &regs);
         set_cursor_type(cursorshape[cs]);
     }
+#endif
 }
 
 /* ------ make a normal cursor ------ */
@@ -168,126 +230,211 @@ void normalcursor(void)
 /* ------ hide the cursor ------ */
 void hidecursor(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    getcursor();
+    regs.h.ch |= HIDECURSOR;
+    regs.h.ah = SETCURSORTYPE;
+    int386(VIDEO, &regs, &regs);
+#else
     getcursor();
     regs.h.ch |= HIDECURSOR;
     regs.h.ah = SETCURSORTYPE;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 /* ------ unhide the cursor ------ */
 void unhidecursor(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    getcursor();
+    regs.h.ch &= ~HIDECURSOR;
+    regs.h.ah = SETCURSORTYPE;
+    int386(VIDEO, &regs, &regs);
+#else
     getcursor();
     regs.h.ch &= ~HIDECURSOR;
     regs.h.ah = SETCURSORTYPE;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 /* ---- use BIOS to set the cursor type ---- */
 void set_cursor_type(unsigned t)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    videomode();
+    regs.h.ah = SETCURSORTYPE;
+    regs.x.ebx = video_page;
+    regs.x.ecx = t;
+    int386(VIDEO, &regs, &regs);
+#else
     videomode();
     regs.h.ah = SETCURSORTYPE;
     regs.x.bx = video_page;
     regs.x.cx = t;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 /* ---- test for EGA -------- */
 BOOL isEGA(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    if (isVGA())
+        return FALSE;
+    regs.h.ah = 0x12;
+    regs.h.bl = 0x10;
+    int386(VIDEO, &regs, &regs);
+    return regs.h.bl != 0x10;
+#else
     if (isVGA())
         return FALSE;
     regs.h.ah = 0x12;
     regs.h.bl = 0x10;
     int86(VIDEO, &regs, &regs);
     return regs.h.bl != 0x10;
+#endif
 }
 
 /* ---- test for VGA -------- */
 BOOL isVGA(void)
-{
+{int temp;
+#if defined (__WATCOMC__) && defined (__386__)
+    regs.x.eax = 0x1a00;
+    int386(VIDEO, &regs, &regs);
+    temp=( regs.h.al == 0x1a && regs.h.bl > 6);
+    return temp;
+#else
     regs.x.ax = 0x1a00;
     int86(VIDEO, &regs, &regs);
     return regs.h.al == 0x1a && regs.h.bl > 6;
+#endif 
 }
 
 static void Scan350(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    regs.x.eax = 0x1201;
+    regs.h.bl = 0x30;
+    int386(VIDEO, &regs, &regs);
+    regs.h.ah = 0x0f;
+    int386(VIDEO, &regs, &regs);
+    regs.h.ah = 0x00;
+    int386(VIDEO, &regs, &regs);
+#else
     regs.x.ax = 0x1201;
     regs.h.bl = 0x30;
     int86(VIDEO, &regs, &regs);
-	regs.h.ah = 0x0f;
+    regs.h.ah = 0x0f;
     int86(VIDEO, &regs, &regs);
-	regs.h.ah = 0x00;
+    regs.h.ah = 0x00;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 static void Scan400(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    regs.x.eax = 0x1202;
+    regs.h.bl = 0x30;
+    int386(VIDEO, &regs, &regs);
+    regs.h.ah = 0x0f;
+    int386(VIDEO, &regs, &regs);
+    regs.h.ah = 0x00;
+    int386(VIDEO, &regs, &regs);
+#else
     regs.x.ax = 0x1202;
     regs.h.bl = 0x30;
     int86(VIDEO, &regs, &regs);
-	regs.h.ah = 0x0f;
+    regs.h.ah = 0x0f;
     int86(VIDEO, &regs, &regs);
-	regs.h.ah = 0x00;
+    regs.h.ah = 0x00;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 /* ---------- set 25 line mode ------- */
 void Set25(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
     if (isVGA())	{
         Scan400();
-		regs.x.ax = 0x1114;
-	}
-	else
-		regs.x.ax = 0x1111;
+    regs.x.eax = 0x1114;
+    }
+    else
+    regs.x.eax = 0x1111;
+    regs.h.bl = 0;
+    int386(VIDEO, &regs, &regs);
+#else
+    if (isVGA())	{
+        Scan400();
+    regs.x.ax = 0x1114;
+    }
+    else
+    regs.x.ax = 0x1111;
     regs.h.bl = 0;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 /* ---------- set 43 line mode ------- */
 void Set43(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    if (isVGA())
+        Scan350();
+    regs.x.eax = 0x1112;
+    regs.h.bl = 0;
+    int386(VIDEO, &regs, &regs);
+#else
     if (isVGA())
         Scan350();
     regs.x.ax = 0x1112;
     regs.h.bl = 0;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 /* ---------- set 50 line mode ------- */
 void Set50(void)
 {
+#if defined (__WATCOMC__) && defined (__386__)
+    if (isVGA())
+        Scan400();
+    regs.x.eax = 0x1112;
+    regs.h.bl = 0;
+    int386(VIDEO, &regs, &regs);
+#else
     if (isVGA())
         Scan400();
     regs.x.ax = 0x1112;
     regs.h.bl = 0;
     int86(VIDEO, &regs, &regs);
+#endif
 }
 
 /* ------ convert an Alt+ key to its letter equivalent ----- */
 int AltConvert(int c)
 {
-	int i, a = 0;
-	for (i = 0; i < 36; i++)
-		if (c == altconvert[i])
-			break;
-	if (i < 26)
-		a = 'a' + i;
-	else if (i < 36)
-		a = '0' + i - 26;
-	return a;
+  int i, a = 0;
+  for (i = 0; i < 36; i++)
+    if (c == altconvert[i])
+      break;
+  if (i < 26)
+    a = 'a' + i;
+  else if (i < 36)
+    a = '0' + i - 26;
+  return a;
 }
 
-#if MSC | WATCOM
+#if MSC | __WATCOMC__
 int getdisk(void)
 {
-	unsigned int cd;
-	_dos_getdrive(&cd);
-	cd -= 1;
-	return cd;
+  unsigned int cd;
+  _dos_getdrive(&cd);
+  cd -= 1;
+  return cd;
 }
 #endif
 
