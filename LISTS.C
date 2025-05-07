@@ -1,6 +1,6 @@
 /* --------------- lists.c -------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 /* ----- set focus to the next sibling ----- */
 void SetNextFocus()
@@ -61,12 +61,19 @@ void SetPrevFocus()
 }
 
 /* ------- move a window to the end of its parents list ----- */
+/* Bad: This shuffles around the window list items, but we need */
+/* it as the "next" relation of siblings determines the window  */
+/* stacking: Z coordinate, "last" window is the topmost one...  */
 void ReFocus(WINDOW wnd)
 {
 	if (GetParent(wnd) != NULL)	{
-		RemoveWindow(wnd);
-		AppendWindow(wnd);
-		ReFocus(GetParent(wnd));
+		RemoveWindow(wnd); /* splice out window from list:    */
+		/* if it was a first-child, make the next one first,  */
+		/* if it was a last-child, make the previous one last */
+		AppendWindow(wnd); /* add window as last one in list: */
+		/* if it has a parent w/o first-child, make it first, */
+		/* if it has a parent, make it last-child...          */
+		ReFocus(GetParent(wnd)); /* recurse until at top */
 	}
 }
 
@@ -122,4 +129,3 @@ void SkipApplicationControls(void)
 	}
 }
 
-

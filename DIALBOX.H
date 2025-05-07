@@ -23,7 +23,7 @@ typedef struct {
     DIALOGWINDOW dwnd;
     CLASS Class;    /* LISTBOX, BUTTON, etc */
     char *itext;    /* initialized text     */
-    int command;    /* command code         */
+    UCOMMAND command;/* command code         */
     char *help;     /* help mnemonic        */
     BOOL isetting;  /* initially ON or OFF  */
     BOOL setting;   /* ON or OFF            */
@@ -53,4 +53,4 @@ typedef struct {
 #define No      "   No   "
 
 #endif
-
+

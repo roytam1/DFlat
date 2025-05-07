@@ -1,10 +1,10 @@
 /* ---------- dfalloc.c ---------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 static void AllocationError(void)
 {
-	WINDOW wnd;
+	/* WINDOW wnd; */ /* no real window used! */
 	static BOOL OnceIn = FALSE;
 	extern jmp_buf AllocError;
 	extern BOOL AllocTesting;
@@ -53,9 +53,10 @@ void *DFmalloc(size_t size)
 
 void *DFrealloc(void *block, size_t size)
 {
-	void *rtn = realloc(block, size);
+	void *rtn = (block == NULL)
+	  ? malloc(size) /* *** new in 0.6e *** */
+	  : realloc(block, size);
 	if (size && rtn == NULL)
 		AllocationError();
 	return rtn;
 }
-

@@ -3,6 +3,8 @@
 #ifndef HTREE_H
 #define HTREE_H
 
+#include <stdio.h>
+
 typedef unsigned int BYTECOUNTER;
 
 /* ---- Huffman tree structure for building ---- */
@@ -29,4 +31,4 @@ void SeekHelpLine(long, int);
 
 #endif
 
-
+

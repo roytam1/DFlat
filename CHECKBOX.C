@@ -1,6 +1,6 @@
 /* -------------- checkbox.c ------------ */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 int CheckBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
@@ -38,7 +38,7 @@ int CheckBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(CHECKBOX, wnd, msg, p1, p2);
 }
 
-BOOL CheckBoxSetting(DBOX *db, enum commands cmd)
+BOOL CheckBoxSetting(DBOX *db, UCOMMAND cmd)
 {
     CTLWINDOW *ct = FindCommand(db, cmd, CHECKBOX);
     return ct ? (ct->wnd ? (ct->setting==ON) : (ct->isetting==ON)) : FALSE;

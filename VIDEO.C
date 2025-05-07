@@ -1,15 +1,21 @@
 /* --------------------- video.c -------------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 BOOL ClipString;
-static BOOL snowy;
 
 static unsigned video_address;
 static int near vpeek(int far *vp);
 static void near vpoke(int far *vp, int c);
 void movefromscreen(void *bf, int offset, int len);
 void movetoscreen(void *bf, int offset, int len);
+
+
+VideoResolution  TXT25 = {80, 25, FALSE, "PC Standard 80x25 text mode"};
+VideoResolution  TXT43 = {80, 43, FALSE, "EGA/VGA 80x43 text mode"};
+VideoResolution  TXT50 = {80, 50, FALSE, "EGA/VGA 80x50 text mode"};
+
+
 
 /* -- read a rectangle of video memory into a save buffer -- */
 void getvideo(RECT rc, void far *bf)
@@ -46,7 +52,7 @@ unsigned int GetVideoChar(int x, int y)
 {
     int c;
     hide_mousecursor();
-	if (snowy)
+	if (SysConfig.VideoSnowyFlag)
 	    c = vpeek(MK_FP(video_address, vad(x,y)));
 	else
 	    c = peek(video_address, vad(x,y));
@@ -59,7 +65,7 @@ void PutVideoChar(int x, int y, int c)
 {
     if (x < SCREENWIDTH && y < SCREENHEIGHT)    {
         hide_mousecursor();
-		if (snowy)
+		if (SysConfig.VideoSnowyFlag)
 	        vpoke(MK_FP(video_address, vad(x,y)), c);
 		else
 	        poke(video_address, vad(x,y), c);
@@ -118,7 +124,7 @@ void wputch(WINDOW wnd, int c, int x, int y)
 		int xc = GetLeft(wnd)+x;
 		int yc = GetTop(wnd)+y;
         hide_mousecursor();
-		if (snowy)
+		if (SysConfig.VideoSnowyFlag)
         	vpoke(MK_FP(video_address, vad(xc, yc)), ch);
 		else
         	poke(video_address, vad(xc, yc), ch);
@@ -129,95 +135,130 @@ void wputch(WINDOW wnd, int c, int x, int y)
 /* ------- write a string to a window ---------- */
 void wputs(WINDOW wnd, void *s, int x, int y)
 {
-	int x1 = GetLeft(wnd)+x;
-	int x2 = x1;
-	int y1 = GetTop(wnd)+y;
-    if (x1 < SCREENWIDTH && y1 < SCREENHEIGHT && isVisible(wnd))	{
-		int ln[200];
-		int *cp1 = ln;
-	    unsigned char *str = s;
-	    int fg = foreground;
-    	int bg = background;
-	    int len;
-		int off = 0;
-        while (*str)    {
-            if (*str == CHANGECOLOR)    {
+    int x1=GetLeft(wnd)+x;
+    int x2=x1;
+    int y1=GetTop(wnd)+y;
+
+    if (x1 < SCREENWIDTH && y1 < SCREENHEIGHT && isVisible(wnd))
+        {
+        int ln[200];
+        int *cp1=ln;
+        int fg=foreground;
+        int bg=background;
+        int len;
+        int off=0;
+        unsigned char *str=s;
+
+        while (*str)
+            {
+            if (*str == CHANGECOLOR)
+                {
+                int fgcode, bgcode;	/* new 0.7c: sanity checks */
                 str++;
-                foreground = (*str++) & 0x7f;
-                background = (*str++) & 0x7f;
-                continue;
-            }
-            if (*str == RESETCOLOR)    {
+                fgcode = (*str++);
+                bgcode = (*str++);
+                if ((fgcode & 0x80) && (bgcode & 0x80) &&
+                    !(fgcode & 0x70) && !(bgcode & 0x70)) {
+                    foreground = fgcode & 0x7f;
+                    background = bgcode & 0x7f;
+                    continue;
+                } else {	/* this also makes CHANGECOLOR almost normal */
+                    str--;	/* and useable as character in your texts... */
+                    str--;	/* treat as non-escape sequence */
+                    str--;
+                }
+                }
+
+            if (*str == RESETCOLOR)
+                {
                 foreground = fg & 0x7f;
                 background = bg & 0x7f;
                 str++;
                 continue;
+                }
+
+#ifdef TAB_TOGGLING	/* made consistent with editor.c - 0.7c */
+            if (*str == ('\t' | 0x80) || *str == ('\f' | 0x80))
+                *cp1 = ' ' | (clr(foreground, background) << 8);
+            else 
+#endif
+                *cp1 = (*str & 255) | (clr(foreground, background) << 8);
+
+            if (ClipString)
+                if (!CharInView(wnd, x, y))
+                    *cp1 = peek(video_address, vad(x2,y1));
+
+            cp1++;
+            str++;
+            x++;
+            x2++;
             }
-			if (*str == ('\t' | 0x80) || *str == ('\f' | 0x80))
-	   	        *cp1 = ' ' | (clr(foreground, background) << 8);
-			else 
-	   	        *cp1 = (*str & 255) | (clr(foreground, background) << 8);
-			if (ClipString)
-				if (!CharInView(wnd, x, y))
-					*cp1 = peek(video_address, vad(x2,y1));
-			cp1++;
-			str++;
-			x++;
-			x2++;
-        }
+
         foreground = fg;
         background = bg;
-   		len = (int)(cp1-ln);
-   		if (x1+len > SCREENWIDTH)
-       		len = SCREENWIDTH-x1;
+        len = (int)(cp1-ln);
+        if (x1+len > SCREENWIDTH)
+            len = SCREENWIDTH-x1;
 
-		if (!ClipString && !TestAttribute(wnd, NOCLIP))	{
-			/* -- clip the line to within ancestor windows -- */
-			RECT rc = WindowRect(wnd);
-			WINDOW nwnd = GetParent(wnd);
-			while (len > 0 && nwnd != NULL)	{
-				if (!isVisible(nwnd))	{
-					len = 0;
-					break;
-				}
-				rc = subRectangle(rc, ClientRect(nwnd));
-				nwnd = GetParent(nwnd);
-			}
-			while (len > 0 && !InsideRect(x1+off,y1,rc))	{
-				off++;
-				--len;
-			}
-			if (len > 0)	{
-				x2 = x1+len-1;
-				while (len && !InsideRect(x2,y1,rc))	{
-					--x2;
-					--len;
-				}
-			}
-		}
-		if (len > 0)	{
-        	hide_mousecursor();
-			movetoscreen(ln+off, vad(x1+off,y1), len*2);
-        	show_mousecursor();
-		}
-    }
+        if (!ClipString && !TestAttribute(wnd, NOCLIP))
+            {
+            /* -- clip the line to within ancestor windows -- */
+            RECT rc = WindowRect(wnd);
+            WINDOW nwnd = GetParent(wnd);
+
+            while (len > 0 && nwnd != NULL)
+                {
+                if (!isVisible(nwnd))
+                    {
+                    len = 0;
+                    break;
+                    }
+
+                rc = subRectangle(rc, ClientRect(nwnd));
+                nwnd = GetParent(nwnd);
+                }
+
+            while (len > 0 && !InsideRect(x1+off,y1,rc))
+                {
+                off++;
+                --len;
+                }
+
+            if (len > 0)
+                {
+                x2 = x1+len-1;
+                while (len && !InsideRect(x2,y1,rc))
+                    {
+                    --x2;
+                    --len;
+                    }
+
+                }
+
+            }
+
+        if (len > 0)
+            {
+            hide_mousecursor();
+            movetoscreen(ln+off, vad(x1+off,y1), len*2);
+            show_mousecursor();
+            }
+
+        }
+
 }
 
 /* --------- get the current video mode -------- */
 void get_videomode(void)
 {
     videomode();
+
     /* ---- Monochrome Display Adaptor or text mode ---- */
-	snowy = FALSE;
     if (ismono())
         video_address = 0xb000;
-    else	{
-        /* ------ Text mode -------- */
+    else
         video_address = 0xb800 + video_page;
-		if (!isEGA() && !isVGA())
-			/* -------- CGA --------- */
-			snowy = cfg.snowy;
-	}
+
 }
 
 /* --------- scroll the window. d: 1 = up, 0 = dn ---------- */
@@ -239,38 +280,35 @@ void scroll_window(WINDOW wnd, RECT rc, int d)
 }
 
 
+/* Waits for the beginning of a vertical ("big") retrace, to
+ * avoid flicker. Old version of this was in Assembly language.
+ */
 static void near waitforretrace(void)
 {
-#ifndef WATCOM
-asm		mov		dx,3dah
-loop1:
-asm		mov		cx,6
-loop2:
-asm		in		al,dx
-asm		test	al,8
-asm		jnz		loop2
-asm		test	al,1
-asm		jz		loop2
-asm		cli
-loop3:
-asm		in		al,dx
-asm		test	al,1
-asm		loopnz	loop3
-asm		sti
-asm		jz		loop1
-#endif
+	/* disable interrupts */
+	disable();
+
+			/* next 2 lines are to catch a FULL vretrace */
+        if (inp(0x3da) & 8)		/* if inside vertical retrace */
+            while ( inp(0x3da) & 8 );	/* wait until retrace ends */
+
+        while (!( inp(0x3da) & 8 ));	/* wait for vretrace to START */
+	while (!( inp(0x3da) & 0x01 ));	/* wait for 1st hretrace in it */
+
+	/* re-enable interrupts */
+	enable();
 }
 
 void movetoscreen(void *bf, int offset, int len)
 {
-	if (snowy)
+	if (SysConfig.VideoSnowyFlag)
 		waitforretrace();
 	movedata(FP_SEG(bf), FP_OFF(bf), video_address, offset, len);
 }
 
 void movefromscreen(void *bf, int offset, int len)
 {
-	if (snowy)
+	if (SysConfig.VideoSnowyFlag)
 		waitforretrace();
 	movedata(video_address, offset,	FP_SEG(bf), FP_OFF(bf),	len);
 }
@@ -279,15 +317,28 @@ void movefromscreen(void *bf, int offset, int len)
 static int near vpeek(int far *vp)
 {
 	int c;
-	waitforretrace();
+	if (SysConfig.VideoSnowyFlag)	/* added 0.7c */
+		waitforretrace();
 	c = *vp;
 	return c;
 }
 
 static void near vpoke(int far *vp, int c)
 {
-	waitforretrace();
+	if (SysConfig.VideoSnowyFlag)	/* added 0.7c */
+		waitforretrace();
 	*vp = c;
 }
 
-
+BOOL GetSnowyFlag ( void )
+{
+		return SysConfig.VideoSnowyFlag;
+}
+
+
+void SetSnowyFlag ( BOOL newflag)
+{
+		SysConfig.VideoSnowyFlag = newflag;
+}
+
+

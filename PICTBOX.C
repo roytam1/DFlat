@@ -1,6 +1,6 @@
 /* -------------- pictbox.c -------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 typedef struct    {
     enum VectTypes vt;
@@ -50,6 +50,7 @@ unsigned char VectCvt[3][11][2][4] = {
              {{"ÁÁÁ"},     {"ÅÅÁ"}},
              {{"ÂÂÂ"},     {"ÂÂÂ"}}    }
 };
+
 
 /* -- compute whether character is first, middle, or last -- */
 static int FindVector(WINDOW wnd, RECT rc, int x, int y)
@@ -280,4 +281,3 @@ void DrawBar(WINDOW wnd,enum VectTypes vt,
     RECT rc = PictureRect(x,y,len,hv);
     SendMessage(wnd, DRAWBAR, (PARAM) &rc, (PARAM) vt);
 }
-

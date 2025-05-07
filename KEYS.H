@@ -3,118 +3,150 @@
 #ifndef KEYS_H
 #define KEYS_H
 
+#ifdef HOOKKEYB
 #define OFFSET 0x1000
+#error You have to restore keys.h to EDIT 0.6 state to re-enable int 9 handling!
+#else
+#define FKEY 0x1000	/* offset for non-ASCII keys */
+#endif
 
-#define RUBOUT        8
-#define BELL          7
-#define ESC          27
-#define ALT_BS      (197+OFFSET)
-#define ALT_DEL     (184+OFFSET)
-#define SHIFT_DEL   (198+OFFSET)
-#define CTRL_INS    (186+OFFSET)
-#define SHIFT_INS   (185+OFFSET)
-#define SHIFT_F8    (219+OFFSET)
-#define F1          (187+OFFSET)
-#define F2          (188+OFFSET)
-#define F3          (189+OFFSET)
-#define F4          (190+OFFSET)
-#define F5          (191+OFFSET)
-#define F6          (192+OFFSET)
-#define F7          (193+OFFSET)
-#define F8          (194+OFFSET)
-#define F9          (195+OFFSET)
-#define F10         (196+OFFSET)
-#define CTRL_F1     (222+OFFSET)
-#define CTRL_F2     (223+OFFSET)
-#define CTRL_F3     (224+OFFSET)
-#define CTRL_F4     (225+OFFSET)
-#define CTRL_F5     (226+OFFSET)
-#define CTRL_F6     (227+OFFSET)
-#define CTRL_F7     (228+OFFSET)
-#define CTRL_F8     (229+OFFSET)
-#define CTRL_F9     (230+OFFSET)
-#define CTRL_F10    (231+OFFSET)
-#define ALT_F1      (232+OFFSET)
-#define ALT_F2      (233+OFFSET)
-#define ALT_F3      (234+OFFSET)
-#define ALT_F4      (235+OFFSET)
-#define ALT_F5      (236+OFFSET)
-#define ALT_F6      (237+OFFSET)
-#define ALT_F7      (238+OFFSET)
-#define ALT_F8      (239+OFFSET)
-#define ALT_F9      (240+OFFSET)
-#define ALT_F10     (241+OFFSET)
-#define HOME        (199+OFFSET)
-#define UP          (200+OFFSET)
-#define PGUP        (201+OFFSET)
-#define BS          (203+OFFSET)
-#define FWD         (205+OFFSET)
-#define END         (207+OFFSET)
-#define DN          (208+OFFSET)
-#define PGDN        (209+OFFSET)
-#define INS         (210+OFFSET)
-#define DEL         (211+OFFSET)
-#define CTRL_HOME   (247+OFFSET)
-#define CTRL_PGUP   (132+OFFSET)
-#define CTRL_BS     (243+OFFSET)
-#define CTRL_FIVE   (143+OFFSET)
-#define CTRL_FWD    (244+OFFSET)
-#define CTRL_END    (245+OFFSET)
-#define CTRL_PGDN   (246+OFFSET)
-#define SHIFT_HT    (143+OFFSET)
-#define ALT_A       (158+OFFSET)
-#define ALT_B       (176+OFFSET)
-#define ALT_C       (174+OFFSET)
-#define ALT_D       (160+OFFSET)
-#define ALT_E       (146+OFFSET)
-#define ALT_F       (161+OFFSET)
-#define ALT_G       (162+OFFSET)
-#define ALT_H       (163+OFFSET)
-#define ALT_I       (151+OFFSET)
-#define ALT_J       (164+OFFSET)
-#define ALT_K       (165+OFFSET)
-#define ALT_L       (166+OFFSET)
-#define ALT_M       (178+OFFSET)
-#define ALT_N       (177+OFFSET)
-#define ALT_O       (152+OFFSET)
-#define ALT_P       (153+OFFSET)
-#define ALT_Q       (144+OFFSET)
-#define ALT_R       (147+OFFSET)
-#define ALT_S       (159+OFFSET)
-#define ALT_T       (148+OFFSET)
-#define ALT_U       (150+OFFSET)
-#define ALT_V       (175+OFFSET)
-#define ALT_W       (145+OFFSET)
-#define ALT_X       (173+OFFSET)
-#define ALT_Y       (149+OFFSET)
-#define ALT_Z       (172+OFFSET)
-#define ALT_1      (0xf8+OFFSET)
-#define ALT_2      (0xf9+OFFSET)
-#define ALT_3      (0xfa+OFFSET)
-#define ALT_4      (0xfb+OFFSET)
-#define ALT_5      (0xfc+OFFSET)
-#define ALT_6      (0xfd+OFFSET)
-#define ALT_7      (0xfe+OFFSET)
-#define ALT_8      (0xff+OFFSET)
-#define ALT_9      (0x80+OFFSET)
-#define ALT_0      (0x81+OFFSET)
-#define ALT_HYPHEN  (130+OFFSET)
+#define BELL          7 /* no scancode  */
+#define BS            8 /* scancode: 14 */ /* backspace / rubout */
+#define TAB           9	/* scancode: 15 */
+#define ESC          27	/* scancode:  1 */
 
-#define RIGHTSHIFT 0x01
-#define LEFTSHIFT  0x02
-#define CTRLKEY    0x04
-#define ALTKEY     0x08
-#define SCROLLLOCK 0x10
-#define NUMLOCK    0x20
-#define CAPSLOCK   0x40
-#define INSERTKEY  0x80
+#define F1          (FKEY+0x3b) /* scancode: 0x3b */
+#define F2          (FKEY+0x3c)
+#define F3          (FKEY+0x3d)
+#define F4          (FKEY+0x3e)
+#define F5          (FKEY+0x3f)
+#define F6          (FKEY+0x40)
+#define F7          (FKEY+0x41)
+#define F8          (FKEY+0x42)
+#define F9          (FKEY+0x43)
+#define F10         (FKEY+0x44)
 
+#define CTRL_F1     (FKEY+94)
+#define CTRL_F2     (FKEY+95)
+#define CTRL_F3     (FKEY+96)
+#define CTRL_F4     (FKEY+97)
+#define CTRL_F5     (FKEY+98)
+#define CTRL_F6     (FKEY+99)
+#define CTRL_F7     (FKEY+100)
+#define CTRL_F8     (FKEY+101)
+#define CTRL_F9     (FKEY+102)
+#define CTRL_F10    (FKEY+103)
+
+#define ALT_F1      (FKEY+104)
+#define ALT_F2      (FKEY+105)
+#define ALT_F3      (FKEY+106)
+#define ALT_F4      (FKEY+107)
+#define ALT_F5      (FKEY+108)
+#define ALT_F6      (FKEY+109)
+#define ALT_F7      (FKEY+110)
+#define ALT_F8      (FKEY+111)
+#define ALT_F9      (FKEY+112)
+#define ALT_F10     (FKEY+113)
+
+#define HOME        (FKEY+0x47) /* scancode: 0x47 */
+#define UP          (FKEY+0x48)
+#define PGUP        (FKEY+0x49)
+/* 4a: grey- 4b: left 4c: keypad5 4d: right 4e: grey+ */
+#define END         (FKEY+0x4f)
+#define DN          (FKEY+0x50)
+#define PGDN        (FKEY+0x51)
+#define INS         (FKEY+0x52)
+#define DEL         (FKEY+0x53)
+
+#define LARROW      (FKEY+0x4b) /* -ea */
+#define RARROW      (FKEY+0x4d) /* -ea */
+/* old name of RARROW is "FWD" ... */
+
+/* valid in ANSI, so assuming that those are universal: */
+#define CTRL_END    (FKEY+117)
+#define CTRL_PGDN   (FKEY+118)
+#define CTRL_HOME   (FKEY+119)
+#define CTRL_PGUP   (FKEY+132)
+
+/* #define CTRL_FIVE   (143) */ /* ctrl-numeric-keypad-5 */
+#ifdef HOOKKEYB
+#define CTRL_FWD    (244)	/* ctrl-rightarrow */
+#else
+#define CTRL_LARROW (FKEY+0x73)	/* ctrl-leftarrow */
+#define CTRL_RARROW (FKEY+0x74)	/* ctrl-rightarrow */
+#endif
+
+#define CTRL_BS     (127)	/* yet another deletion keystroke */
+#define SHIFT_HT    (FKEY+0x0f) /* scancode: 0x0f */
+#define ALT_HYPHEN  (130)
+
+#ifdef HOOKKEYB	/* only available with own int 9 handler! */
+#define ALT_BS      (197) /* HOOKKEYB only! */
+#define ALT_DEL     (184) /* HOOKKEYB only! */
+#define CTRL_INS    (186) /* HOOKKEYB only! */
+/* the next few are even missing in our int 9 handler!? */
+#define SHIFT_DEL   (198) /* HOOKKEYB only! */
+#define SHIFT_INS   (185) /* HOOKKEYB only! */
+#define SHIFT_F8    (219) /* HOOKKEYB only! */
+#else /* in 0.7, this finally works again, for AT keyboards */
+#define ALT_BS      CTRL_Z /* undo block removal */
+#define CTRL_INS    CTRL_C /* clipboard copy  */
+#define SHIFT_DEL   CTRL_X /* clipboard cut   */
+#define SHIFT_INS   CTRL_V /* clipboard paste */
+#endif
+
+
+/* stupid... those depend on keyboard layout! */
+#define ALT_A       (FKEY+0x1e) /* scancode 0x1e */
+#define ALT_S       (FKEY+0x1f)
+#define ALT_D       (FKEY+0x20)
+#define ALT_F       (FKEY+0x21)
+#define ALT_G       (FKEY+0x22)
+#define ALT_H       (FKEY+0x23)
+#define ALT_J       (FKEY+0x24)
+#define ALT_K       (FKEY+0x25)
+#define ALT_L       (FKEY+0x26)
+
+#define ALT_Q       (FKEY+0x10)
+#define ALT_W       (FKEY+0x11)
+#define ALT_E       (FKEY+0x12)
+#define ALT_R       (FKEY+0x13)
+#define ALT_T       (FKEY+0x14)
+#define ALT_Y       (FKEY+0x15)
+#define ALT_U       (FKEY+0x16)
+#define ALT_I       (FKEY+0x17)
+#define ALT_O       (FKEY+0x18)
+#define ALT_P       (FKEY+0x19)
+
+#define ALT_Z       (FKEY+0x2c)
+#define ALT_X       (FKEY+0x2d)
+#define ALT_C       (FKEY+0x2e)
+#define ALT_B       (FKEY+0x2f)
+#define ALT_V       (FKEY+0x30)
+#define ALT_N       (FKEY+0x31)
+#define ALT_M       (FKEY+0x32)
+
+
+#define ALT_1      (FKEY+0x78)	/* 120 */
+#define ALT_2      (FKEY+0x79)
+#define ALT_3      (FKEY+0x7a)
+#define ALT_4      (FKEY+0x7b)
+#define ALT_5      (FKEY+0x7c)
+#define ALT_6      (FKEY+0x7d)
+#define ALT_7      (FKEY+0x7e)
+#define ALT_8      (FKEY+0x7f)
+#define ALT_9      (FKEY+0x80)
+#define ALT_0      (FKEY+0x81)
+
+
+/* those are values that are at least typical for DOS: */
 #define CTRL_A 1
 #define CTRL_B 2
-#define CTRL_C 3
+#define CTRL_C 3	/* must have "ignore ^C / ^Break handler to use this */
+			/* see messages.c */
 #define CTRL_D 4
 #define CTRL_E 5
-#define CTRL_F 6
+#define CTRL_F 6	/* (special meaning for DOS-CON readline?) */
 #define CTRL_G 7
 #define CTRL_H 8
 #define CTRL_I 9
@@ -124,17 +156,39 @@
 #define CTRL_M 13
 #define CTRL_N 14
 #define CTRL_O 15
-#define CTRL_P 16
+#define CTRL_P 16	/* (causes print in DOS-CON) */
 #define CTRL_Q 17
 #define CTRL_R 18
-#define CTRL_S 19
+#define CTRL_S 19	/* (causes scroll-halt in DOS-CON) */
 #define CTRL_T 20
 #define CTRL_U 21
 #define CTRL_V 22
 #define CTRL_W 23
 #define CTRL_X 24
 #define CTRL_Y 25
-#define CTRL_Z 26
+#define CTRL_Z 26	/* (marks EOF in DOS-CON) */
+
+
+/* shift bit mask */
+#define RIGHTSHIFT 0x01
+#define LEFTSHIFT  0x02
+#define CTRLKEY    0x04
+#define ALTKEY     0x08
+#define SCROLLLOCK 0x10
+#define NUMLOCK    0x20
+#define CAPSLOCK   0x40 /* caps lock BEING on */
+#define INSERTKEY  0x80
+
+/* Following is new by Eric 11/2002, but see CONSOLE.C */
+#define SYSRQKEY   0x8000
+#define CAPSLKEY   0x4000 /* PRESSING caps lock */
+#define NUMLKEY    0x2000
+#define SCROLLLKEY 0x1000
+/* Especially the L/R distinction is important - Eric */
+#define RALTKEY    0x800 /* treat this als AltGr, which is NOT Alt */
+#define RCTRLKEY   0x400
+#define LALTKEY    0x200
+#define LCTRLKEY   0x100
 
 struct keys {
     int keycode;
@@ -143,4 +197,3 @@ struct keys {
 extern struct keys keys[];
 
 #endif
-

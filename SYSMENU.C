@@ -1,17 +1,19 @@
 /* ------------- sysmenu.c ------------ */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 int SystemMenuProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     int mx, my;
     WINDOW wnd1;
+
     switch (msg)    {
         case CREATE_WINDOW:
             wnd->holdmenu = ActiveMenuBar;
             ActiveMenuBar = &SystemMenu;
             SystemMenu.PullDown[0].Selection = 0;
             break;
+				case BUTTON_RELEASED:			/* DFLat+ 1.0: messages tracked */
         case LEFT_BUTTON:
             wnd1 = GetParent(wnd);
             mx = (int) p1 - GetLeft(wnd1);
@@ -19,9 +21,13 @@ int SystemMenuProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             if (HitControlBox(wnd1, mx, my))
                 return TRUE;
             break;
-        case LB_CHOOSE:
+					/* DFlat 1.0+: with SmoothMenus, track COMMAND better than LB_CHOOSE */
+/*        case LB_CHOOSE:
             PostMessage(wnd, CLOSE_WINDOW, 0, 0);
-            break;
+            break;              */
+				case COMMAND:
+						SendMessage (wnd, CLOSE_POPDOWN, 0, 0);
+						break;
         case DOUBLE_CLICK:
             if (p2 == GetTop(GetParent(wnd)))    {
                 PostMessage(GetParent(wnd), msg, p1, p2);
@@ -104,4 +110,3 @@ void BuildSystemMenu(WINDOW wnd)
     SendMessage(SystemMenuWnd, SETFOCUS, TRUE, 0);
     SendMessage(SystemMenuWnd, SHOW_WINDOW, 0, 0);
 }
-

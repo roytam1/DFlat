@@ -1,6 +1,7 @@
 /* ----------- console.c ---------- */
 
-#include "dflat.h"
+//#include "dflat.h"
+#include "dfpcomp.h"
 
 /* ----- table of alt keys for finding shortcut keys ----- */
 static int altconvert[] = {
@@ -41,50 +42,125 @@ void SwapCursorStack(void)
 	}
 }
 
-#ifndef MSC
-#ifndef WATCOM
-#define ZEROFLAG 0x40
+/* ---- BIOS keyboard routines with 84 and 102 key keyboard support ---- */
+/* (EDIT 0.7 -ea) */
+int Xbioskey(int cmd)
+{
+    static int keybase = -1;
+    union REGS kregs;
+    if (keybase < 0) {
+        volatile char far *kbtype = MK_FP(0x40,0x96); /* BIOS data flag */
+	keybase = ( ((*kbtype) & 0x10) != 0 ) ? 0x10 : 0;
+	/* 0 for 84 key XT mode, 0x10 for 102 key AT mode. */
+	/* (0x20 for 122 key mode, which is not used here) */
+    }
+    kregs.h.ah = (char) (keybase + cmd);
+    kregs.h.al = 0;
+    int86(0x16, &kregs, &kregs);
+
+    if ( (cmd == 1) && ZFlag (kregs) )
+        return 0;
+
+    return kregs.x.ax;
+}
+
 /* ---- Test for keystroke ---- */
 BOOL keyhit(void)
 {
-    _AH = 1;
-    geninterrupt(KEYBRD);
-    return (_FLAGS & ZEROFLAG) == 0;
+    return (kbhit() ? TRUE : FALSE);
 }
-#endif
-#endif
 
 /* ---- Read a keystroke ---- */
 int getkey(void)
 {
-    int c;
-    while (keyhit() == FALSE)
-        ;
+    unsigned int c;
+#ifndef HOOKKEYB
+    unsigned int theShift;
+    unsigned int theScan;
+#endif
+#if 0	/* removed pointless polling loop in 0.7c */
+!   while (keyhit() == FALSE);	/* wait for a key */
+#endif
+#ifdef HOOKKEYB
     if (((c = bioskey(0)) & 0xff) == 0)
         c = (c >> 8) | 0x1080;
     else
         c &= 0xff;
     return c & 0x10ff;
+#else
+
+    c = Xbioskey(0); /* fetch key */
+    theShift = getshift();
+    theScan = c >> 8;	/* scan code */
+    c = c & 0xff;	/* ASCII code or 0 of 0xe0 */
+
+    if ( theShift & (LEFTSHIFT|RIGHTSHIFT) ) {
+        /* BIOS normally calls shift-ins "ins" and shift-del "del" */
+        if (theScan == 0x52) /* INS */
+            return CTRL_V; /* SHIFT_INS; */ /* shift-ins is paste, ctrl-v */
+        if (theScan == 0x53) /* DEL */
+            return CTRL_X; /* SHIFT_DEL; */ /* shift-del is cut, ctrl-x */
+    } /* special SHIFT cases */
+
+    if ( (theShift & ALTKEY) && (theScan == 0x0e) ) /* Alt-BS  */
+        return CTRL_Z;	/* ALT_BS; */ /* alt-backspace is undo, ctrl-z */
+
+    if (theShift & CTRLKEY) {
+        if (theScan == 0x92) {	/* ^ins / ^-numpad-Ins */
+            return CTRL_C; /* CTRL_INS;	*/ /* ctrl-ins is copy, ctrl-c */
+        }
+    } /* special CTRL cases */
+
+    if (  (c != 0) && (c != 0xe0) )	/* nonzero / nonnumpad ASCII part? */
+        return c;			/* then return only the ASCII part */
+
+    /* Watch out: special case for Russian non-numpad "0xe0 ASCII" */
+    if ( (c == 0xe0) && (theScan == 0) )
+        return 0xe0;
+
+    return (FKEY | theScan);	/* else return scancode and a flag */
+
+#endif
 }
 
 /* ---------- read the keyboard shift status --------- */
 int getshift(void)
 {
-    regs.h.ah = 2;
-    int86(KEYBRD, &regs, &regs);
-    return regs.h.al;
+    static int enhkeyb = -1; /* 1 for an enhanced keyboard */
+    static char far *kbtype = MK_FP(0x40,0x96);
+	/* new check method (10/2003) */
+    if (enhkeyb == -1) { /* if we do not yet know... */
+	enhkeyb = (((*kbtype) & 0x10) != 0) ? 1 : 0; /* read BIOS data flag! */
+    } /* now enhkeyb is either 0 or 1 - Eric */
+
+    if (!enhkeyb) { /* old/new by Eric */
+
+        regs.h.ah = 2;
+        int86(KEYBRD, &regs, &regs);
+        return regs.h.al;
+    } else { /* new by Eric 11/2002 */
+
+        regs.h.ah = 0x12; /* extended shift: AL as above... */
+        int86(KEYBRD, &regs, &regs);
+        /* ignore SysRQ (Alt-PrtScr) and shift lock presses */
+        regs.x.ax &= 0x0fff;
+        /* treat RALT as NO ALT (but as AltGr): */
+        if (regs.x.ax & RALTKEY)
+            regs.x.ax &= ~ALTKEY;
+        return regs.x.ax;
+    }
 }
 
 static int far *clk = MK_FP(0x40,0x6c);
 /* ------- macro to wait one clock tick -------- */
 #define wait()          \
 {                       \
-    int now = *clk;     \
+    volatile int now = *clk;     \
     while (now == *clk) \
         ;               \
 }
 
-/* -------- sound a buzz tone ---------- */
+/* -------- sound a buzz tone, using hardware directly ---------- */
 void beep(void)
 {
     wait();
@@ -111,6 +187,7 @@ void videomode(void)
 void cursor(int x, int y)
 {
     videomode();
+    if (y >= SCREENHEIGHT) y = SCREENHEIGHT - 1; /* 0.7c */
     regs.x.dx = ((y << 8) & 0xff00) + x;
     regs.h.ah = SETCURSOR;
     regs.x.bx = video_page;
@@ -152,6 +229,8 @@ void restorecursor(void)
         --cs;
         videomode();
         regs.x.dx = cursorpos[cs];
+        if (regs.h.dh >= SCREENHEIGHT)
+            regs.h.dh = SCREENHEIGHT - 1;	/* 0.7c */
         regs.h.ah = SETCURSOR;
         regs.x.bx = video_page;
         int86(VIDEO, &regs, &regs);
@@ -162,7 +241,7 @@ void restorecursor(void)
 /* ------ make a normal cursor ------ */
 void normalcursor(void)
 {
-    set_cursor_type(0x0607);
+    set_cursor_type(0x0106);
 }
 
 /* ------ hide the cursor ------ */
@@ -281,14 +360,3 @@ int AltConvert(int c)
 	return a;
 }
 
-#if MSC | WATCOM
-int getdisk(void)
-{
-	unsigned int cd;
-	_dos_getdrive(&cd);
-	cd -= 1;
-	return cd;
-}
-#endif
-
-

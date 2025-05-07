@@ -1,28 +1,31 @@
-/* ----------- watch.c ----------- */
+/*  Little watch icon
 
-#include "dflat.h"
+*/
+
+//#include "dflat.h"
+#include "dfpcomp.h"
 
 int WatchIconProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn, i;
-	static int tick = 0;
-	static char *hands[] = {
-		" À ", " Ú ", " ¿ ", " Ù "
-	};
-    switch (msg)    {
+    int rtn;
+    /* int i; */
+    static int tick = 0;
+    static char *hands[] = { " À ", " Ú ", " ª ", " Ù " };
+    switch (msg)
+        {
         case CREATE_WINDOW:
-			tick = 0;
+            tick = 0;
             rtn = DefaultWndProc(wnd, msg, p1, p2);
             SendMessage(wnd, CAPTURE_MOUSE, 0, 0);
             SendMessage(wnd, HIDE_MOUSE, 0, 0);
             SendMessage(wnd, CAPTURE_KEYBOARD, 0, 0);
             SendMessage(wnd, CAPTURE_CLOCK, 0, 0);
             return rtn;
-		case CLOCKTICK:
-			++tick;
-			tick &= 3;
-			SendMessage(wnd->PrevClock, msg, p1, p2);
-			/* (fall through and paint) */
+        case CLOCKTICK:
+            ++tick;
+            tick &= 3;
+            SendMessage(wnd->PrevClock, msg, p1, p2);
+            /* (fall through and paint) */
         case PAINT:
             SetStandardColor(wnd);
             writeline(wnd, hands[tick], 1, 1, FALSE);
@@ -44,23 +47,20 @@ int WatchIconProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             break;
         default:
             break;
-    }
+        }
+
     return DefaultWndProc(wnd, msg, p1, p2);
+
 }
 
 WINDOW WatchIcon(void)
 {
     int mx, my;
     WINDOW wnd;
-    SendMessage(NULL, CURRENT_MOUSE_CURSOR,
-                        (PARAM) &mx, (PARAM) &my);
-    wnd = CreateWindow(
-                    BOX,
-                    NULL,
-                    mx, my, 3, 5,
-                    NULL,NULL,
-                    WatchIconProc,
-                    VISIBLE | HASBORDER | SHADOW | SAVESELF);
+
+    SendMessage(NULL, CURRENT_MOUSE_CURSOR, (PARAM) &mx, (PARAM) &my);
+    wnd = CreateWindow(BOX, NULL, mx, my, 3, 5, NULL,NULL,
+                    WatchIconProc, VISIBLE | HASBORDER | SHADOW | SAVESELF);
     return wnd;
+
 }
-

@@ -1,6 +1,6 @@
 /* ------------------ msgbox.c ------------------ */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 extern DBOX MsgBox;
 extern DBOX InputBoxDB;
@@ -36,11 +36,16 @@ int YesNoBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             break;
         case KEYBOARD:    {
             int c = tolower((int)p1);
+
+						if ( p1 == LARROW ) p1 = SHIFT_HT;		/* DFlat+ 1.0: for these, arrows are turned */
+						if ( p1 == RARROW ) p1 = TAB;					/* into TABs */
+            
             if (c == 'y')
                 SendMessage(wnd, COMMAND, ID_OK, 0);
             else if (c == 'n')
                 SendMessage(wnd, COMMAND, ID_CANCEL, 0);
             break;
+
         }
         default:
             break;
@@ -141,7 +146,7 @@ BOOL InputBox(WINDOW wnd,char *ttl,char *msg,char *text,int len,int wd)
 }
 
 BOOL GenericMessage(WINDOW wnd,char *ttl,char *msg,int buttonct,
-      int (*wndproc)(struct window *,enum messages,PARAM,PARAM),
+      int (*wndproc)(struct window *,MESSAGE,PARAM,PARAM),
       char *b1, char *b2, int c1, int c2, int isModal)
 {
     BOOL rtn;
@@ -181,7 +186,7 @@ WINDOW MomentaryMessage(char *msg)
                     NULL,NULL,NULL,
                     HASBORDER | SHADOW | SAVESELF);
     SendMessage(wnd, SETTEXT, (PARAM) msg, 0);
-    if (cfg.mono == 0)    {
+    if (!SysConfig.VideoCurrentColorScheme.isMonoScheme)    {
         WindowClientColor(wnd, WHITE, GREEN);
         WindowFrameColor(wnd, WHITE, GREEN);
     }
@@ -209,4 +214,4 @@ int MsgWidth(char *msg)
     }
     return min(max(strlen(msg),w), SCREENWIDTH-10);
 }
-
+

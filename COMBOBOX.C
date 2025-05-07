@@ -1,6 +1,6 @@
 /* -------------- combobox.c -------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 int ListProc(WINDOW, MESSAGE, PARAM, PARAM);
 
@@ -95,7 +95,11 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case KEYBOARD:
             switch ((int) p1)    {
                 case ESC:
-                case FWD:
+#ifdef HOOKKEYB
+                case FWD: /* right arrow */
+#else
+                case RARROW: /* formerly called FWD */
+#endif
                 case BS:
                     SendMessage(cwnd, SETFOCUS, TRUE, 0);
                     return TRUE;
@@ -117,7 +121,7 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return DefaultWndProc(wnd, msg, p1, p2);
 }
 
-void PutComboListText(WINDOW wnd, enum commands cmd, char *text)
+void PutComboListText(WINDOW wnd, UCOMMAND cmd, char *text)
 {
     CTLWINDOW *ct = FindCommand(wnd->extension, cmd, COMBOBOX);
     if (ct != NULL)        {
@@ -125,4 +129,4 @@ void PutComboListText(WINDOW wnd, enum commands cmd, char *text)
         SendMessage(lwnd, ADDTEXT, (PARAM) text, 0);
     }
 }
-
+

@@ -13,7 +13,6 @@ static char hline [160];
 static struct helps *FirstHelp;
 static struct helps *LastHelp;
 static struct helps *ThisHelp;
-static char **Argv;
 
 static void WriteText(char *);
 
@@ -57,7 +56,7 @@ main(int argc, char *argv[])
 
 	if (argc < 2)
 		return -1;
-	Argv = argv;
+
     if ((helpfp = OpenHelpFile(argv[1], "r+b")) == NULL)
         return -1;
 
@@ -171,12 +170,6 @@ main(int argc, char *argv[])
 	fwrite(&where, sizeof(long), 1, helpfp);
     fclose(helpfp);
 	return 0;
-}
-
-void BuildFileName(char *fn, const char *fname, const char *ext)
-{
-	strcpy(fn, Argv[1]);
-	strcat(fn, ext);
 }
 
 static void WriteText(char *text)

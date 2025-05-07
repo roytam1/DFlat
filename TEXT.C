@@ -1,6 +1,6 @@
 /* -------------- text.c -------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 int TextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
@@ -47,4 +47,3 @@ int TextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     }
     return BaseWndProc(TEXT, wnd, msg, p1, p2);
 }
-

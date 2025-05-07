@@ -1,6 +1,6 @@
 /* ------------- normal.c ------------ */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 #ifdef INCLUDE_MULTI_WINDOWS
 static void near PaintOverLappers(WINDOW wnd);
@@ -34,10 +34,43 @@ CLASSDEFS classdefs[] = {
 };
 WINDOW HiddenWindow;
 
+
+
+char *ClassNames[] = {
+    #undef ClassDef
+    #define ClassDef(c,b,p,a) #c,
+    #include "classes.h"
+    NULL
+};
+
 /* --------- CREATE_WINDOW Message ---------- */
 static void CreateWindowMsg(WINDOW wnd)
 {
+#if CLASSIC_WINDOW_NUMBERING
     AppendWindow(wnd);
+#else		/* new 0.7c: stacking-independent window numbering */
+    WINDOW pwnd = GetParent(wnd);
+    /* printf("CREATE %p\n", wnd); getkey(); */
+    if ((pwnd != NULL) && 
+        (GetClass(pwnd) == APPLICATION)) {	/* only SUCH windows */
+        if (NumberOneChildWindow(pwnd) == NULL) {
+            NumberOneChildWindow(pwnd) = wnd;	/* add as first window */
+        } else {
+            WINDOW scanwnd = NumberOneChildWindow(pwnd);
+            while ((scanwnd != NULL) && (NextNumberedWindow(scanwnd) != NULL)) {
+		/* printf("CREATE LOOP: %p->%p\n", scanwnd, */
+		/* NextNumberedWindow(scanwnd)); getkey();  */
+                scanwnd = NextNumberedWindow(scanwnd);
+            }
+            if (scanwnd != NULL)
+                NextNumberedWindow(scanwnd) = wnd; /* append this window */
+        }
+        NextNumberedWindow(wnd) = NULL;		/* end of the list */
+    }
+    /* printf("CREATE %p CALLING APPEND\n", wnd); getkey(); */
+    AppendWindow(wnd);
+    /* printf("CREATE %p DONE\n", wnd); getkey(); */
+#endif
     if (!SendMessage(NULL, MOUSE_INSTALLED, 0, 0))
         ClearAttribute(wnd, VSCROLLBAR | HSCROLLBAR);
     if (TestAttribute(wnd, SAVESELF) && isVisible(wnd))
@@ -48,19 +81,18 @@ static void CreateWindowMsg(WINDOW wnd)
 static void ShowWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     if (GetParent(wnd) == NULL || isVisible(GetParent(wnd)))    {
-		WINDOW cwnd;
-        if (TestAttribute(wnd, SAVESELF) &&
-                        wnd->videosave == NULL)
+        WINDOW cwnd;
+        if (TestAttribute(wnd, SAVESELF) && wnd->videosave == NULL)
             GetVideoBuffer(wnd);
         SetVisible(wnd);
         SendMessage(wnd, PAINT, 0, TRUE);
         SendMessage(wnd, BORDER, 0, 0);
         /* --- show the children of this window --- */
-		cwnd = FirstWindow(wnd);
-		while (cwnd != NULL)	{
+        cwnd = FirstWindow(wnd);
+        while (cwnd != NULL)	{
             if (cwnd->condition != ISCLOSING)
                 SendMessage(cwnd, SHOW_WINDOW, p1, p2);
-			cwnd = NextWindow(cwnd);
+            cwnd = NextWindow(cwnd);
         }
     }
 }
@@ -101,11 +133,18 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
                 if (y < SCREENHEIGHT-1)
                     y++;
                 break;
-            case FWD:
+#ifdef HOOKKEYB
+            case FWD: /* right arrow */
+#else
+	    case RARROW: /* formerly called FWD */
+#endif
                 if (x < SCREENWIDTH-1)
                     x++;
                 break;
-            case BS:
+#ifndef HOOKKEYB
+	    case LARROW: /* hope this makes sense */
+#endif
+            case BS: /* backspace implies going left... */
                 if (x)
                     --x;
                 break;
@@ -147,7 +186,7 @@ static void CommandMsg(WINDOW wnd, PARAM p1)
 {
     switch ((int)p1)    {
         case ID_HELP:
-            DisplayHelp(wnd,ClassNames[GetClass(wnd)]);
+            SystemHelp(wnd,ClassNames[GetClass(wnd)]);
             break;
 #ifdef INCLUDE_RESTORE
         case ID_SYSRESTORE:
@@ -562,6 +601,11 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
 static void CloseWindowMsg(WINDOW wnd)
 {
     WINDOW cwnd;
+#if CLASSIC_WINDOW_NUMBERING
+    /* nothing */
+#else		/* new 0.7c: stacking-independent window numbering */
+    WINDOW pwnd;
+#endif
     wnd->condition = ISCLOSING;
     /* ----------- hide this window ------------ */
     SendMessage(wnd, HIDE_WINDOW, 0, 0);
@@ -592,7 +636,30 @@ static void CloseWindowMsg(WINDOW wnd)
     if (wnd->videosave != NULL)
         free(wnd->videosave);
     /* -- remove window from parent's list of children -- */
-	RemoveWindow(wnd);
+#if CLASSIC_WINDOW_NUMBERING
+    RemoveWindow(wnd);
+#else		/* new 0.7c: stacking-independent window numbering */
+    /* printf("REMOVE / CLOSEWINDOWMSG %p\n", wnd); getkey(); */
+    pwnd = GetParent(wnd);
+    if ((pwnd != NULL) &&
+        (GetClass(pwnd) == APPLICATION)) {	/* only SUCH windows */
+        WINDOW scanwnd;
+        if (NumberOneChildWindow(pwnd) == wnd) {
+            NumberOneChildWindow(pwnd) =
+                NextNumberedWindow(pwnd);	/* make another one the first */
+        }
+        scanwnd = NumberOneChildWindow(pwnd);
+        while (scanwnd != NULL) {
+            if (NextNumberedWindow(scanwnd) == wnd)	/* this next? */
+                NextNumberedWindow(scanwnd) =
+                    NextNumberedWindow(wnd);	/* skip this! */
+            scanwnd = NextNumberedWindow(scanwnd);
+        }
+        NextNumberedWindow(wnd) = NULL;		/* clean up */
+    }
+    RemoveWindow(wnd);
+    /* printf("REMOVE / CLOSEWINDOWMSG %p DONE\n", wnd); getkey(); */
+#endif
     if (wnd == inFocus)
         inFocus = NULL;
     free(wnd);
@@ -612,7 +679,7 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             HideWindowMsg(wnd);
             break;
         case DISPLAY_HELP:
-            return DisplayHelp(wnd, (char *)p1);
+            return SystemHelp(wnd, (char *)p1);
         case INSIDE_WINDOW:
             return InsideWindow(wnd, (int) p1, (int) p2);
         case KEYBOARD:
@@ -640,9 +707,13 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case BORDER:
             if (isVisible(wnd))    {
                 if (TestAttribute(wnd, HASBORDER))
+{
                     RepaintBorder(wnd, (RECT *)p1);
+}
                 else if (TestAttribute(wnd, HASTITLEBAR))
+{
                     DisplayTitle(wnd, (RECT *)p1);
+}
             }
             break;
         case COMMAND:
@@ -1112,5 +1183,3 @@ BOOL isAncestor(WINDOW wnd, WINDOW awnd)
 }
 
 
-
-

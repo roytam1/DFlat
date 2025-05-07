@@ -1,14 +1,14 @@
 /* ----------------- dialbox.c -------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
-static int inFocusCommand(DBOX *);
+static PARAM inFocusCommand(DBOX *);
 static BOOL dbShortcutKeys(DBOX *, int);
 static int ControlProc(WINDOW, MESSAGE, PARAM, PARAM);
 static void FirstFocus(DBOX *db);
 static void NextFocus(DBOX *db);
 static void PrevFocus(DBOX *db);
-static CTLWINDOW *AssociatedControl(DBOX *, enum commands);
+static CTLWINDOW *AssociatedControl(DBOX *, UCOMMAND);
 
 static BOOL SysMenuOpen;
 
@@ -136,17 +136,24 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         case F1:
             ct = GetControl(inFocus);
             if (ct != NULL)
-                if (DisplayHelp(wnd, ct->help))
+                if (SystemHelp(wnd, ct->help))
                     return TRUE;
             break;
         case SHIFT_HT:
         case BS:
+#ifndef HOOKKEYB
+	case LARROW: /* hope this makes sense */
+#endif
         case UP:
             PrevFocus(db);
             break;
         case ALT_F6:
         case '\t':
-        case FWD:
+#ifdef HOOKKEYB
+        case FWD: /* right arrow */
+#else
+	case RARROW: /* formerly called FWD */
+#endif
         case DN:
             NextFocus(db);
             break;
@@ -189,7 +196,7 @@ static BOOL CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
         case ID_HELP:
             if ((int)p2 != 0)
                 return TRUE;
-            return DisplayHelp(wnd, db->HelpName);
+            return SystemHelp(wnd, db->HelpName);
         default:
             break;
     }
@@ -221,6 +228,7 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             SysMenuOpen = FALSE;
             break;
         case LB_SELECTION:
+        case LB_CHILDSELECTION:
         case LB_CHOOSE:
             if (SysMenuOpen)
                 return TRUE;
@@ -257,7 +265,7 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 
 /* ------- create and execute a dialog box ---------- */
 BOOL DialogBox(WINDOW wnd, DBOX *db, BOOL Modal,
-  int (*wndproc)(struct window *, enum messages, PARAM, PARAM))
+  int (*wndproc)(struct window *, MESSAGE, PARAM, PARAM))
 {
     BOOL rtn = FALSE;
     int x = db->dwnd.x, y = db->dwnd.y;
@@ -290,7 +298,7 @@ BOOL DialogBox(WINDOW wnd, DBOX *db, BOOL Modal,
 }
 
 /* ----- return command code of in-focus control window ---- */
-static int inFocusCommand(DBOX *db)
+static PARAM inFocusCommand(DBOX *db)
 {
     CTLWINDOW *ct = db->ctl;
     while (ct->Class)    {
@@ -302,7 +310,7 @@ static int inFocusCommand(DBOX *db)
 }
 
 /* -------- find a specified control structure ------- */
-CTLWINDOW *FindCommand(DBOX *db, enum commands cmd, int Class)
+CTLWINDOW *FindCommand(DBOX *db, UCOMMAND cmd, int Class)
 {
     CTLWINDOW *ct = db->ctl;
     while (ct->Class)    {
@@ -315,7 +323,7 @@ CTLWINDOW *FindCommand(DBOX *db, enum commands cmd, int Class)
 }
 
 /* ---- return the window handle of a specified command ---- */
-WINDOW ControlWindow(const DBOX *db, enum commands cmd)
+WINDOW ControlWindow(const DBOX *db, UCOMMAND cmd)
 {
     const CTLWINDOW *ct = db->ctl;
     while (ct->Class)    {
@@ -339,7 +347,7 @@ CTLWINDOW *WindowControl(DBOX *db, WINDOW wnd)
 }
 
 /* ---- set a control ON or OFF ----- */
-void ControlSetting(DBOX *db, enum commands cmd,
+void ControlSetting(DBOX *db, UCOMMAND cmd,
                                 int Class, int setting)
 {
     CTLWINDOW *ct = FindCommand(db, cmd, Class);
@@ -351,14 +359,14 @@ void ControlSetting(DBOX *db, enum commands cmd,
 }
 
 /* ----- test if a control is on or off ----- */
-BOOL isControlOn(DBOX *db, enum commands cmd, int Class)
+BOOL isControlOn(DBOX *db, UCOMMAND cmd, int Class)
 {
     const CTLWINDOW *ct = FindCommand(db, cmd, Class);
     return ct ? (ct->wnd ? ct->setting : ct->isetting) : FALSE;
 }
 
 /* ---- return pointer to the text of a control window ---- */
-char *GetDlgTextString(DBOX *db,enum commands cmd,CLASS Class)
+char *GetDlgTextString(DBOX *db,UCOMMAND cmd,CLASS Class)
 {
     CTLWINDOW *ct = FindCommand(db, cmd, Class);
     if (ct != NULL)
@@ -368,7 +376,7 @@ char *GetDlgTextString(DBOX *db,enum commands cmd,CLASS Class)
 }
 
 /* ------- set the text of a control specification ------ */
-void SetDlgTextString(DBOX *db, enum commands cmd,
+void SetDlgTextString(DBOX *db, UCOMMAND cmd,
                                     char *text, CLASS Class)
 {
     CTLWINDOW *ct = FindCommand(db, cmd, Class);
@@ -400,7 +408,7 @@ void SetDlgTextString(DBOX *db, enum commands cmd,
 }
 
 /* ------- set the text of a control window ------ */
-void PutItemText(WINDOW wnd, enum commands cmd, char *text)
+void PutItemText(WINDOW wnd, UCOMMAND cmd, char *text)
 {
     CTLWINDOW *ct = FindCommand(wnd->extension, cmd, EDITBOX);
 
@@ -442,7 +450,7 @@ void PutItemText(WINDOW wnd, enum commands cmd, char *text)
 }
 
 /* ------- get the text of a control window ------ */
-void GetItemText(WINDOW wnd, enum commands cmd,
+void GetItemText(WINDOW wnd, UCOMMAND cmd,
                                 char *text, int len)
 {
     CTLWINDOW *ct = FindCommand(wnd->extension, cmd, EDITBOX);
@@ -483,7 +491,7 @@ void GetItemText(WINDOW wnd, enum commands cmd,
 }
 
 /* ------- set the text of a listbox control window ------ */
-void GetDlgListText(WINDOW wnd, char *text, enum commands cmd)
+void GetDlgListText(WINDOW wnd, char *text, UCOMMAND cmd)
 {
     CTLWINDOW *ct = FindCommand(wnd->extension, cmd, LISTBOX);
     int sel = SendMessage(ct->wnd, LB_CURRENTSELECTION, 0, 0);
@@ -491,7 +499,7 @@ void GetDlgListText(WINDOW wnd, char *text, enum commands cmd)
 }
 
 /* -- find control structure associated with text control -- */
-static CTLWINDOW *AssociatedControl(DBOX *db,enum commands Tcmd)
+static CTLWINDOW *AssociatedControl(DBOX *db,UCOMMAND Tcmd)
 {
     CTLWINDOW *ct = db->ctl;
     while (ct->Class)    {
@@ -574,7 +582,7 @@ static BOOL CtlKeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         case F1:
             if (WindowMoving || WindowSizing)
                 break;
-            if (!DisplayHelp(wnd, ct->help))
+            if (!SystemHelp(wnd, ct->help))
                 SendMessage(GetParent(wnd),COMMAND,ID_HELP,0);
             return TRUE;
         case ' ':
@@ -595,24 +603,32 @@ static BOOL CtlKeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         if (WindowHeight(wnd) > 1)
             return FALSE;
     switch ((int) p1)    {
+#if 0 /* ??? */
         case UP:
             if (!isDerivedFrom(wnd, LISTBOX))    {
-                p1 = CTRL_FIVE;
+                p1 = CTRL_FIVE; /* ??? */
                 p2 = LEFTSHIFT;
             }
             break;
+#endif
+#if 0 /* ??? */
         case BS:
             if (!isDerivedFrom(wnd, EDITBOX))    {
-                p1 = CTRL_FIVE;
+                p1 = CTRL_FIVE; /* ??? */
                 p2 = LEFTSHIFT;
             }
             break;
+#endif
         case DN:
             if (!isDerivedFrom(wnd, LISTBOX) &&
                     !isDerivedFrom(wnd, COMBOBOX))
                 p1 = '\t';
             break;
-        case FWD:
+#ifdef HOOKKEYB
+        case FWD: /* right arrow */
+#else
+        case RARROW: /* formerly called FWD */
+#endif
             if (!isDerivedFrom(wnd, EDITBOX))
                 p1 = '\t';
             break;
@@ -709,6 +725,7 @@ static int ControlProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
             break;
         case SETFOCUS:	{
 			WINDOW pwnd = GetParent(wnd);
+
             if (p1)    {
 				WINDOW oldFocus = inFocus;
 				if (pwnd && GetClass(oldFocus) != APPLICATION &&
@@ -764,6 +781,7 @@ static void NextFocus(DBOX *db)
 {
     CTLWINDOW *ct = WindowControl(db, inFocus);
 	int looped = 0;
+
 	if (ct != NULL)	{
 		do	{
 			ct++;
@@ -783,6 +801,7 @@ static void PrevFocus(DBOX *db)
 {
     CTLWINDOW *ct = WindowControl(db, inFocus);
 	int looped = 0;
+
 	if (ct != NULL)	{
 		do	{
 			if (ct == db->ctl)	{
@@ -805,4 +824,4 @@ void SetFocusCursor(WINDOW wnd)
         SendMessage(wnd, KEYBOARD_CURSOR, 1, 0);
     }
 }
-
+

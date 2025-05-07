@@ -1,6 +1,6 @@
 /* ------------- textbox.c ------------ */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 static void ComputeWindowTop(WINDOW);
 static void ComputeWindowLeft(WINDOW);
@@ -110,8 +110,15 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1)
             return SendMessage(wnd,SCROLL,FALSE,0);
         case DN:
             return SendMessage(wnd,SCROLL,TRUE,0);
-        case FWD:
+#ifdef HOOKKEYB
+        case FWD: /* right arrow */
+#else
+	case RARROW: /* formerly called FWD */
+#endif
             return SendMessage(wnd,HORIZSCROLL,TRUE,0);
+#ifndef HOOKKEYB
+	case LARROW: /* hope this makes sense */
+#endif
         case BS:
             return SendMessage(wnd,HORIZSCROLL,FALSE,0);
         case PGUP:
@@ -662,7 +669,7 @@ void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
 		char *pp = lp;
 		while (*pp)	{
 			if (isprint(*pp))
-				*pp = '*';
+				*pp = '*'; /* why that??? */
 			pp++;
 		}
 	}

@@ -1,6 +1,6 @@
 /* ---------- window.c ------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 WINDOW inFocus = NULL;
 
@@ -16,13 +16,16 @@ WINDOW CreateWindow(
     int height, int width,    /* dimensions                 */
     void *extension,          /* pointer to additional data */
     WINDOW parent,            /* parent of this window      */
-    int (*wndproc)(struct window *,enum messages,PARAM,PARAM),
+    int (*wndproc)(struct window *,MESSAGE,PARAM,PARAM),
     int attrib)               /* window attribute           */
 {
     WINDOW wnd = DFcalloc(1, sizeof(struct window));
+
     get_videomode();
+
     if (wnd != NULL)    {
         int base;
+	      memset(wnd, 0, sizeof(struct window));	/* new 0.7c */
         /* ----- height, width = -1: fill the screen ------- */
         if (height == -1)
             height = SCREENHEIGHT;
@@ -142,6 +145,8 @@ RECT AdjustRectangle(WINDOW wnd, RECT rc)
 /* -------- display a window's title --------- */
 void DisplayTitle(WINDOW wnd, RECT *rcc)
 {
+
+
 	if (GetTitle(wnd) != NULL)	{
     	int tlen = min(strlen(GetTitle(wnd)), WindowWidth(wnd)-2);
     	int tend = WindowWidth(wnd)-3-BorderAdj(wnd);
@@ -155,12 +160,12 @@ void DisplayTitle(WINDOW wnd, RECT *rcc)
 
     	if (SendMessage(wnd, TITLE, (PARAM) rcc, 0))    {
         	if (wnd == inFocus)    {
-            	foreground = cfg.clr[TITLEBAR] [HILITE_COLOR] [FG];
-            	background = cfg.clr[TITLEBAR] [HILITE_COLOR] [BG];
+            	foreground = SysConfig.VideoCurrentColorScheme.clrArray[TITLEBAR] [HILITE_COLOR] [FG];
+            	background = SysConfig.VideoCurrentColorScheme.clrArray[TITLEBAR] [HILITE_COLOR] [BG];
         	}
         	else    {
-            	foreground = cfg.clr[TITLEBAR] [STD_COLOR] [FG];
-            	background = cfg.clr[TITLEBAR] [STD_COLOR] [BG];
+            	foreground = SysConfig.VideoCurrentColorScheme.clrArray[TITLEBAR] [STD_COLOR] [FG];
+            	background = SysConfig.VideoCurrentColorScheme.clrArray[TITLEBAR] [STD_COLOR] [BG];
         	}
         	memset(line,' ',WindowWidth(wnd));
 #ifdef INCLUDE_MINIMIZE
@@ -227,7 +232,7 @@ void DisplayTitle(WINDOW wnd, RECT *rcc)
      (TestAttribute(wnd, SHADOW) == 0 || \
       MinTest()                          \
       MaxTest()                          \
-	  cfg.mono)
+	    SysConfig.VideoCurrentColorScheme.isMonoScheme)
 
 /* --- display right border shadow character of a window --- */
 static void near shadow_char(WINDOW wnd, int y)
@@ -332,6 +337,8 @@ void RepaintBorder(WINDOW wnd, RECT *rcc)
         sw   = SW;
     }
     line[WindowWidth(wnd)] = '\0';
+
+
     /* ---------- window title ------------ */
     if (TestAttribute(wnd, HASTITLEBAR))
         if (RectTop(rc) == 0)
@@ -383,7 +390,6 @@ void RepaintBorder(WINDOW wnd, RECT *rcc)
                 RectRight(rc) >= WindowWidth(wnd)-1)
             wputch(wnd, se, WindowWidth(wnd)-1,
                 WindowHeight(wnd)-1);
-
 
 		if (wnd->StatusBar == NULL)	{
         	/* ----------- bottom line ------------- */
@@ -492,12 +498,12 @@ void InitWindowColors(WINDOW wnd)
 	int fbg,col;
 	int cls = GetClass(wnd);
 	/* window classes without assigned colors inherit parent's colors */
-	if (cfg.clr[cls][0][0] == 0xff && GetParent(wnd) != NULL)
+	if (SysConfig.VideoCurrentColorScheme.clrArray[cls][0][0] == 0xff && GetParent(wnd) != NULL)
 		cls = GetClass(GetParent(wnd));
 	/* ---------- set the colors ---------- */
 	for (fbg = 0; fbg < 2; fbg++)
 		for (col = 0; col < 4; col++)
-			wnd->WindowColors[col][fbg] = cfg.clr[cls][col][fbg];
+			wnd->WindowColors[col][fbg] = SysConfig.VideoCurrentColorScheme.clrArray[cls][col][fbg];
 }
 
 void PutWindowChar(WINDOW wnd, int c, int x, int y)
@@ -524,4 +530,16 @@ void PutWindowLine(WINDOW wnd, void *s, int x, int y)
 	}
 }
 
-
+
+/* --------- set window colors --------- */
+void SetStandardColor(WINDOW wnd)
+{
+    foreground = WndForeground(wnd);
+    background = WndBackground(wnd);
+}
+
+void SetReverseColor(WINDOW wnd)
+{
+    foreground = SelectForeground(wnd);
+    background = SelectBackground(wnd);
+}

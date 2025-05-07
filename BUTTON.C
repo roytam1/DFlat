@@ -1,11 +1,11 @@
 /* -------------- button.c -------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 void PaintMsg(WINDOW wnd, CTLWINDOW *ct, RECT *rc)
 {
     if (isVisible(wnd))    {
-        if (TestAttribute(wnd, SHADOW) && cfg.mono == 0)    {
+        if (TestAttribute(wnd, SHADOW) && !SysConfig.VideoCurrentColorScheme.isMonoScheme)    {
             /* -------- draw the button's shadow ------- */
             int x;
             background = WndBackground(GetParent(wnd));
@@ -37,7 +37,7 @@ void PaintMsg(WINDOW wnd, CTLWINDOW *ct, RECT *rc)
 
 void LeftButtonMsg(WINDOW wnd, MESSAGE msg, CTLWINDOW *ct)
 {
-    if (cfg.mono == 0)    {
+    if (!SysConfig.VideoCurrentColorScheme.isMonoScheme)    {
         /* --------- draw a pushed button -------- */
         int x;
         background = WndBackground(GetParent(wnd));
@@ -62,6 +62,7 @@ void LeftButtonMsg(WINDOW wnd, MESSAGE msg, CTLWINDOW *ct)
 int ButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     CTLWINDOW *ct = GetControl(wnd);
+
     if (ct != NULL)    {
         switch (msg)    {
             case SETFOCUS:
@@ -72,6 +73,10 @@ int ButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 PaintMsg(wnd, ct, (RECT*)p1);
                 return TRUE;
             case KEYBOARD:
+								if ((p1 == LARROW) || (p1 == RARROW)) { /* DFlat+ 1.0: allow buttons to pass arrows to parent*/
+								   PostMessage ( GetParent(wnd), msg, p1, p2);
+								   return TRUE;
+								}
                 if (p1 != '\r')
                     break;
                 /* ---- fall through ---- */
@@ -86,4 +91,3 @@ int ButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     }
     return BaseWndProc(BUTTON, wnd, msg, p1, p2);
 }
-

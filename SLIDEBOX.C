@@ -1,6 +1,7 @@
 /* ------------- slidebox.c ------------ */
 
-#include "dflat.h"
+//#include "dflat.h"
+#include "dfpcomp.h"
 
 static int (*GenericProc)
     (WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2);
@@ -16,8 +17,8 @@ static void InsertPercent(char *s)
 
     sprintf(s, "%c%c%c",
             CHANGECOLOR,
-            color[DIALOG][SELECT_COLOR][FG]+0x80,
-            color[DIALOG][SELECT_COLOR][BG]+0x80);
+            color.clrArray[DIALOG][SELECT_COLOR][FG]+0x80,
+            color.clrArray[DIALOG][SELECT_COLOR][BG]+0x80);
     s += 3;
     memset(s, ' ', SliderLen);
     *(s+SliderLen) = '\0';
@@ -28,8 +29,8 @@ static void InsertPercent(char *s)
     sprintf(pcc, "%c%c%c%c",
             RESETCOLOR,
             CHANGECOLOR,
-            color[DIALOG][SELECT_COLOR][BG]+0x80,
-            color[DIALOG][SELECT_COLOR][FG]+0x80);
+            color.clrArray[DIALOG][SELECT_COLOR][BG]+0x80,
+            color.clrArray[DIALOG][SELECT_COLOR][FG]+0x80);
     strncpy(s+offset, pcc, 4);
     *(s + strlen(s) - 1) = RESETCOLOR;
 }
@@ -109,4 +110,3 @@ WINDOW SliderBox(int len, char *ttl, char *msg)
     DialogBox(NULL, &SliderBoxDB, FALSE, SliderBoxProc);
     return SliderBoxDB.ctl[1].wnd;
 }
-

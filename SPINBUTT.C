@@ -1,6 +1,6 @@
 /* ------------ spinbutt.c ------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 int SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
@@ -44,4 +44,3 @@ int SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     }
     return BaseWndProc(SPINBUTTON, wnd, msg, p1, p2);
 }
-

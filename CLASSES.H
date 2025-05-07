@@ -4,6 +4,9 @@
  *         Make class changes to this source file
  *         Other source files will adapt
  *
+ *				 You should update logger.c so that logs
+ *         can have the appropriate class texts.
+ *
  *         You must add entries to the color tables in
  *         CONFIG.C for new classes.
  *
@@ -16,14 +19,14 @@ ClassDef(  APPLICATION, NORMAL,  ApplicationProc, VISIBLE   |
                                                   CONTROLBOX )
 ClassDef(  TEXTBOX,     NORMAL,  TextBoxProc,     0          )
 ClassDef(  LISTBOX,     TEXTBOX, ListBoxProc,     0          )
+
 ClassDef(  EDITBOX,     TEXTBOX, EditBoxProc,     0          )
+
 ClassDef(  MENUBAR,     NORMAL,  MenuBarProc,     NOCLIP     )
 ClassDef(  POPDOWNMENU, LISTBOX, PopDownProc,     SAVESELF  |
                                                   NOCLIP    |
                                                   HASBORDER  )
-#ifdef INCLUDE_PICTUREBOX
 ClassDef(  PICTUREBOX,  TEXTBOX, PictureProc,     0          )
-#endif
 ClassDef(  DIALOG,      NORMAL,  DialogProc,      SHADOW    |
                                                   MOVEABLE  |
                                                   CONTROLBOX|
@@ -47,8 +50,6 @@ ClassDef(  HELPBOX,     DIALOG,  HelpBoxProc,     MOVEABLE  |
                                                   CONTROLBOX )
 ClassDef(  STATUSBAR,   TEXTBOX, StatusBarProc,   NOCLIP     )
 
-ClassDef(  EDITOR,      EDITBOX, EditorProc,	  0			 )
-
 /*
  *  ========> Add new classes here <========
  */
@@ -56,4 +57,4 @@ ClassDef(  EDITOR,      EDITBOX, EditorProc,	  0			 )
 /* ---------- pseudo classes to create enums, etc. ---------- */
 ClassDef(  TITLEBAR,    -1,      NULL,            0          )
 ClassDef(  DUMMY,       -1,      NULL,            HASBORDER  )
-
+

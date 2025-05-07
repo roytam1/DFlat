@@ -1,6 +1,6 @@
 /* -------- radio.c -------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 static CTLWINDOW *rct[MAXRADIOS];
 
@@ -49,7 +49,7 @@ void SetRadioButton(DBOX *db, CTLWINDOW *ct)
 	Setting = TRUE;
 }
 
-void PushRadioButton(DBOX *db, enum commands cmd)
+void PushRadioButton(DBOX *db, UCOMMAND cmd)
 {
     CTLWINDOW *ctt = db->ctl;
     CTLWINDOW *ct = FindCommand(db, cmd, RADIOBUTTON);
@@ -102,10 +102,11 @@ void PushRadioButton(DBOX *db, enum commands cmd)
     ct->setting = ON;
 	if (Setting)
 	    ct->isetting = ON;
+  if (ct->wnd != NULL)	    
     SendMessage(ct->wnd, PAINT, 0, 0);
 }
 
-BOOL RadioButtonSetting(DBOX *db, enum commands cmd)
+BOOL RadioButtonSetting(DBOX *db, UCOMMAND cmd)
 {
     CTLWINDOW *ct = FindCommand(db, cmd, RADIOBUTTON);
     return ct ? (ct->wnd ? (ct->setting==ON) : (ct->isetting==ON)) : FALSE;

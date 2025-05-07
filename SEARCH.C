@@ -1,9 +1,9 @@
 /* ---------------- search.c ------------- */
-#include "dflat.h"
+#include "dfpcomp.h"
 
 extern DBOX SearchTextDB;
 extern DBOX ReplaceTextDB;
-static int CheckCase = TRUE;
+static int CheckCase = FALSE;
 static int Replacing = FALSE;
 static int lastsize;
 
@@ -55,11 +55,12 @@ static void SearchTextBox(WINDOW wnd, int incr)
     BOOL rpl = TRUE, FoundOne = FALSE;
 
     while (rpl == TRUE && cp != NULL && *cp)    {
+        /* even for "find again" (not replacing) this runs at least once */
         rpl = Replacing ?
                 CheckBoxSetting(&ReplaceTextDB, ID_REPLACEALL) :
                 FALSE;
         if (TextBlockMarked(wnd))    {
-            ClearTextBlock(wnd);
+            ClearTextBlock(wnd); /* un-mark block */
             SendMessage(wnd, PAINT, 0, 0);
         }
         /* search for a match starting at cursor position */
@@ -131,7 +132,7 @@ static void SearchTextBox(WINDOW wnd, int incr)
         break;
     }
     if (!FoundOne)
-        MessageBox("Search/Replace Text", "No match found");
+        MessageBox("Search", "No matching text found");
 }
 
 /* ------- search for the occurrance of a string,

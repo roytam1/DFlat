@@ -1,6 +1,6 @@
 /* ------------------- huffc.c -------------------- */
 
-#include "dflat.h"
+#include "dflatp.h"
 #include "htree.h"
 
 extern struct htree *ht;

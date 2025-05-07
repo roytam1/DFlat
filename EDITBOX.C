@@ -1,12 +1,22 @@
 /* ------------- editbox.c ------------ */
-#include "dflat.h"
+#include "dfpcomp.h"
+
 
 #define EditBufLen(wnd) (isMultiLine(wnd) ? EDITLEN : ENTRYLEN)
 #define SetLinePointer(wnd, ln) (wnd->CurrLine = ln)
-#define Ch(c) ((c)&0x7f)
-#define isWhite(c) (Ch(c)==' '||Ch(c)=='\n'||Ch(c)=='\f'||Ch(c)=='\t')
+
+#define FANCY_CTRL_P	/* kludgy eye-candy: ^P clock / statusbar handling */
+
+#ifdef TAB_TOGGLING
+#define Ch(c) ((c)&0x7f)	/* ignore high bit for whitespace check  */
+				/* (for tab-substitute and tabby-spaces) */
+#define isWhite(c) ( (Ch(c)==' ') || (Ch(c)=='\n') || (Ch(c)=='\f') || (Ch(c)=='\t') )
+#else
+#define isWhite(c) ( ((c)==' ') || ((c)=='\n') || ((c)=='\t') )
+#endif
+
 /* ---------- local prototypes ----------- */
-static void SaveDeletedText(WINDOW, char *, int);
+static void SaveDeletedText(WINDOW, char *, unsigned int); /* *** UNSIGNED *** */
 static void Forward(WINDOW);
 static void Backward(WINDOW);
 static void End(WINDOW);
@@ -28,6 +38,15 @@ static int PrevY = -1;
 static int CreateWindowMsg(WINDOW wnd)
 {
     int rtn = BaseWndProc(EDITBOX, wnd, CREATE_WINDOW, 0, 0);
+    /* *** added in 0.6e *** */
+    wnd->BlkBegLine = 0;
+    wnd->BlkBegCol = 0;
+    wnd->BlkEndLine = 0;
+    wnd->BlkEndCol = 0;
+    wnd->TextChanged = FALSE;
+    wnd->DeletedText = NULL;
+    wnd->DeletedLength = 0;
+    /* *** /added *** */
     wnd->MaxTextLength = MAXTEXTLEN+1;
     wnd->textlen = EditBufLen(wnd);
     wnd->InsertMode = TRUE;
@@ -229,6 +248,7 @@ static void ExtendBlock(WINDOW wnd, int x, int y)
     wnd->BlkEndLine = y+wnd->wtop;
     bbl = min(wnd->BlkBegLine, wnd->BlkEndLine);
     bel = max(wnd->BlkBegLine, wnd->BlkEndLine);
+    /* *** end-before-beginning is allowed WHILE area size is edited *** */
     while (ptop < bbl)    {
         WriteTextLine(wnd, NULL, ptop, FALSE);
         ptop++;
@@ -276,7 +296,7 @@ static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
     if (!InsideRect(p1, p2, rc))
         return FALSE;
     if (TextBlockMarked(wnd))    {
-        ClearTextBlock(wnd);
+        ClearTextBlock(wnd); /* un-mark block */
         SendMessage(wnd, PAINT, 0, 0);
     }
     if (wnd->wlines)    {
@@ -328,15 +348,18 @@ static int MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
     }
     return FALSE;
 }
+
+/* End an "editing the marked area size and position" session AND */
+/* ensure that the Beg(inning) is before the End! Swap if needed. */
 static void StopMarking(WINDOW wnd)
 {
     TextMarking = FALSE;
-    if (wnd->BlkBegLine > wnd->BlkEndLine)    {
+    if ( wnd->BlkBegLine > wnd->BlkEndLine ) {
         swap(wnd->BlkBegLine, wnd->BlkEndLine);
         swap(wnd->BlkBegCol, wnd->BlkEndCol);
     }
-    if (wnd->BlkBegLine == wnd->BlkEndLine &&
-            wnd->BlkBegCol > wnd->BlkEndCol)
+    if ( (wnd->BlkBegLine == wnd->BlkEndLine) &&
+         (wnd->BlkBegCol > wnd->BlkEndCol) )
         swap(wnd->BlkBegCol, wnd->BlkEndCol);
 }
 /* ----------- BUTTON_RELEASED Message ---------- */
@@ -356,7 +379,7 @@ static int ButtonReleasedMsg(WINDOW wnd)
 static void DoMultiLines(WINDOW wnd, int c, PARAM p2)
 {
     if (!KeyBoardMarking)    {
-        if ((int)p2 & (LEFTSHIFT | RIGHTSHIFT))    {
+        if ((int)p2 & (LEFTSHIFT | RIGHTSHIFT))    { /* shift-cursor */
             switch (c)    {
                 case HOME:
                 case CTRL_HOME:
@@ -370,8 +393,15 @@ static void DoMultiLines(WINDOW wnd, int c, PARAM p2)
                 case PGDN:
                 case CTRL_PGDN:
                 case DN:
-                case FWD:
-                case CTRL_FWD:
+#ifdef HOOKKEYB
+                case FWD:	/* right arrow! */
+                case CTRL_FWD:	/* old ctrl-rightarrow */
+#else
+		case RARROW:	/* formerly called FWD */
+		case LARROW:	/* hope that makes sense */
+		case CTRL_RARROW: /* new ctrl-rightarrow */
+		case CTRL_LARROW: /* ctrl-leftarrow */
+#endif
                     KeyBoardMarking = TextMarking = TRUE;
                     SetAnchor(wnd, wnd->CurrCol, wnd->CurrLine);
                     break;
@@ -400,9 +430,16 @@ static int DoScrolling(WINDOW wnd, int c, PARAM p2)
         case END:
             End(wnd);
             break;
-        case CTRL_FWD:
+#ifdef HOOKKEYB
+        case CTRL_FWD:		/* old ctrl-rightarrow */
+#else
+        case CTRL_RARROW:	/* new ctrl-rightarrow */
+#endif
             NextWord(wnd);
             break;
+#ifndef HOOKKEYB
+	case CTRL_LARROW:	/* ctrl-leftarrow */
+#endif
         case CTRL_BS:
             PrevWord(wnd);
             break;
@@ -434,17 +471,26 @@ static int DoScrolling(WINDOW wnd, int c, PARAM p2)
             if (isMultiLine(wnd))
                 Downward(wnd);
             break;
-        case FWD:
+#ifdef HOOKKEYB
+        case FWD: /* old name for rightarrow */
+#else
+	case RARROW: /* formerly called FWD */
+#endif
             Forward(wnd);
             break;
-        case BS:
+#ifdef HOOKKEYB
+        case BS: /* why should BackSpace do only cursor movement??? */
+#else
+	/* indeed: if we had BS here, BS would only move the cursor! */
+	case LARROW: /* hope this makes sense */
+#endif
             Backward(wnd);
             break;
         default:
             return FALSE;
     }
     if (!KeyBoardMarking && TextBlockMarked(wnd))    {
-        ClearTextBlock(wnd);
+        ClearTextBlock(wnd); /* un-mark block */
         SendMessage(wnd, PAINT, 0, 0);
     }
     SendMessage(wnd, KEYBOARD_CURSOR, WndCol, wnd->WndRow);
@@ -474,23 +520,37 @@ static void DelKey(WINDOW wnd)
     wnd->TextChanged = TRUE;
 }
 /* ------------ Tab key ------------ */
+/* not called in tab-type-through mode -ea */
 static void TabKey(WINDOW wnd, PARAM p2)
 {
-    if (isMultiLine(wnd))    {
-        int insmd = wnd->InsertMode;
-        do  {
+    int insmd = wnd->InsertMode;
+
+    if (isMultiLine(wnd))
+        {
+        do
+            {
             char *cc = CurrChar+1;
+
             if (!insmd && *cc == '\0')
                 break;
+
             if (wnd->textlen == wnd->MaxTextLength)
                 break;
-            SendMessage(wnd,KEYBOARD,insmd ? ' ' : FWD,0);
-        } while (wnd->CurrCol % cfg.Tabs);
-    }
-	else
-	    PostMessage(GetParent(wnd), KEYBOARD, '\t', p2);
+
+#ifdef HOOKKEYB
+            SendMessage(wnd,KEYBOARD,insmd ? ' ' : FWD,0); /* !?!? */
+#else
+            SendMessage(wnd,KEYBOARD,insmd ? ' ' : RARROW,0); /* !?!? */
+#endif
+            }
+        while (wnd->CurrCol % SysConfig.EditorTabSize);
+
+        }
+    else
+        PostMessage(GetParent(wnd), KEYBOARD, '\t', p2);
 }
 /* ------------ Shift+Tab key ------------ */
+/* inverse tab. Not called in tab-type-through mode -ea */
 static void ShiftTabKey(WINDOW wnd, PARAM p2)
 {
     if (isMultiLine(wnd))    {
@@ -498,7 +558,8 @@ static void ShiftTabKey(WINDOW wnd, PARAM p2)
             if (CurrChar == GetText(wnd))
                 break;
             SendMessage(wnd,KEYBOARD,BS,0);
-        } while (wnd->CurrCol % cfg.Tabs);
+            /* *** ^-- yet again, BS used as alias for LARROW here *** */
+        } while (wnd->CurrCol % SysConfig.EditorTabSize);
     }
 	else
 	    PostMessage(GetParent(wnd), KEYBOARD, SHIFT_HT, p2);
@@ -507,11 +568,26 @@ static void ShiftTabKey(WINDOW wnd, PARAM p2)
 static void KeyTyped(WINDOW wnd, int c)
 {
     char *currchar = CurrChar;
-    if ((c != '\n' && c < ' ') || (c & 0x1000))
+#ifdef HOOKKEYB
+    if (c == '\0' || (c & OFFSET))
+#else
+    if ( (c == '\0') || ((c & FKEY) != 0) ) /* skip this if function key */
+#endif
         /* ---- not recognized by editor --- */
+	/* cursor and stuff already done by our caller - Eric */
+	/* so I change (c != '\n' && c < ' ') to c == '\0'    */
+	/* -> now we may type ESC and other stuff - Eric      */
         return;
-    if (!isMultiLine(wnd) && TextBlockMarked(wnd))    {
-		SendMessage(wnd, CLEARTEXT, 0, 0);
+
+    if ( (!isMultiLine(wnd)) && TextBlockMarked(wnd) )    {
+#if 0
+                { /* ****************** */
+	                beep(); beep(); beep();
+	                poke(0xb800,2,c);
+                } /* ****************** */
+#endif
+	SendMessage(wnd, CLEARTEXT, 0, 0);
+	/* ^-- huh? Anything typed zaps current selection contents? */
         currchar = CurrChar;
     }
     /* ---- test typing at end of text ---- */
@@ -609,20 +685,40 @@ static void KeyTyped(WINDOW wnd, int c)
 /* ------------ screen changing key strokes ------------- */
 static void DoKeyStroke(WINDOW wnd, int c, PARAM p2)
 {
+    if (SysConfig.EditorGlobalReadOnly && TestAttribute(wnd, READONLY)) {
+        /* read only mode added 0.7b */
+        beep();
+        return;
+    }
+
+    if ( ((unsigned int)p2) == SYSRQKEY )
+        goto doNormalKey;	/* verbatim type mode: ^P + any key  */
+        			/* see KeyboardMsg for preparations! */
+
     switch (c)    {
-        case RUBOUT:
-			if (wnd->CurrCol == 0 && wnd->CurrLine == 0)
-				break;
-			SendMessage(wnd, KEYBOARD, BS, 0);
-			SendMessage(wnd, KEYBOARD, DEL, 0);
+        case BS:	/* formerly called RUBOUT */
+		if (wnd->CurrCol == 0 && wnd->CurrLine == 0)
 			break;
+#ifdef HOOKKEYB
+		SendMessage(wnd, KEYBOARD, BS, 0);
+#else
+		SendMessage(wnd, KEYBOARD, LARROW, 0);
+#endif
+		/* *** ^-- to be seen as "left arrow" here! *** */
+		SendMessage(wnd, KEYBOARD, DEL, 0);
+		/* *** ^-- remove char at cursor *** */
+		break;
         case DEL:
             DelKey(wnd);
             break;
         case SHIFT_HT:
+            if (SysConfig.EditorTabSize <= 1)
+                goto doNormalKey; /* tab-type-through mode -ea */
             ShiftTabKey(wnd, p2);
             break;
         case '\t':
+            if (SysConfig.EditorTabSize <= 1)
+                goto doNormalKey; /* tab-type-through mode -ea */
             TabKey(wnd, p2);
             break;
         case '\r':
@@ -630,89 +726,194 @@ static void DoKeyStroke(WINDOW wnd, int c, PARAM p2)
                 PostMessage(GetParent(wnd), KEYBOARD, c, p2);
                 break;
             }
-            c = '\n';
+            c = '\n'; /* fall through to default case here... */
         default:
-            if (TextBlockMarked(wnd))    {
+            doNormalKey:
+            if ( TextBlockMarked(wnd) &&
+#ifdef HOOKKEYB
+                 ((c & OFFSET) == 0)
+#else
+                 ((c & FKEY) == 0)
+#endif
+                 /* F-keys should not zap current selection! (0.6c) */
+               )
+            {
+#if 0
+                { /* ****************** */
+	                beep(); beep();
+	                poke(0xb800,0,c);
+                } /* ****************** */
+#endif
                 SendMessage(wnd, COMMAND, ID_DELETETEXT, 0);
                 SendMessage(wnd, PAINT, 0, 0);
-            }
+            } /* /typed normal key while text was selected... */
             KeyTyped(wnd, c);
             break;
     }
 }
+
 /* ----------- KEYBOARD Message ---------- */
 static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     int c = (int) p1;
     if (WindowMoving || WindowSizing || ((int)p2 & ALTKEY))
         return FALSE;
-    switch (c)    {
+    /* unless window is moving / resizing... */
+
+    switch (c)    { /* all except Alt-... */
+        /* we stop processing F-keys / Ctrl-... at this point... */
         /* --- these keys get processed by lower classes --- */
+/* *** Allow people to type ESC as normal text while editbox has focus -ea
+
+ASM: NO! Then the dialogs no longer process ESC as Cancel dialog
+
+*/
+
         case ESC:
-        case F1:
+
+        case F1: /* help */
         case F2:
-        case F3:
+        case F3: /* repeat search */
         case F4:
         case F5:
         case F6:
         case F7:
-        case F8:
+        case F8: /* ... */
         case F9:
-        case F10:
+        case F10: /* open menu */
         case INS:
+/*
         case SHIFT_INS:
         case SHIFT_DEL:
-            return FALSE;
+*/
+            return FALSE;	/* for all keys which are NOT for us! */
+            /* (all other keys will be HIDDEN from more generic classes!) */
         /* --- these keys get processed here --- */
-        case CTRL_FWD:
+#ifdef HOOKKEYB
+        case CTRL_FWD: /* ctrl-rightarrow */
+#else
+	case CTRL_RARROW:
+	case CTRL_LARROW:
+#endif
         case CTRL_BS:
         case CTRL_HOME:
         case CTRL_END:
         case CTRL_PGUP:
         case CTRL_PGDN:
             break;
+
+        case CTRL_N:	/* 0.7a NEW  file */
+        case CTRL_O:	/* 0.7a OPEN file */
+        case CTRL_S:	/* 0.7a SAVE file */
+        case CTRL_F:	/* 0.7c FIND text */
+        case ALT_1: case ALT_2: case ALT_3:
+        case ALT_4: case ALT_5: case ALT_6:
+        case ALT_7: case ALT_8: case ALT_9:	/* 0.7c goto window */
+            return FALSE; /* bounce to lower classes (for menu items) ... */
+            		/* ... so they are not avail for verbatim typing  */
+
+	/* *** force processing those elsewhere even if CTRL not really *** */
+	/* *** pressed, for shift-ins/del emulation of ctrl-v/x paste/  *** */
+	/* *** cut and shift-shift-ins ctrl-c copy emulation...         *** */
+	case CTRL_V:	/* for PASTE */
+	case CTRL_X:	/* for CUT   */
+	case CTRL_C:	/* for COPY  */
+	case CTRL_Z:	/* for UNDO  */
+	case CTRL_F4:	/* for close */
+	    {
+	        BOOL tmb = TextMarking;
+	        if ( ((int)p2 & (CTRLKEY|ALTKEY|LEFTSHIFT|RIGHTSHIFT)) == 0) {
+	            p2 = SYSRQKEY; 	/* CTRL-... but CTRL/SHIFT/ALT all not  */
+	            break;		/* pressed -> must be Alt-digit typing! */
+	        }
+	        StopMarking(wnd); /* *** ensure un-swapped selection endpoints *** */
+	        TextMarking = tmb;
+	    }
+            return FALSE; /* bounce keyboard message back to lower classes */
+
+	case CTRL_P:	/* CTRL-P -> fetch 1 more key for verbatim typing */
+#ifdef FANCY_CTRL_P
+	    SendMessage(GetParent(wnd), ADDSTATUS,
+	        (PARAM) "^P: Press any key for verbatim insertion.", 0);
+	    while (!keyhit())
+	        dispatch_message();	/* let (nested!) messages flow */
+#endif	        /* *** if this ever crashes, remove the dispatch_message() call! *** */
+	    c = getkey() & 0xff;	/* not elegant, of course! */
+	    p2 = SYSRQKEY;		/* magic shift status */
+#ifdef FANCY_CTRL_P
+            SendMessage(wnd,KEYBOARD_CURSOR,WndCol,wnd->WndRow); /* normal status bar again */
+#endif
+	    break;
+
         default:
             /* other ctrl keys get processed by lower classes */
             if ((int)p2 & CTRLKEY)
+#ifndef DISABLE_TYPING_CTRL_KEYS
+	      /* we enumerated all USED CTRL keys above.  */
+	      /* Others may be typed as text from now on. */
+	      if (p1 > CTRL_Z) /* CTRL_A ... CTRL_Z are ASCII 1..26 */
                 return FALSE;
+#endif
             /* --- all other keys get processed here --- */
             break;
     }
+    /* only reached if: no Alt-key, no F-key, no USED Ctrl-key */
+
+    if (p2 == SYSRQKEY) { /* special "type verbatim" mode */
+        DoKeyStroke(wnd, c, p2);
+        SendMessage(wnd, KEYBOARD_CURSOR, WndCol, wnd->WndRow);
+        return TRUE;	/* consume key event */
+    }
+
     DoMultiLines(wnd, c, p2);
-    if (DoScrolling(wnd, c, p2))    {
+    if (DoScrolling(wnd, c, p2)) {
         if (KeyBoardMarking)
             ExtendBlock(wnd, WndCol, wnd->WndRow);
     }
-    else if (!TestAttribute(wnd, READONLY))    {
+    else if (!TestAttribute(wnd, READONLY)) {
         DoKeyStroke(wnd, c, p2);
         SendMessage(wnd, KEYBOARD_CURSOR, WndCol, wnd->WndRow);
     }
-	else if (c == '\t')
-	    PostMessage(GetParent(wnd), KEYBOARD, '\t', p2);
-	else
-		beep();
+    else if (c == '\t')
+        PostMessage(GetParent(wnd), KEYBOARD, '\t', p2);
+    else
+	beep(); /* readonly and tried to really type something */
     return TRUE;
 }
+
 /* ----------- SHIFT_CHANGED Message ---------- */
 static void ShiftChangedMsg(WINDOW wnd, PARAM p1)
 {
-    if (!((int)p1 & (LEFTSHIFT | RIGHTSHIFT)) &&
-                                   KeyBoardMarking)    {
+    if ( !( (int)p1 & (LEFTSHIFT | RIGHTSHIFT) ) &&
+         KeyBoardMarking) {
         StopMarking(wnd);
         KeyBoardMarking = FALSE;
     }
 }
+
 /* ----------- ID_DELETETEXT Command ---------- */
 static void DeleteTextCmd(WINDOW wnd)
 {
     if (TextBlockMarked(wnd))    {
-        char *bbl=TextLine(wnd,wnd->BlkBegLine)+wnd->BlkBegCol;
-        char *bel=TextLine(wnd,wnd->BlkEndLine)+wnd->BlkEndCol;
-        int len = (int) (bel - bbl);
-        SaveDeletedText(wnd, bbl, len);
+        char *bb;
+        char *be;
+        unsigned int len;
+        BOOL tmb = TextMarking;
+        StopMarking(wnd); /* swap marks if begin was after end */
+        TextMarking = tmb;
+        bb = TextBlockBegin(wnd);
+        be = TextBlockEnd(wnd);
+        if (bb == be)
+            return;	/* empty deletion */
+        if (bb >= be) {	/* new check 0.7c */
+            bb = TextBlockEnd(wnd);	/* sic! */
+            be = TextBlockBegin(wnd);	/* sic! */
+        }
+        len = (unsigned int) (be - bb); /* *** unsigned *** */
+        SaveDeletedText(wnd, bb, len);
         wnd->TextChanged = TRUE;
-        strcpy(bbl, bel);
-        wnd->CurrLine = TextLineNumber(wnd, bbl-wnd->BlkBegCol);
+        strcpy(bb, be);	/* copy text after deletion over deleted text */
+        wnd->CurrLine = TextLineNumber(wnd, bb-wnd->BlkBegCol);	/* ?? */
         wnd->CurrCol = wnd->BlkBegCol;
         wnd->WndRow = wnd->BlkBegLine - wnd->wtop;
         if (wnd->WndRow < 0)    {
@@ -724,15 +925,28 @@ static void DeleteTextCmd(WINDOW wnd)
         BuildTextPointers(wnd);
     }
 }
+
 /* ----------- ID_CLEAR Command ---------- */
 static void ClearCmd(WINDOW wnd)
 {
     if (TextBlockMarked(wnd))    {
-        char *bbl=TextLine(wnd,wnd->BlkBegLine)+wnd->BlkBegCol;
-        char *bel=TextLine(wnd,wnd->BlkEndLine)+wnd->BlkEndCol;
-        int len = (int) (bel - bbl);
-        SaveDeletedText(wnd, bbl, len);
-        wnd->CurrLine = TextLineNumber(wnd, bbl);
+        char *bb;
+        char *be;
+        unsigned int len;
+        BOOL tmb = TextMarking;
+        StopMarking(wnd); /* swap marks if begin was after end */
+        TextMarking = tmb;
+        bb = TextBlockBegin(wnd);
+        be = TextBlockEnd(wnd);
+        if (bb == be)
+            return;	/* empty deletion */
+        if (bb >= be) {	/* new check 0.7c */
+            bb = TextBlockEnd(wnd);	/* sic! */
+            be = TextBlockBegin(wnd);	/* sic! */
+        }
+        len = (unsigned int) (be - bb); /* *** unsigned *** */
+        SaveDeletedText(wnd, bb, len);
+        wnd->CurrLine = TextLineNumber(wnd, bb);
         wnd->CurrCol = wnd->BlkBegCol;
         wnd->WndRow = wnd->BlkBegLine - wnd->wtop;
         if (wnd->WndRow < 0)    {
@@ -740,13 +954,13 @@ static void ClearCmd(WINDOW wnd)
             wnd->wtop = wnd->BlkBegLine;
         }
         /* ------ change all text lines in block to \n ----- */
-        while (bbl < bel)    {
-            char *cp = strchr(bbl, '\n');
-            if (cp > bel)
-                cp = bel;
-            strcpy(bbl, cp);
-            bel -= (int) (cp - bbl);
-            bbl++;
+        while (bb < be)    {
+            char *cp = strchr(bb, '\n');
+            if (cp > be)
+                cp = be;
+            strcpy(bb, cp);
+            be -= (int) (cp - bb);	/* is that safe to do? */
+            bb++;
         }
         ClearTextBlock(wnd);
         BuildTextPointers(wnd);
@@ -754,6 +968,7 @@ static void ClearCmd(WINDOW wnd)
         wnd->TextChanged = TRUE;
     }
 }
+
 /* ----------- ID_UNDO Command ---------- */
 static void UndoCmd(WINDOW wnd)
 {
@@ -765,6 +980,7 @@ static void UndoCmd(WINDOW wnd)
         SendMessage(wnd, PAINT, 0, 0);
     }
 }
+
 /* ----------- ID_PARAGRAPH Command ---------- */
 static void ParagraphCmd(WINDOW wnd)
 {
@@ -841,9 +1057,26 @@ static void ParagraphCmd(WINDOW wnd)
     wnd->TextChanged = TRUE;
     BuildTextPointers(wnd);
 }
+
 /* ----------- COMMAND Message ---------- */
 static int CommandMsg(WINDOW wnd, PARAM p1)
 {
+    if (SysConfig.EditorGlobalReadOnly && TestAttribute(wnd, READONLY)) {
+        /* read only mode added 0.7b */
+        switch ((int)p1) {
+            case ID_REPLACE:
+            case ID_CUT:
+            case ID_PASTE:
+            case ID_DELETETEXT:
+            case ID_CLEAR:
+            case ID_PARAGRAPH:
+            case ID_UPCASE:	/* new readonly mode handling for 0.7d */
+            case ID_DOWNCASE:
+                beep();
+                return TRUE;	/* consume event */
+        }
+    }
+
     switch ((int)p1)    {
 		case ID_SEARCH:
 			SearchText(wnd);
@@ -870,39 +1103,73 @@ static int CommandMsg(WINDOW wnd, PARAM p1)
 			return TRUE;
         case ID_DELETETEXT:
             DeleteTextCmd(wnd);
-			SendMessage(wnd, PAINT, 0, 0);
+            SendMessage(wnd, PAINT, 0, 0);
             return TRUE;
         case ID_CLEAR:
             ClearCmd(wnd);
-			SendMessage(wnd, PAINT, 0, 0);
+            SendMessage(wnd, PAINT, 0, 0);
             return TRUE;
         case ID_UNDO:
             UndoCmd(wnd);
-			SendMessage(wnd, PAINT, 0, 0);
+            SendMessage(wnd, PAINT, 0, 0);
             return TRUE;
         case ID_PARAGRAPH:
             ParagraphCmd(wnd);
-			SendMessage(wnd, PAINT, 0, 0);
+            SendMessage(wnd, PAINT, 0, 0);
+            return TRUE;
+
+        /* 0.7d added commands follow (7/2005) */
+        case ID_UPCASE:
+            UpCaseMarked(wnd);
+            ClearTextBlock(wnd);
+            SendMessage(wnd, PAINT, 0, 0);
+            return TRUE;
+        case ID_DOWNCASE:
+            DownCaseMarked(wnd);
+            ClearTextBlock(wnd);
+            SendMessage(wnd, PAINT, 0, 0);
+            return TRUE;
+        case ID_WORDCOUNT:
+            {
+                unsigned bytes, words, lines;
+                char statsline[50];
+                statsline[0] = 0;
+                StatsForMarked(wnd, &bytes, &words, &lines);
+                ClearTextBlock(wnd);
+                SendMessage(wnd, PAINT, 0, 0);
+                sprintf(statsline," %u lines, %u words, %u bytes ",
+                    lines, words, bytes);
+	        SendMessage(GetParent(wnd), ADDSTATUS,
+	            (PARAM) statsline, 0);
+#if 0
+!	        while (!keyhit())
+!	            dispatch_message();	/* let (nested!) messages flow */
+#endif
+	    }
             return TRUE;
         default:
             break;
     }
     return FALSE;
 }
+
 /* ---------- CLOSE_WINDOW Message ----------- */
 static int CloseWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-	int rtn;
+    int rtn;
     SendMessage(NULL, HIDE_CURSOR, 0, 0);
-    if (wnd->DeletedText != NULL)
+    if (wnd->DeletedText != NULL) {
         free(wnd->DeletedText);
+        wnd->DeletedText = NULL;
+    }
     rtn = BaseWndProc(EDITBOX, wnd, CLOSE_WINDOW, p1, p2);
-	if (wnd->text != NULL)	{
-		free(wnd->text);
-		wnd->text = NULL;
-	}
+    if (wnd->text != NULL) {
+	free(wnd->text);
+	wnd->text = NULL;
+    }
     return rtn;
 }
+
 /* ------- Window processing module for EDITBOX class ------ */
 int EditBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
@@ -915,17 +1182,17 @@ int EditBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case SETTEXT:
             return SetTextMsg(wnd, p1);
         case CLEARTEXT:
-			return ClearTextMsg(wnd);
+	    return ClearTextMsg(wnd);
         case GETTEXT:
             return GetTextMsg(wnd, p1, p2);
         case SETTEXTLENGTH:
             return SetTextLengthMsg(wnd, (unsigned) p1);
         case KEYBOARD_CURSOR:
             KeyboardCursorMsg(wnd, p1, p2);
-			return TRUE;
+	    return TRUE;
         case SETFOCUS:
-			if (!(int)p1)
-				SendMessage(NULL, HIDE_CURSOR, 0, 0);
+	    if (!(int)p1)
+	    SendMessage(NULL, HIDE_CURSOR, 0, 0);
         case PAINT:
         case MOVE:
             rtn = BaseWndProc(EDITBOX, wnd, msg, p1, p2);
@@ -971,13 +1238,18 @@ int EditBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     }
     return BaseWndProc(EDITBOX, wnd, msg, p1, p2);
 }
+
 /* ------ save deleted text for the Undo command ------ */
-static void SaveDeletedText(WINDOW wnd, char *bbl, int len)
+static void SaveDeletedText(WINDOW wnd, char *bbl, unsigned int len)
 {
-    wnd->DeletedLength = len;
+    /* removed "if len > 5000 or even > 0x8000" check in 0.7c, */
+    /* hopefully you CAN save/undelete > 32k chars properly... */
+
+    wnd->DeletedLength = len; /* *** UNSIGNED! *** */
     wnd->DeletedText=DFrealloc(wnd->DeletedText,len);
     memmove(wnd->DeletedText, bbl, len);
 }
+
 /* ---- cursor right key: right one character position ---- */
 static void Forward(WINDOW wnd)
 {
@@ -994,6 +1266,7 @@ static void Forward(WINDOW wnd)
             SendMessage(wnd, HORIZSCROLL, TRUE, 0);
     }
 }
+
 /* ----- stick the moving cursor to the end of the line ---- */
 static void StickEnd(WINDOW wnd)
 {
@@ -1010,6 +1283,7 @@ static void StickEnd(WINDOW wnd)
         SendMessage(wnd, PAINT, 0, 0);
     }
 }
+
 /* --------- cursor down key: down one line --------- */
 static void Downward(WINDOW wnd)
 {
@@ -1022,6 +1296,7 @@ static void Downward(WINDOW wnd)
         StickEnd(wnd);
     }
 }
+
 /* -------- cursor up key: up one line ------------ */
 static void Upward(WINDOW wnd)
 {
@@ -1033,6 +1308,7 @@ static void Upward(WINDOW wnd)
         StickEnd(wnd);
     }
 }
+
 /* ---- cursor left key: left one character position ---- */
 static void Backward(WINDOW wnd)
 {
@@ -1046,6 +1322,7 @@ static void Backward(WINDOW wnd)
         End(wnd);
     }
 }
+
 /* -------- End key: to end of line ------- */
 static void End(WINDOW wnd)
 {
@@ -1056,6 +1333,7 @@ static void End(WINDOW wnd)
         SendMessage(wnd, PAINT, 0, 0);
     }
 }
+
 /* -------- Home key: to beginning of line ------- */
 static void Home(WINDOW wnd)
 {
@@ -1065,6 +1343,7 @@ static void Home(WINDOW wnd)
         SendMessage(wnd, PAINT, 0, 0);
     }
 }
+
 /* -- Ctrl+cursor right key: to beginning of next word -- */
 static void NextWord(WINDOW wnd)
 {
@@ -1088,6 +1367,7 @@ static void NextWord(WINDOW wnd)
     if (wnd->wtop != savetop || wnd->wleft != saveleft)
         SendMessage(wnd, PAINT, 0, 0);
 }
+
 /* -- Ctrl+cursor left key: to beginning of previous word -- */
 static void PrevWord(WINDOW wnd)
 {
@@ -1113,6 +1393,7 @@ static void PrevWord(WINDOW wnd)
     if (wnd->wtop != savetop || wnd->wleft != saveleft)
         SendMessage(wnd, PAINT, 0, 0);
 }
+
 /* ----- modify text pointers from a specified position
                 by a specified plus or minus amount ----- */
 static void ModTextPointers(WINDOW wnd, int lineno, int var)
@@ -1120,6 +1401,7 @@ static void ModTextPointers(WINDOW wnd, int lineno, int var)
     while (lineno < wnd->wlines)
         *((wnd->TextPointers) + lineno++) += var;
 }
+
 /* ----- set anchor point for marking text block ----- */
 static void SetAnchor(WINDOW wnd, int mx, int my)
 {
@@ -1131,4 +1413,67 @@ static void SetAnchor(WINDOW wnd, int mx, int my)
 }
 
 
-
+/* NEW 7/2005 - not actually clipboard related but editbox.c is */
+/* already tooo long anyway ;-) In-place text section stuff...  */
+/* toupper/tolower: see ctype.h  -  do they support COUNTRY...? */
+
+void UpCaseMarked(WINDOW wnd)
+{
+    if (TextBlockMarked(wnd))    {
+        char *bb = TextBlockBegin(wnd);	/* near pointers */
+        char *be = TextBlockEnd(wnd);	/* near pointers */
+        if (bb >= be) {
+            bb = TextBlockEnd(wnd);	/* sic! */
+            be = TextBlockBegin(wnd);	/* sic! */
+        }
+        while (bb < be) {
+           bb[0] = toupper(bb[0]);
+           bb++;
+        }
+    }
+}
+
+void DownCaseMarked(WINDOW wnd)
+{
+    if (TextBlockMarked(wnd))    {
+        char *bb = TextBlockBegin(wnd);	/* near pointers */
+        char *be = TextBlockEnd(wnd);	/* near pointers */
+        if (bb >= be) {
+            bb = TextBlockEnd(wnd);	/* sic! */
+            be = TextBlockBegin(wnd);	/* sic! */
+        }
+        while (bb < be) {
+           bb[0] = tolower(bb[0]);
+           bb++;
+        }
+    }
+}
+
+void StatsForMarked(WINDOW wnd, unsigned *bytes, unsigned *words, unsigned *lines)
+{
+    bytes[0] = words[0] = lines[0] = 0;
+    if (TextBlockMarked(wnd))    {
+    	int inWord = 0;
+        char *bb = TextBlockBegin(wnd);	/* near pointers */
+        char *be = TextBlockEnd(wnd);	/* near pointers */
+        if (bb >= be) {
+            bb = TextBlockEnd(wnd);	/* sic! */
+            be = TextBlockBegin(wnd);	/* sic! */
+        }
+        while (bb < be) {
+           char c = bb[0];
+           if (c == '\n') lines[0]++;
+           if (isspace(c)) {
+           	if (inWord) words[0]++;
+           	inWord = 0;
+           } else {
+           	inWord = 1;
+           }
+           bytes[0]++;
+           bb++;
+        }
+        if (inWord) words[0]++;
+    }
+}
+
+

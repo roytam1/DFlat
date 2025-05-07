@@ -7,7 +7,9 @@
  */
 
 #include <assert.h>
-#include "dflat.h"
+#include <string.h>
+#include "dflatp.h"
+#include "dfptools.h"
 #include "htree.h"
 
 static int in8;
@@ -17,10 +19,17 @@ static BYTECOUNTER bytectr;
 struct htr *HelpTree;
 static int root;
 
+
+void BuildFileName(char *fn, const char *fname, const char *ext)
+{
+	strcpy(fn, fname);
+	strcat(fn, ext);
+}
+
 /* ------- open the help database file -------- */
 FILE *OpenHelpFile(const char *fn, const char *md)
 {
-    char *cp;
+    /* char *cp; */
     int treect, i;
     char helpname[65];
 

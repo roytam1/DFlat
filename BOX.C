@@ -1,6 +1,6 @@
 /* ----------- box.c ------------ */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 int BoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {

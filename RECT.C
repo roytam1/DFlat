@@ -1,6 +1,6 @@
 /* ------------- rect.c --------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
  /* --- Produce the vector end points produced by the overlap
         of two other vectors --- */
@@ -58,7 +58,7 @@ RECT subRectangle(RECT r1, RECT r2)
 }
 
 /* ------- return the client rectangle of a window ------ */
-RECT ClientRect(void *wnd)
+RECT ClientRect(WINDOW wnd)
 {
     RECT rc;
 
@@ -71,7 +71,7 @@ RECT ClientRect(void *wnd)
 
 /* ----- return the rectangle relative to
             its window's screen position -------- */
-RECT RelativeWindowRect(void *wnd, RECT rc)
+RECT RelativeWindowRect(WINDOW wnd, RECT rc)
 {
     RectLeft(rc) -= GetLeft((WINDOW)wnd);
     RectRight(rc) -= GetLeft((WINDOW)wnd);
@@ -81,7 +81,7 @@ RECT RelativeWindowRect(void *wnd, RECT rc)
 }
 
 /* ----- clip a rectangle to the parents of the window ----- */
-RECT ClipRectangle(void *wnd, RECT rc)
+RECT ClipRectangle(WINDOW wnd, RECT rc)
 {
     RECT sr;
     RectLeft(sr) = RectTop(sr) = 0;
@@ -92,4 +92,3 @@ RECT ClipRectangle(void *wnd, RECT rc)
             rc = subRectangle(rc, ClientRect(wnd));
     return subRectangle(rc, sr);
 }
-

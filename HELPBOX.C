@@ -1,18 +1,27 @@
 /* ------------ helpbox.c ----------- */
 
-#include "dflat.h"
 #include "htree.h"
+#include "dfpcomp.h"
+#include "dfptools.h"
+#include "helpbox.h"
 
-extern DBOX HelpBox;
+//extern DBOX HelpBox;
+
+/* ------------ the Help window dialog box -------------- */
+DIALOGBOX(HelpBox)
+    DB_TITLE(NULL, -1, -1, 0, 45)
+    CONTROL(TEXTBOX, NULL,         1,  1, 0, 40, ID_HELPTEXT)
+    CONTROL(BUTTON,  "  ~Close ",  0,  0, 1,  8, ID_CANCEL)
+    CONTROL(BUTTON,  "  ~Back  ", 10,  0, 1,  8, ID_BACK)
+    CONTROL(BUTTON,  "<< ~Prev ", 20,  0, 1,  8, ID_PREV)
+    CONTROL(BUTTON,  " ~Next >>", 30,  0, 1,  8, ID_NEXT)
+ENDDB
+
+
+//void UnLoadHelpFile(void);
 
 /* -------- strings of D-Flat classes for calling default
       help text collections -------- */
-char *ClassNames[] = {
-    #undef ClassDef
-    #define ClassDef(c,b,p,a) #c,
-    #include "classes.h"
-    NULL
-};
 
 #define MAXHEIGHT (SCREENHEIGHT-10)
 #define MAXHELPKEYWORDS 50  /* --- maximum keywords in a window --- */
@@ -23,7 +32,7 @@ static struct helps *ThisHelp;
 static int HelpCount;
 static char HelpFileName[9];
 
-static int HelpStack[MAXHELPSTACK];
+static unsigned long int HelpStack[MAXHELPSTACK]; /* *** was int array *** */
 static int stacked;
 
 /* --- keywords in the current help text -------- */
@@ -70,7 +79,9 @@ static BOOL CommandMsg(WINDOW wnd, PARAM p1)
             return TRUE;
         case ID_BACK:
 			if (stacked)
-				SelectHelp(wnd, FirstHelp+HelpStack[--stacked], FALSE);
+				SelectHelp(wnd, (FirstHelp +
+					(unsigned)HelpStack[--stacked]),
+					FALSE); /* *** uint pointer delta? *** */
             return TRUE;
         default:
             break;
@@ -312,6 +323,7 @@ static void ReadHelp(WINDOW wnd)
 }
 
 /* ---- compute the displayed length of a help text line --- */
+#if HELPLENGTH /* is not used here at all!? */
 static int HelpLength(char *s)
 {
     int len = strlen(s);
@@ -329,6 +341,7 @@ static int HelpLength(char *s)
     }
     return len;
 }
+#endif
 
 /* ----------- load the help text file ------------ */
 void LoadHelpFile(char *fname)
@@ -620,4 +633,4 @@ static void BestFit(WINDOW wnd, DIALOGWINDOW *dwnd)
         dwnd->x = -1;
 }
 
-
+

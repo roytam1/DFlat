@@ -1,6 +1,6 @@
 /* ------------- listbox.c ------------ */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
 #ifdef INCLUDE_EXTENDEDSELECTIONS
 static int ExtendSelections(WINDOW, int, int);
@@ -19,7 +19,7 @@ static BOOL SelectionInWindow(WINDOW, int);
 static int py = -1;    /* the previous y mouse coordinate */
 
 #ifdef INCLUDE_EXTENDEDSELECTIONS
-/* --------- SHIFT_F8 Key ------------ */
+/* --------- SHIFT_F8 / CTRL_F8 Key ------------ */
 static void AddModeKey(WINDOW wnd)
 {
     if (isMultiLine(wnd))    {
@@ -163,7 +163,10 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     switch ((int) p1)    {
 #ifdef INCLUDE_EXTENDEDSELECTIONS
-        case SHIFT_F8:
+#ifdef HOOKKEYB
+        case SHIFT_F8: /* only if HOOKKEYB */
+#endif
+        case CTRL_F8:
             AddModeKey(wnd);
             return TRUE;
 #endif
@@ -329,8 +332,9 @@ int ListBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             return TRUE;
         case LB_SELECTION:
             ChangeSelection(wnd, (int) p1, (int) p2);
-            SendMessage(GetParent(wnd), LB_SELECTION,
-                wnd->selection, 0);
+						/* DFlat+ 1.0: not logic way of notifying parent of a selection */			
+            SendMessage(GetParent(wnd), LB_CHILDSELECTION,
+                wnd->selection, 0); 
             return TRUE;
         case LB_CURRENTSELECTION:
             return wnd->selection;
@@ -470,4 +474,3 @@ static void near ChangeSelection(WINDOW wnd,int sel,int shift)
 }
 
 
-

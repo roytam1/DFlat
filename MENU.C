@@ -1,12 +1,14 @@
 /* ------------- menu.c ------------- */
 
-#include "dflat.h"
+#include "dfpcomp.h"
 
-static struct PopDown *FindCmd(MBAR *mn, int cmd)
+/* DFLat+ 1.0: Find command at the level of menu, not menubar */
+static struct PopDown *FindCmd2(MENU *mn, int cmd)
 {
-    MENU *mnu = mn->PullDown;
+    MENU *mnu = mn;
     while (mnu->Title != (void *)-1)    {
         struct PopDown *pd = mnu->Selections;
+				if (pd == NULL) continue;
         while (pd->SelectionTitle != NULL)    {
             if (pd->ActionId == cmd)
                 return pd;
@@ -16,6 +18,12 @@ static struct PopDown *FindCmd(MBAR *mn, int cmd)
     }
     return NULL;
 }
+
+static struct PopDown *FindCmd(MBAR *mn, int cmd)
+{
+		return FindCmd2 (mn->PullDown, cmd);
+}
+
 
 char *GetCommandText(MBAR *mn, int cmd)
 {
@@ -30,6 +38,17 @@ BOOL isCascadedCommand(MBAR *mn, int cmd)
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)
         return pd->Attrib & CASCADED;
+    return FALSE;
+}
+
+/* DFlat+ 1.0: isCascadedCommand2 based on MENU, not MENUBAR */
+BOOL isCascadedCommand2(MENU *mn, int cmd)
+{
+    struct PopDown *pd = FindCmd2(mn, cmd);
+
+    if (pd != NULL)
+        return !!(pd->Attrib & CASCADED);
+      
     return FALSE;
 }
 
@@ -83,4 +102,3 @@ void InvertCommandToggle(MBAR *mn, int cmd)
     if (pd != NULL)
         pd->Attrib ^= CHECKED;
 }
-

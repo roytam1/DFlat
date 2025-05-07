@@ -1,5 +1,6 @@
 /* ----------- clipbord.c ------------ */
-#include "dflat.h"
+
+#include "dfpcomp.h"
 
 char *Clipboard;
 unsigned ClipboardLength;
@@ -14,11 +15,15 @@ void CopyTextToClipboard(char *text)
 void CopyToClipboard(WINDOW wnd)
 {
     if (TextBlockMarked(wnd))    {
-        char *bbl=TextLine(wnd,wnd->BlkBegLine)+wnd->BlkBegCol;
-        char *bel=TextLine(wnd,wnd->BlkEndLine)+wnd->BlkEndCol;
-        ClipboardLength = (int) (bel - bbl);
+        char *bb = TextBlockBegin(wnd);	/* near pointers */
+        char *be = TextBlockEnd(wnd);	/* near pointers */
+        if (bb >= be) { /* *** 0.6e extra check *** */
+            bb = TextBlockEnd(wnd);	/* sic! */
+            be = TextBlockBegin(wnd);	/* sic! */
+        }
+        ClipboardLength = (unsigned) (be - bb); /* *** unsigned *** */
         Clipboard = DFrealloc(Clipboard, ClipboardLength);
-        memmove(Clipboard, bbl, ClipboardLength);
+        memmove(Clipboard, bb, ClipboardLength);
     }
 }
 
@@ -50,4 +55,4 @@ BOOL PasteText(WINDOW wnd, char *SaveTo, unsigned len)
     }
 	return FALSE;
 }
-
+

@@ -1,6 +1,6 @@
 /* ------------------- htree.c -------------------- */
 
-#include "dflat.h"
+#include "dflatp.h"
 #include "htree.h"
 
 struct htree *ht;

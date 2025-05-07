@@ -4,6 +4,9 @@
  * message foundation file
  * make message changes here
  * other source files will adapt
+ * (DFlat+ 1.0+) Update logger.c
+ *   too, to be able to debug with
+ *   the new messages
  */
 
 /* -------------- process communication messages ----------- */
@@ -16,20 +19,18 @@ DFlatMsg(OPEN_WINDOW)        /* open a window                */
 DFlatMsg(SHOW_WINDOW)        /* show a window                */
 DFlatMsg(HIDE_WINDOW)        /* hide a window                */
 DFlatMsg(CLOSE_WINDOW)       /* delete a window              */
+DFlatMsg(KILLFOCUS)          /* abandon the focus            */
 DFlatMsg(SETFOCUS)           /* set and clear the focus      */
 DFlatMsg(PAINT)              /* paint the window's data space*/
 DFlatMsg(BORDER)             /* paint the window's border    */
 DFlatMsg(TITLE)              /* display the window's title   */
 DFlatMsg(MOVE)               /* move the window              */
 DFlatMsg(SIZE)               /* change the window's size     */
-#ifdef INCLUDE_MAXIMIZE
 DFlatMsg(MAXIMIZE)           /* maximize the window          */
-#endif
-#ifdef INCLUDE_MINIMIZE
 DFlatMsg(MINIMIZE)           /* minimize the window          */
-#endif
 DFlatMsg(RESTORE)            /* restore the window           */
 DFlatMsg(INSIDE_WINDOW)      /* test x/y inside a window     */
+DFlatMsg(DEADCHILD)					 /* child's death (DFlat+ 1.0)   */
 /* ---------------- clock messages ------------------------- */
 DFlatMsg(CLOCKTICK)          /* the clock ticked             */
 DFlatMsg(CAPTURE_CLOCK)      /* capture clock into a window  */
@@ -84,7 +85,8 @@ DFlatMsg(MB_SELECTION)       /* menubar selection            */
 DFlatMsg(BUILD_SELECTIONS)   /* build the menu display       */
 DFlatMsg(CLOSE_POPDOWN)    /* tell parent popdown is closing */
 /* ---------------- list box messages ---------------------- */
-DFlatMsg(LB_SELECTION)       /* sent to parent on selection  */
+DFlatMsg(LB_SELECTION)       /* select listbox item          */
+DFlatMsg(LB_CHILDSELECTION)  /* sent to parent on selection  */
 DFlatMsg(LB_CHOOSE)          /* sent when user chooses       */
 DFlatMsg(LB_CURRENTSELECTION)/* return the current selection */
 DFlatMsg(LB_GETTEXT)         /* return the text of selection */
@@ -103,4 +105,4 @@ DFlatMsg(DRAWVECTOR)
 DFlatMsg(DRAWBOX)
 DFlatMsg(DRAWBAR)
 
-
+

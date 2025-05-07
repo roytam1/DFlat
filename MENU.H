@@ -34,16 +34,6 @@ typedef struct MenuBar {
 	MENU PullDown[MAXPULLDOWNS+1];
 } MBAR;
 
-/* --------- macros to define a menu bar with
-                 popdowns and selections ------------- */
-#define SEPCHAR "\xc4"
-#define DEFMENU(m) MBAR m = {-1,{
-#define POPDOWN(ttl,func,stat)     {ttl,func,stat,-1,0,{
-#define CASCADED_POPDOWN(id,func)  {NULL,func,NULL,id,0,{
-#define SELECTION(stxt,acc,id,attr)   {stxt,acc,id,attr,#acc},
-#define SEPARATOR                     {SEPCHAR},
-#define ENDPOPDOWN                    {NULL}}},
-#define ENDMENU                {(char *)-1} }};
 
 /* -------- menu selection attributes -------- */
 #define INACTIVE    1

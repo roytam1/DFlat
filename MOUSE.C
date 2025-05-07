@@ -1,6 +1,7 @@
 /* ------------- mouse.c ------------- */
 
-#include "dflat.h"
+//#include "dflat.h"
+#include "dfpcomp.h"
 
 static union REGS regs;
 static struct SREGS sregs;
@@ -108,4 +109,3 @@ void set_mousetravel(int minx, int maxx, int miny, int maxy)
 	}
 }
 
-

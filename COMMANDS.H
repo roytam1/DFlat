@@ -10,49 +10,8 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
+
 enum commands {
-    /* --------------- File menu ---------------- */
-    ID_OPEN,
-    ID_NEW,
-    ID_SAVE,
-    ID_SAVEAS,
-    ID_DELETEFILE,
-    ID_PRINT,
-    ID_PRINTSETUP,
-    ID_DOS,
-    ID_EXIT,
-    /* --------------- Edit menu ---------------- */
-    ID_UNDO,
-    ID_CUT,
-    ID_COPY,
-    ID_PASTE,
-    ID_PARAGRAPH,
-    ID_CLEAR,
-    ID_DELETETEXT,
-    /* --------------- Search Menu -------------- */
-    ID_SEARCH,
-    ID_REPLACE,
-    ID_SEARCHNEXT,
-	/* --------------- Utilities Menu ------------- */
-	ID_CALENDAR,
-	ID_BARCHART,
-    /* -------------- Options menu -------------- */
-    ID_INSERT,
-    ID_WRAP,
-    ID_LOG,
-    ID_TABS,
-    ID_DISPLAY,
-    ID_SAVEOPTIONS,
-    /* --------------- Window menu -------------- */
-    ID_CLOSEALL,
-    ID_WINDOW,
-	ID_MOREWINDOWS,
-    /* --------------- Help menu ---------------- */
-    ID_HELPHELP,
-    ID_EXTHELP,
-    ID_KEYSHELP,
-    ID_HELPINDEX,
-    ID_ABOUT,
     /* --------------- System menu -------------- */
 #ifdef INCLUDE_RESTORE
     ID_SYSRESTORE,
@@ -66,6 +25,20 @@ enum commands {
     ID_SYSMAXIMIZE,
 #endif
     ID_SYSCLOSE,
+    /* --------------- Edit box  ---------------- */
+    ID_UNDO,
+    ID_CUT,
+    ID_COPY,
+    ID_PASTE,
+    ID_PARAGRAPH,
+    ID_CLEAR,
+    ID_DELETETEXT,
+    ID_UPCASE,
+    ID_DOWNCASE,
+    ID_WORDCOUNT,
+    ID_SEARCH,
+    ID_REPLACE,
+    ID_SEARCHNEXT,
     /* ---- FileOpen and SaveAs dialog boxes ---- */
     ID_FILENAME,
     ID_FILES,
@@ -83,11 +56,6 @@ enum commands {
     ID_OK,
     ID_CANCEL,
     ID_HELP,
-    /* -------------- TabStops menu ------------- */
-    ID_TAB2,
-    ID_TAB4,
-    ID_TAB6,
-    ID_TAB8,
     /* ------------ Display dialog box ---------- */
     ID_BORDER,
     ID_TITLE,
@@ -100,14 +68,6 @@ enum commands {
     ID_25LINES,
     ID_43LINES,
     ID_50LINES,
-    /* ------------- Log dialog box ------------- */
-    ID_LOGLIST,
-    ID_LOGGING,
-    /* ------------ HelpBox dialog box ---------- */
-    ID_HELPTEXT,
-    ID_BACK,
-    ID_PREV,
-    ID_NEXT,
 	/* ---------- Print Select dialog box --------- */
 	ID_PRINTERPORT,
 	ID_LEFTMARGIN,
@@ -119,4 +79,3 @@ enum commands {
 };
 
 #endif
-
