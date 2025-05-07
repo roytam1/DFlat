@@ -134,7 +134,7 @@ void ReplaceText(WINDOW wnd)
 {
     if (CheckCase)
         SetCheckBox(&ReplaceTextDB, ID_MATCHCASE);
-    if (DialogBox(wnd, &ReplaceTextDB, TRUE, NULL))    {
+    if (DialogBox(NULL, &ReplaceTextDB, TRUE, NULL))    {
         CheckCase=CheckBoxSetting(&ReplaceTextDB,ID_MATCHCASE);
         SearchTextBox(wnd, TRUE, FALSE);
     }
@@ -145,7 +145,7 @@ void SearchText(WINDOW wnd)
 {
     if (CheckCase)
         SetCheckBox(&SearchTextDB, ID_MATCHCASE);
-    if (DialogBox(wnd, &SearchTextDB, TRUE, NULL))    {
+    if (DialogBox(NULL, &SearchTextDB, TRUE, NULL))    {
         CheckCase=CheckBoxSetting(&SearchTextDB,ID_MATCHCASE);
         SearchTextBox(wnd, FALSE, FALSE);
     }

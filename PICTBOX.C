@@ -99,8 +99,10 @@ static int FindVector(WINDOW wnd, RECT rc, int x, int y)
 
 static void PaintVector(WINDOW wnd, RECT rc)
 {
-    int i, cw, fml, vertvect, coll, len;
+	int i, xi, yi, len;
     unsigned int ch, nc;
+    unsigned int newch;
+    static int cw, fml, vertvect, coll;
 
     if (rc.rt == rc.lf)    {
         /* ------ vertical vector ------- */
@@ -116,8 +118,8 @@ static void PaintVector(WINDOW wnd, RECT rc)
     }
 
     for (i = 0; i < len; i++)    {
-        unsigned int newch = nc;
-        int xi = 0, yi = 0;
+        newch = nc;
+        xi = yi = 0;
         if (vertvect)
             yi = i;
         else
@@ -139,7 +141,7 @@ static void PaintVector(WINDOW wnd, RECT rc)
                 }
             }
         }
-        PutWindowChar(wnd, newch, rc.lf+xi, rc.tp+yi);
+		PutWindowChar(wnd, newch, rc.lf+xi, rc.tp+yi);
     }
 }
 

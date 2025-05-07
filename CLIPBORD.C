@@ -37,7 +37,7 @@ BOOL PasteText(WINDOW wnd, char *SaveTo, unsigned len)
         unsigned plen = strlen(wnd->text) + len;
 
 		if (plen <= wnd->MaxTextLength)	{
-        	if (plen > wnd->textlen)    {
+        	if (plen+1 > wnd->textlen)    {
             	wnd->text = DFrealloc(wnd->text, plen+3);
             	wnd->textlen = plen+1;
         	}

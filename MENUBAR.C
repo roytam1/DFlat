@@ -18,13 +18,16 @@ static BOOL Selecting;
 
 static WINDOW Cascaders[MAXCASCADES];
 static int casc;
-static WINDOW GetDocFocus(WINDOW);
+static WINDOW GetDocFocus(void);
 
 /* ----------- SETFOCUS Message ----------- */
-static void SetFocusMsg(WINDOW wnd, PARAM p1)
+static int SetFocusMsg(WINDOW wnd, PARAM p1)
 {
-    if (!(int)p1) 
-        SendMessage(GetParent(wnd), ADDSTATUS, 0, 0);
+	int rtn;
+	rtn = BaseWndProc(MENUBAR, wnd, SETFOCUS, p1, 0);
+	if (!(int)p1)
+		SendMessage(GetParent(wnd), ADDSTATUS, 0, 0);
+	return rtn;
 }
 
 /* --------- BUILDMENU Message --------- */
@@ -109,6 +112,7 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
         for (j = 0; j < mctr; j++)    {
             if ((inFocus == wnd && menu[j].sc == c) ||
                     (a && menu[j].sc == a))    {
+				SendMessage(wnd, SETFOCUS, TRUE, 0);
                 SendMessage(wnd, MB_SELECTION, j, 0);
                 return;
             }
@@ -119,7 +123,7 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
     while (mnu->Title != (void *)-1)    {
         struct PopDown *pd = mnu->Selections;
         if (mnu->PrepMenu)
-            (*(mnu->PrepMenu))(GetDocFocus(wnd), mnu);
+            (*(mnu->PrepMenu))(GetDocFocus(), mnu);
         while (pd->SelectionTitle != NULL)    {
             if (pd->Accelerator == (int) p1)    {
                 if (pd->Attrib & INACTIVE)
@@ -127,7 +131,7 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
                 else    {
                     if (pd->Attrib & TOGGLE)
                         pd->Attrib ^= CHECKED;
-                    SendMessage(GetDocFocus(wnd),
+                    SendMessage(GetDocFocus(),
                         SETFOCUS, TRUE, 0);
                     PostMessage(GetParent(wnd),
                         COMMAND, pd->ActionId, 0);
@@ -167,7 +171,7 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
         case ESC:
             if (inFocus == wnd && mwnd == NULL)    {
                 ActiveMenuBar->ActiveSelection = -1;
-                SendMessage(GetDocFocus(wnd),SETFOCUS,TRUE,0);
+                SendMessage(GetDocFocus(),SETFOCUS,TRUE,0);
                 SendMessage(wnd, PAINT, 0, 0);
             }
             break;
@@ -225,10 +229,13 @@ static void SelectionMsg(WINDOW wnd, PARAM p1, PARAM p2)
     Selecting = TRUE;
     mnu = ActiveMenu+(int)p1;
     if (mnu->PrepMenu != NULL)
-        (*(mnu->PrepMenu))(GetDocFocus(wnd), mnu);
+        (*(mnu->PrepMenu))(GetDocFocus(), mnu);
     wd = MenuWidth(mnu->Selections);
     if (p2)    {
+		int brd = GetRight(wnd);
         mx = GetLeft(mwnd) + WindowWidth(mwnd) - 1;
+		if (mx + wd > brd)
+			mx = brd - wd;
         my = GetTop(mwnd) + mwnd->selection;
     }
     else    {
@@ -248,8 +255,7 @@ static void SelectionMsg(WINDOW wnd, PARAM p1, PARAM p2)
                 NULL,
                 wnd,
                 NULL,
-                0);
-    AddAttribute(mwnd, SHADOW);
+                SHADOW);
 	if (!p2)	{
 	    Selecting = FALSE;
     	SendMessage(wnd, PAINT, 0, 0);
@@ -257,6 +263,7 @@ static void SelectionMsg(WINDOW wnd, PARAM p1, PARAM p2)
 	}
     if (mnu->Selections[0].SelectionTitle != NULL)    {
         SendMessage(mwnd, BUILD_SELECTIONS, (PARAM) mnu, 0);
+		SendMessage(mwnd, SETFOCUS, TRUE, 0);
 		SendMessage(mwnd, SHOW_WINDOW, 0, 0);
     }
     Selecting = FALSE;
@@ -283,7 +290,7 @@ static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
     else     {
         if (mwnd != NULL)
             SendMessage(mwnd, CLOSE_WINDOW, 0, 0);
-        SendMessage(GetDocFocus(wnd), SETFOCUS, TRUE, 0);
+        SendMessage(GetDocFocus(), SETFOCUS, TRUE, 0);
         PostMessage(GetParent(wnd), COMMAND, p1, p2);
     }
 }
@@ -297,7 +304,7 @@ static void ClosePopdownMsg(WINDOW wnd)
         mwnd = NULL;
         ActiveMenuBar->ActiveSelection = -1;
         if (!Selecting)	{
-            SendMessage(GetDocFocus(wnd), SETFOCUS, TRUE, 0);
+            SendMessage(GetDocFocus(), SETFOCUS, TRUE, 0);
 	        SendMessage(wnd, PAINT, 0, 0);
 		}
     }
@@ -326,9 +333,7 @@ int MenuBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             reset_menubar(wnd);
             break;
         case SETFOCUS:
-            rtn = BaseWndProc(MENUBAR, wnd, msg, p1, p2);
-            SetFocusMsg(wnd, p1);
-            return rtn;
+			return SetFocusMsg(wnd, p1);
         case BUILDMENU:
             BuildMenuMsg(wnd, p1);
             break;
@@ -338,6 +343,8 @@ int MenuBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             PaintMsg(wnd);
             return FALSE;
         case BORDER:
+		    if (mwnd == NULL)
+				SendMessage(wnd, PAINT, 0, 0);
             return TRUE;
         case KEYBOARD:
             KeyboardMsg(wnd, p1);
@@ -366,24 +373,6 @@ int MenuBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(MENUBAR, wnd, msg, p1, p2);
 }
 
-/* ----- return the WINDOW handle of the document window
-     that had the focus when the MENUBAR was activated ----- */
-static WINDOW GetDocFocus(WINDOW wnd)
-{
-    WINDOW DocFocus = Focus.LastWindow;
-    CLASS cl;
-    while ((cl = GetClass(DocFocus)) == MENUBAR ||
-                cl == POPDOWNMENU ||
-                    cl == STATUSBAR ||
-                        cl == APPLICATION)                    {
-        if ((DocFocus = PrevWindow(DocFocus)) == NULL)    {
-            DocFocus = GetParent(wnd);
-            break;
-        }
-    }
-    return DocFocus;
-}
-
 /* ------------- reset the MENUBAR -------------- */
 static void reset_menubar(WINDOW wnd)
 {
@@ -391,4 +380,20 @@ static void reset_menubar(WINDOW wnd)
     memset(GetText(wnd), ' ', SCREENWIDTH);
     *(GetText(wnd)+WindowWidth(wnd)) = '\0';
 }
+
+static WINDOW GetDocFocus(void)
+{
+	WINDOW wnd = ApplicationWindow;
+	if (wnd != NULL)	{
+		wnd = LastWindow(wnd);
+		while (wnd != NULL && (GetClass(wnd) == MENUBAR ||
+							GetClass(wnd) == STATUSBAR))
+			wnd = PrevWindow(wnd);
+		if (wnd != NULL)
+			while (wnd->childfocus != NULL)
+				wnd = wnd->childfocus;
+	}
+	return wnd ? wnd : ApplicationWindow;
+}
+
 

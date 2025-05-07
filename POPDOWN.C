@@ -19,6 +19,8 @@ static int CreateWindowMsg(WINDOW wnd)
     SendMessage(wnd, CAPTURE_KEYBOARD, 0, 0);
     SendMessage(NULL, SAVE_CURSOR, 0, 0);
     SendMessage(NULL, HIDE_CURSOR, 0, 0);
+	wnd->oldFocus = inFocus;
+	inFocus = wnd;
     return rtn;
 }
 
@@ -247,6 +249,7 @@ static int CloseWindowMsg(WINDOW wnd)
     SendMessage(wnd, RELEASE_MOUSE, 0, 0);
     SendMessage(wnd, RELEASE_KEYBOARD, 0, 0);
     SendMessage(NULL, RESTORE_CURSOR, 0, 0);
+	inFocus = wnd->oldFocus;
     rtn = BaseWndProc(POPDOWNMENU, wnd, CLOSE_WINDOW, 0, 0);
     SendMessage(pwnd, CLOSE_POPDOWN, 0, 0);
     return rtn;

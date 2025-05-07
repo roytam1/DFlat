@@ -429,7 +429,8 @@ CURRENT_MOUSE_CURSOR   get mouse position
   Sent:    to determine the current mouse position
   P1:      address of x
   P2:      address of y
-  Returns: 
+  Returns: mouse coordinates in x and y. If no mouse is installed,
+           returns -1 in x and y.
 
 MOUSE_CURSOR           set mouse position             
   Sent:    to set the current mouse position
@@ -665,7 +666,8 @@ WINDOW CreateWindow(
     int attrib)               /* window attribute           */
 
 This function creates a window. It returns the WINDOW handle that
-mesages and functions use to identify the window.
+messages and functions use to identify the window. If you specify
+NULL for the parent, the APPLICATION window becomes the parent.
 
 -------------------------------------------------------------------
 void PostMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
@@ -857,10 +859,11 @@ Returns the address of a specified line of text (0, 1, ...) in a
 TEXTBOX or derived class.
 
 -------------------------------------------------------------------
-WINDOW inWindow(int x, int y)
+WINDOW inWindow(WINDOW wnd, int x, int y)
 
 Returns the WINDOW handle of the window that x/y are in or NULL if
-x/y is outside of any window.
+x/y is outside of any window. Send NULL for wnd to search all
+windows. Send a window handle to search only that window's children.
 
 -------------------------------------------------------------------
 int isActive(MENU *mnu, int command)
@@ -1142,8 +1145,7 @@ void ClearCheckBox(DBOX *db, enum commands cmd)
 int CheckBoxSetting(DBOX *db, enum commands cmd)
 
 These functions set, clear, and test the setting of a specified check
-box control item on a dialog box. They are valid only when the dialog
-box is not active.
+box control item on a dialog box.
 
 -------------------------------------------------------------------
 void SetDlgTitle(DBOX *db, char *ttl)

@@ -112,7 +112,7 @@ ENDDB
 
 /* ------------ Display dialog box -------------- */
 DIALOGBOX( Display )
-    DB_TITLE(     "Display", -1, -1, 11+offset, 35)
+    DB_TITLE(     "Display", -1, -1, 12+offset, 35)
 #ifdef INCLUDE_WINDOWOPTIONS
 	CONTROL(BOX,      "Window",    7, 1, 6,20, 0)
     CONTROL(CHECKBOX,    NULL,     9, 2, 1, 3, ID_TITLE)
@@ -140,9 +140,12 @@ DIALOGBOX( Display )
     CONTROL(RADIOBUTTON, NULL,    19, 4+offset,1,3,ID_50LINES)
     CONTROL(TEXT,     "~50",      23, 4+offset,1,2,ID_50LINES)
 
-    CONTROL(BUTTON, "   ~OK   ",   2, 7+offset,1,8,ID_OK)
-    CONTROL(BUTTON, " ~Cancel ",  12, 7+offset,1,8,ID_CANCEL)
-    CONTROL(BUTTON, "  ~Help  ",  22, 7+offset,1,8,ID_HELP)
+    CONTROL(CHECKBOX,    NULL,    11, 6+offset,1,3,ID_SNOWY)
+    CONTROL(TEXT,     "S~nowy",   15, 6+offset,1,7,ID_SNOWY)
+
+    CONTROL(BUTTON, "   ~OK   ",   2, 8+offset,1,8,ID_OK)
+    CONTROL(BUTTON, " ~Cancel ",  12, 8+offset,1,8,ID_CANCEL)
+    CONTROL(BUTTON, "  ~Help  ",  22, 8+offset,1,8,ID_HELP)
 ENDDB
 
 /* ------------ Windows dialog box -------------- */

@@ -50,11 +50,15 @@ WINDOW CreateWindow(
             AddAttribute(wnd, classdefs[base].attrib);
             base = classdefs[base].base;
         }
-        if (parent && !TestAttribute(wnd, NOCLIP))    {
-            /* -- keep upper left within borders of parent - */
-            wnd->rc.lf = max(wnd->rc.lf,GetClientLeft(parent));
-            wnd->rc.tp = max(wnd->rc.tp,GetClientTop(parent));
-        }
+        if (parent)	{
+			if (!TestAttribute(wnd, NOCLIP))    {
+            	/* -- keep upper left within borders of parent - */
+            	wnd->rc.lf = max(wnd->rc.lf,GetClientLeft(parent));
+            	wnd->rc.tp = max(wnd->rc.tp,GetClientTop(parent));
+        	}
+		}
+		else
+			parent = ApplicationWindow;
         wnd->class = class;
         wnd->extension = extension;
         wnd->rc.rt = GetLeft(wnd)+width-1;
@@ -63,13 +67,11 @@ WINDOW CreateWindow(
         wnd->wd = width;
         if (ttl != NULL)
             InsertTitle(wnd, ttl);
-        wnd->nextfocus = wnd->prevfocus = wnd->dFocus = NULL;
         wnd->parent = parent;
         wnd->oldcondition = wnd->condition = ISRESTORED;
         wnd->RestoredRC = wnd->rc;
-        wnd->PrevKeyboard = wnd->PrevMouse = NULL;
-        SendMessage(wnd, CREATE_WINDOW, 0, 0);
 		InitWindowColors(wnd);
+        SendMessage(wnd, CREATE_WINDOW, 0, 0);
         if (isVisible(wnd))
             SendMessage(wnd, SHOW_WINDOW, 0, 0);
     }
@@ -197,10 +199,13 @@ void DisplayTitle(WINDOW wnd, RECT *rcc)
             	}
         	}
         	line[RectRight(rc)+1] = line[tend+3] = '\0';
+			if (wnd != inFocus)
+				ClipString++;
         	writeline(wnd, line+RectLeft(rc),
                        	RectLeft(rc)+BorderAdj(wnd),
                        	0,
                        	FALSE);
+			ClipString = 0;
     	}
 	}
 }
@@ -215,7 +220,7 @@ static void near shadow_char(WINDOW wnd, int y)
 
     if (TestAttribute(wnd, SHADOW) == 0 || cfg.mono)
         return;
-    foreground = LIGHTGRAY;
+    foreground = DARKGRAY;
     background = BLACK;
     wputch(wnd, c, x, y);
     foreground = fg;
@@ -235,7 +240,7 @@ static void near shadowline(WINDOW wnd, RECT rc)
     for (i = 0; i < WindowWidth(wnd)+1; i++)
         line[i] = videochar(GetLeft(wnd)+i, y);
     line[i] = '\0';
-    foreground = LIGHTGRAY;
+    foreground = DARKGRAY;
     background = BLACK;
     line[RectRight(rc)+1] = '\0';
     if (RectLeft(rc) == 0)
@@ -365,12 +370,16 @@ void RepaintBorder(WINDOW wnd, RECT *rcc)
         	}
         	line[WindowWidth(wnd)-2] = line[RectRight(rc)] = '\0';
         	if (RectLeft(rc) != RectRight(rc) ||
-        	(RectLeft(rc) && RectLeft(rc) < WindowWidth(wnd)-1))
+	        	(RectLeft(rc) && RectLeft(rc) < WindowWidth(wnd)-1))	{
+				if (wnd != inFocus)
+					ClipString++;
             	writeline(wnd,
-                	line+(RectLeft(clrc)),
-                	RectLeft(clrc)+1,
-                	WindowHeight(wnd)-1,
-                	FALSE);
+                			line+(RectLeft(clrc)),
+                			RectLeft(clrc)+1,
+                			WindowHeight(wnd)-1,
+                			FALSE);
+				ClipString = 0;
+			}
 		}
         if (RectRight(rc) == WindowWidth(wnd))
             shadow_char(wnd, WindowHeight(wnd)-1);

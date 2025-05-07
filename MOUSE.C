@@ -3,6 +3,7 @@
 #include "dflat.h"
 
 static union REGS regs;
+static struct SREGS sregs;
 
 static void near mouse(int m1,int m2,int m3,int m4)
 {
@@ -10,12 +11,13 @@ static void near mouse(int m1,int m2,int m3,int m4)
     regs.x.cx = m3;
     regs.x.bx = m2;
     regs.x.ax = m1;
-    int86(MOUSE, &regs, &regs);
+    int86x(MOUSE, &regs, &regs, &sregs);
 }
 
 /* ---------- reset the mouse ---------- */
 void resetmouse(void)
 {
+	segread(&sregs);
     mouse(0,0,0,0);
 }
 
@@ -31,6 +33,7 @@ BOOL mouse_installed(void)
 int mousebuttons(void)
 {
     if (mouse_installed())	{
+		segread(&sregs);
         mouse(3,0,0,0);
 	    return regs.x.bx & 3;
 	}
@@ -40,7 +43,9 @@ int mousebuttons(void)
 /* ---------- return mouse coordinates ---------- */
 void get_mouseposition(int *x, int *y)
 {
+	*x = *y = -1;
     if (mouse_installed())    {
+		segread(&sregs);
         mouse(3,0,0,0);
         *x = regs.x.cx/8;
         *y = regs.x.dx/8;
@@ -53,6 +58,7 @@ void get_mouseposition(int *x, int *y)
 void set_mouseposition(int x, int y)
 {
     if (mouse_installed())	{
+		segread(&sregs);
 		if (SCREENWIDTH == 40)
 			x *= 2;
         mouse(4,0,x*8,y*8);
@@ -62,21 +68,26 @@ void set_mouseposition(int x, int y)
 /* --------- display the mouse cursor -------- */
 void show_mousecursor(void)
 {
-    if (mouse_installed())
+    if (mouse_installed())	{
+		segread(&sregs);
         mouse(1,0,0,0);
+	}
 }
 
 /* --------- hide the mouse cursor ------- */
 void hide_mousecursor(void)
 {
-    if (mouse_installed())
+    if (mouse_installed())	{
+		segread(&sregs);
         mouse(2,0,0,0);
+	}
 }
 
 /* --- return true if a mouse button has been released --- */
 int button_releases(void)
 {
     if (mouse_installed())	{
+		segread(&sregs);
         mouse(6,0,0,0);
 	    return regs.x.bx;
 	}
@@ -91,8 +102,10 @@ void set_mousetravel(int minx, int maxx, int miny, int maxy)
 			minx *= 2;
 			maxx *= 2;
 		}
+		segread(&sregs);
         mouse(7, 0, minx*8, maxx*8);
 		mouse(8, 0, miny*8, maxy*8);
 	}
 }
+
 

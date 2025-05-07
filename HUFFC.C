@@ -6,19 +6,23 @@
 extern struct htree *ht;
 extern int root;
 extern int treect;
+static int lastchar = '\n';
 
 static void compress(FILE *, int, int);
 static void outbit(FILE *fo, int bit);
 
-int fgetcx(FILE *fi)
+static int fgetcx(FILE *fi)
 {
-	int c;
+    int c;
 
-	/* ------- bypass comments ------- */
-	if ((c = fgetc(fi)) == '#')
-		while (c != '\n' && c != EOF)
-			c = fgetc(fi);
-	return c;
+    /* ------- bypass comments ------- */
+    if ((c = fgetc(fi)) == ';' && lastchar == '\n')
+        do    {
+            while (c != '\n' && c != EOF)
+                c = fgetc(fi);
+        } while (c == ';');
+    lastchar = c;
+    return c;
 }
 
 void main(int argc, char *argv[])
@@ -42,7 +46,7 @@ void main(int argc, char *argv[])
         exit(1);
     }
 
-	ht = calloc(256, sizeof(struct htree));
+    ht = calloc(256, sizeof(struct htree));
 
     /* - read the input file and count character frequency - */
     while ((c = fgetcx(fi)) != EOF)   {
@@ -65,8 +69,8 @@ void main(int argc, char *argv[])
 
     /* -- write the tree to the output file -- */
     for (c = 256; c < treect; c++)   {
-		int lf = ht[c].left;
-		int rt = ht[c].right;
+        int lf = ht[c].left;
+        int rt = ht[c].right;
         fwrite(&lf, sizeof lf, 1, fo);
         fwrite(&rt, sizeof rt, 1, fo);
     }
@@ -78,8 +82,8 @@ void main(int argc, char *argv[])
     outbit(fo, -1);
     fclose(fi);
     fclose(fo);
-	free(ht);
-	exit(0);
+    free(ht);
+    exit(0);
 }
 
 /* ---- compress a character value into a bit stream ---- */
@@ -102,10 +106,10 @@ static int ct8;
 static void outbit(FILE *fo, int bit)
 {
     if (ct8 == 8 || bit == -1)  {
-		while (ct8 < 8)	{
-			out8 <<= 1;
-			ct8++;
-		}
+        while (ct8 < 8)    {
+            out8 <<= 1;
+            ct8++;
+        }
         fputc(out8, fo);
         ct8 = 0;
     }

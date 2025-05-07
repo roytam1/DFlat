@@ -28,7 +28,9 @@
 #include <time.h>
 #include <setjmp.h>
 
-#define VERSION "Version 12"
+#ifndef VERSION
+#define VERSION "Version 13"
+#endif
 
 void *DFcalloc(size_t, size_t);
 void *DFmalloc(size_t);
@@ -64,7 +66,6 @@ enum Condition     {
 typedef struct window {
     CLASS class;           /* window class                  */
     char *title;           /* window title                  */
-    struct window *parent; /* parent window                 */
     int (*wndproc)
         (struct window *, enum messages, PARAM, PARAM);
 	/* ----------------- window colors -------------------- */
@@ -75,9 +76,13 @@ typedef struct window {
     int ht, wd;            /* window height and width       */
     RECT RestoredRC;       /* restored condition rect       */
     /* -------------- linked list pointers ---------------- */
-    struct window *nextfocus;   /* next window on screen    */
-    struct window *prevfocus;   /* previous window on screen*/
+    struct window *parent; /* parent window                 */
+    struct window *firstchild;  /* first child this parent  */
+    struct window *lastchild;   /* last child this parent   */
+    struct window *nextsibling; /* next sibling             */
+    struct window *prevsibling; /* previous sibling         */
 
+	struct window *childfocus;	/* child that ha(s/d) focus */
     int attrib;                 /* Window attributes        */
     char *videosave;            /* video save buffer        */
     enum Condition condition;   /* Restored, Maximized,
@@ -85,8 +90,6 @@ typedef struct window {
     enum Condition oldcondition;/* previous condition       */
     int restored_attrib;        /* attributes when restored */
     void *extension;      /* menus, dialogs, documents, etc */
-	int ChildCt;
-	struct window **Children;
     struct window *PrevMouse;
     struct window *PrevKeyboard;
 	struct window *MenuBarWnd;/* menu bar                   */
@@ -121,13 +124,13 @@ typedef struct window {
 	BOOL WordWrapMode; /* TRUE or FALSE for word wrap       */
 	unsigned int MaxTextLength; /* maximum text length      */
     /* ---------------- dialog box fields ----------------- */
-    void *dFocus;          /* control that has the focus    */
     int ReturnCode;        /* return code from a dialog box */
 	BOOL Modal;		       /* True if a modeless dialog box */
 	CTLWINDOW *ct;		   /* control structure             */
 	/* -------------- popdownmenu fields ------------------ */
 	MENU *mnu;		/* points to menu structure             */
 	MBAR *holdmenu; /* previous active menu                 */
+	struct window *oldFocus;
 	/* --------------- help box fields -------------------- */
 	void *firstword; /* -> first in list of key words       */
 	void *lastword;  /* -> last in list of key words        */
@@ -169,10 +172,12 @@ void MessageLog(WINDOW);
 #define GetClientBottom(w)   (GetBottom(w)-BottomBorderAdj(w))
 #define GetClientLeft(w)     (GetLeft(w)+BorderAdj(w))
 #define GetClientRight(w)    (GetRight(w)-BorderAdj(w))
-#define GetParent(w)         ((w)->parent)
 #define GetTitle(w)          ((w)->title)
-#define NextWindow(w)        ((w)->nextfocus)
-#define PrevWindow(w)        ((w)->prevfocus)
+#define GetParent(w)         ((w)->parent)
+#define FirstWindow(w)       ((w)->firstchild)
+#define LastWindow(w)        ((w)->lastchild)
+#define NextWindow(w)        ((w)->nextsibling)
+#define PrevWindow(w)        ((w)->prevsibling)
 #define GetClass(w)          ((w)->class)
 #define GetAttribute(w)      ((w)->attrib)
 #define AddAttribute(w,a)    (GetAttribute(w) |= a)
@@ -194,18 +199,12 @@ void ClearWindow(WINDOW, RECT *, int);
 void writeline(WINDOW, char *, int, int, BOOL);
 void InitWindowColors(WINDOW);
 
-void SetNextFocus(WINDOW);
-void SetPrevFocus(WINDOW);
-void SkipSystemWindows(int);
-void RemoveFocusWindow(WINDOW);
-void AppendFocusWindow(WINDOW);
-void PrependFocusWindow(WINDOW);
-WINDOW GetFirstChild(WINDOW);
-WINDOW GetNextChild(WINDOW, WINDOW);
-WINDOW GetLastChild(WINDOW);
-WINDOW GetPrevChild(WINDOW, WINDOW);
-WINDOW GetFirstFocusChild(WINDOW);
-WINDOW GetNextFocusChild(WINDOW, WINDOW);
+void SetNextFocus(void);
+void SetPrevFocus(void);
+void RemoveWindow(WINDOW);
+void AppendWindow(WINDOW);
+void ReFocus(WINDOW);
+void SkipApplicationControls(void);
 
 BOOL CharInView(WINDOW, int, int);
 void CreatePath(char *, char *, int, int);
@@ -226,7 +225,7 @@ struct LinkedList    {
     WINDOW FirstWindow;
     WINDOW LastWindow;
 };
-extern struct LinkedList Focus;
+extern WINDOW ApplicationWindow;
 extern WINDOW inFocus;
 extern WINDOW CaptureMouse;
 extern WINDOW CaptureKeyboard;
@@ -310,9 +309,10 @@ int YesNoBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int StatusBarProc(WINDOW, MESSAGE, PARAM, PARAM);
 int WatchIconProc(WINDOW, MESSAGE, PARAM, PARAM);
 /* ------------- normal box prototypes ------------- */
-WINDOW inWindow(WINDOW, int, int);
+WINDOW inWindow(int, int);
 void SetStandardColor(WINDOW);
 void SetReverseColor(WINDOW);
+BOOL isAncestor(WINDOW, WINDOW);
 #define HitControlBox(wnd, p1, p2)     \
      (TestAttribute(wnd, CONTROLBOX) && \
      p1 == 2 && p2 == 0)
@@ -431,13 +431,9 @@ void PutComboListText(WINDOW, enum commands, char *);
 void GetItemText(WINDOW, enum commands, char *, int);
 char *GetDlgTextString(DBOX *, enum commands, CLASS);
 void SetDlgTextString(DBOX *, enum commands, char *, CLASS);
-void SetCheckBox(DBOX *, enum commands);
-void ClearCheckBox(DBOX *, enum commands);
 BOOL CheckBoxSetting(DBOX *, enum commands);
 CTLWINDOW *FindCommand(DBOX *, enum commands, int);
 WINDOW ControlWindow(DBOX *, enum commands);
-void EnableButton(DBOX *, enum commands);
-void DisableButton(DBOX *, enum commands);
 void SetScrollBars(WINDOW);
 void SetRadioButton(DBOX *, CTLWINDOW *);
 void ControlSetting(DBOX *, enum commands, int, int);

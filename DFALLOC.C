@@ -21,14 +21,7 @@ static void AllocationError(void)
 	if (!OnceIn)	{
 		OnceIn = TRUE;
 		/* ------ close all windows ------ */
-		wnd = Focus.FirstWindow;
-		while (wnd != NULL)	{
-			if (GetClass(wnd) == APPLICATION)	{
-				SendMessage(wnd, CLOSE_WINDOW, 0, 0);
-				break;
-			}
-			wnd = NextWindow(wnd);
-		}
+		SendMessage(ApplicationWindow, CLOSE_WINDOW, 0, 0);
         getvideo(rc, savbuf);
 		for (x = 0; x < 18; x++)	{
 			for (y = 0; y < 3; y++)		{

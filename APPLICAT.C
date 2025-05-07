@@ -47,29 +47,40 @@ static char *Menus[9] = {
 };
 #endif
 
+WINDOW ApplicationWindow;
+
 /* --------------- CREATE_WINDOW Message -------------- */
 static int CreateWindowMsg(WINDOW wnd)
 {
     int rtn;
 	static BOOL DisplayModified = FALSE;
+	ApplicationWindow = wnd;
     ScreenHeight = SCREENHEIGHT;
-    if (!isVGA() && !DisplayModified)    {
-        /* ---- modify Display Dialog Box for EGA, CGA ---- */
-        CTLWINDOW *ct, *ct1;
-        int i;
-        ct = FindCommand(&Display, ID_OK, BUTTON);
-        if (isEGA())
-            ct1 = FindCommand(&Display,ID_50LINES,RADIOBUTTON);
-        else    {
-            CTLWINDOW *ct2;
-            ct2 = FindCommand(&Display,ID_COLOR,RADIOBUTTON)-1;
-            ct2->dwnd.w++;
-            for (i = 0; i < 7; i++)
-                (ct2+i)->dwnd.x += 8;
-            ct1 = FindCommand(&Display,ID_25LINES,RADIOBUTTON)-1;
-        }
-        for (i = 0; i < 4; i++)
-            *ct1++ = *ct++;
+    if (!DisplayModified)    {
+       	int i;
+       	CTLWINDOW *ct, *ct1;
+       	ct = FindCommand(&Display, ID_SNOWY, CHECKBOX);
+    	if (!isVGA())    {
+        	/* ---- modify Display Dialog Box for EGA, CGA ---- */
+        	if (isEGA())
+            	ct1 = FindCommand(&Display,ID_50LINES,RADIOBUTTON);
+        	else    {
+            	CTLWINDOW *ct2;
+            	ct2 = FindCommand(&Display,ID_COLOR,RADIOBUTTON)-1;
+            	ct2->dwnd.w++;
+            	for (i = 0; i < 7; i++)
+                	(ct2+i)->dwnd.x += 8;
+            	ct1 = FindCommand(&Display,ID_25LINES,RADIOBUTTON)-1;
+        	}
+        	for (i = 0; i < 6; i++)
+            	*ct1++ = *ct++;
+		}
+    	if (isVGA() || isEGA())    {
+			/* ------ eliminate the snowy check box ----- */
+	       	ct = FindCommand(&Display, ID_SNOWY, CHECKBOX);
+			for (i = 0; i < 4; i++)
+				*(ct+i) = *(ct+2+i);
+		}
         DisplayModified = TRUE;
     }
 #ifdef INCLUDE_WINDOWOPTIONS
@@ -94,6 +105,8 @@ static int CreateWindowMsg(WINDOW wnd)
         PushRadioButton(&Display, ID_43LINES);
     else if (cfg.ScreenLines == 50)
         PushRadioButton(&Display, ID_50LINES);
+	if (cfg.snowy)
+        SetCheckBox(&Display, ID_SNOWY);
     if (SCREENHEIGHT != cfg.ScreenLines)    {
         SetScreenHeight(cfg.ScreenLines);
         if (WindowHeight(wnd) == ScreenHeight ||
@@ -113,7 +126,6 @@ static int CreateWindowMsg(WINDOW wnd)
     if (wnd->extension != NULL)
         CreateMenu(wnd);
     CreateStatusBar(wnd);
-    LoadHelpFile();
     SendMessage(NULL, SHOW_MOUSE, 0, 0);
     return rtn;
 }
@@ -135,10 +147,6 @@ static void SetFocusMsg(WINDOW wnd, BOOL p1)
 {
     if (p1)
         SendMessage(inFocus, SETFOCUS, FALSE, 0);
-    /* --- remove window from list --- */
-    RemoveFocusWindow(wnd);
-    /* --- move window to end/beginning of list --- */
-    p1 ? AppendFocusWindow(wnd) : PrependFocusWindow(wnd);
     inFocus = p1 ? wnd : NULL;
 	if (isVisible(wnd))
 	    SendMessage(wnd, BORDER, 0, 0);
@@ -152,7 +160,7 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
     BOOL WasVisible;
     WasVisible = isVisible(wnd);
     if (WasVisible)
-        SendMessage(wnd, HIDE_WINDOW, TRUE, 0);
+        SendMessage(wnd, HIDE_WINDOW, 0, 0);
     if (p1-GetLeft(wnd) < 30)
         p1 = GetLeft(wnd) + 30;
     BaseWndProc(APPLICATION, wnd, SIZE, p1, p2);
@@ -174,8 +182,7 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
             return TRUE;
 #ifdef INCLUDE_MULTI_WINDOWS
         case ALT_F6:
-            SetNextFocus(inFocus);
-            SkipSystemWindows(FALSE);
+            SetNextFocus();
             return TRUE;
 #endif
         case ALT_HYPHEN:
@@ -241,8 +248,11 @@ static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
             break;
         case ID_DISPLAY:
             if (DialogBox(wnd, &Display, TRUE, NULL))    {
-				oldFocus = inFocus;
-                SendMessage(wnd, HIDE_WINDOW, TRUE, 0);
+				if (inFocus == wnd->MenuBarWnd || inFocus == wnd->StatusBar)
+					oldFocus = ApplicationWindow;
+				else 
+					oldFocus = inFocus;
+                SendMessage(wnd, HIDE_WINDOW, 0, 0);
                 SelectColors(wnd);
                 SelectLines(wnd);
 #ifdef INCLUDE_WINDOWOPTIONS
@@ -457,15 +467,13 @@ void PrepWindowMenu(void *w, struct Menu *mnu)
     mnu->Selection = 0;
     oldFocus = NULL;
     if (GetClass(wnd) != APPLICATION)    {
-        int i;
         oldFocus = wnd;
         /* ----- point to the APPLICATION window ----- */
-        while (GetClass(wnd) != APPLICATION)
-            if ((wnd = GetParent(wnd)) == NULL)
-                return;
+		if (ApplicationWindow == NULL)
+			return;
+		cwnd = FirstWindow(ApplicationWindow);
         /* ----- get the first 9 document windows ----- */
-        for (i = 0; i < wnd->ChildCt && MenuNo < 9; i++)    {
-            cwnd = *(wnd->Children + i);
+        while (cwnd != NULL && MenuNo < 9)    {
             if (GetClass(cwnd) != MENUBAR &&
                     GetClass(cwnd) != STATUSBAR) {
                 /* --- add the document window to the menu --- */
@@ -481,6 +489,7 @@ void PrepWindowMenu(void *w, struct Menu *mnu)
                 pd++;
                 MenuNo++;
             }
+			cwnd = NextWindow(cwnd);
         }
     }
     if (MenuNo)
@@ -502,12 +511,11 @@ static int WindowPrep(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
         case INITIATE_DIALOG:    {
             WINDOW wnd1;
             WINDOW cwnd = ControlWindow(&Windows,ID_WINDOWLIST);
-            WINDOW pwnd = GetParent(wnd);
-            int sel = 0, i;
+            int sel = 0;
             if (cwnd == NULL)
                 return FALSE;
-            for (i = 0; i < pwnd->ChildCt; i++)    {
-                wnd1 = *(pwnd->Children + i);
+			wnd1 = FirstWindow(ApplicationWindow);
+			while (wnd1 != NULL)	{
                 if (wnd1 != wnd && GetClass(wnd1) != MENUBAR &&
                         GetClass(wnd1) != STATUSBAR)    {
                     if (wnd1 == oldFocus)
@@ -516,6 +524,7 @@ static int WindowPrep(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
                         (PARAM) WindowName(wnd1), 0);
                     sel++;
                 }
+				wnd1 = NextWindow(wnd1);
             }
             SendMessage(cwnd, LB_SETSELECTION, WindowSel, 0);
             AddAttribute(cwnd, VSCROLLBAR);
@@ -556,16 +565,15 @@ static void MoreWindows(WINDOW wnd)
         or the More Window dialog box ----- */
 static void ChooseWindow(WINDOW wnd, int WindowNo)
 {
-    int i;
-    WINDOW cwnd;
-    for (i = 0; i < wnd->ChildCt; i++)    {
-        cwnd = *(wnd->Children + i);
+    WINDOW cwnd = FirstWindow(wnd);
+	while (cwnd != NULL)	{
         if (GetClass(cwnd) != MENUBAR &&
                 GetClass(cwnd) != STATUSBAR)
             if (WindowNo-- == 0)
                 break;
+		cwnd = NextWindow(cwnd);
     }
-    if (wnd->ChildCt)    {
+    if (cwnd != NULL)    {
         SendMessage(cwnd, SETFOCUS, TRUE, 0);
         if (cwnd->condition == ISMINIMIZED)
             SendMessage(cwnd, RESTORE, 0, 0);
@@ -576,15 +584,15 @@ static void ChooseWindow(WINDOW wnd, int WindowNo)
 static void CloseAll(WINDOW wnd, int closing)
 {
     WINDOW wnd1;
-    int i;
     SendMessage(wnd, SETFOCUS, TRUE, 0);
-    for (i = wnd->ChildCt; i > 0; --i)    {
-        wnd1 = *(wnd->Children + i - 1);
+	wnd1 = FirstWindow(wnd);
+	while (wnd1 != NULL)	{
         if (GetClass(wnd1) != MENUBAR &&
                 GetClass(wnd1) != STATUSBAR)    {
             ClearVisible(wnd1);
             SendMessage(wnd1, CLOSE_WINDOW, 0, 0);
         }
+		wnd1 = NextWindow(wnd1);
     }
     if (!closing)
         SendMessage(wnd, PAINT, 0, 0);
@@ -595,13 +603,13 @@ static void CloseAll(WINDOW wnd, int closing)
 static void DoWindowColors(WINDOW wnd)
 {
     WINDOW cwnd;
-    int i;
     InitWindowColors(wnd);
-    for (i = 0; i < wnd->ChildCt; i++)    {
-        cwnd = *(wnd->Children + i);
+	cwnd = FirstWindow(wnd);
+	while (cwnd != NULL)	{
         DoWindowColors(cwnd);
         if (GetClass(cwnd) == TEXT && GetText(cwnd) != NULL)
             SendMessage(cwnd, CLEARTEXT, 0, 0);
+		cwnd = NextWindow(cwnd);
     }
 }
 
@@ -614,6 +622,8 @@ static void SelectColors(WINDOW wnd)
         cfg.mono = 2;
     else
         cfg.mono = 0;
+    cfg.snowy = CheckBoxSetting(&Display, ID_SNOWY);
+	get_videomode();
     if ((ismono() || video_mode == 2) && cfg.mono == 0)
         cfg.mono = 1;
 

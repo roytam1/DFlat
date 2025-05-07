@@ -19,8 +19,8 @@ int SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 SetFocusCursor(wnd);
                 return rtn;
             case PAINT:
-                foreground = FrameForeground(wnd);
-                background = FrameBackground(wnd);
+                foreground = WndBackground(wnd);
+                background = WndForeground(wnd);
                 wputch(wnd,UPSCROLLBOX,WindowWidth(wnd), 0);
                 wputch(wnd,DOWNSCROLLBOX,WindowWidth(wnd)+1,0);
                 SetFocusCursor(wnd);

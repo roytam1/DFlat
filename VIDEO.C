@@ -3,81 +3,13 @@
 #include "dflat.h"
 
 BOOL ClipString;
+static BOOL snowy;
 
 static unsigned video_address;
-
-/* -- swap a rectangle of video memory with a save buffer -- */
-void swapvideo(WINDOW wnd, void far *bf, BOOL Hiding, BOOL Noload)
-{
-	char *hd, *hadr;
-    int ht, bytes_row, bytestobuf, bytesfrbuf, bufferwidth;
-	RECT rc = WindowRect(wnd);
-    unsigned vadr = vad(RectLeft(rc), RectTop(rc));
-	BOOL TopLine = TRUE, Htrimmed, Vtrimmed;
-
-    if (TestAttribute(wnd, SHADOW))    {
-        RectBottom(rc)++;
-        RectRight(rc)++;
-    }
-    ht = RectBottom(rc)-RectTop(rc)+1;
-
-	if ((Vtrimmed = RectTop(rc) + ht > SCREENHEIGHT) == TRUE)
-		ht = SCREENHEIGHT - RectTop(rc);
-
-    bufferwidth = bytes_row = (RectRight(rc)-RectLeft(rc)+1) * 2;
-
-	if ((Htrimmed = RectLeft(rc) + bytes_row/2 > SCREENWIDTH) == TRUE)
-		bytes_row = (SCREENWIDTH - RectLeft(rc)) * 2;
-
-	hd = hadr = DFmalloc(bytes_row);
-
-    hide_mousecursor();
-    while (ht--)    {
-		bytestobuf = bytesfrbuf = bytes_row;
-		if (TestAttribute(wnd, SHADOW))	{
-			if (TopLine)	{
-				if (!Htrimmed)	{
-					bytestobuf -= 2;
-					bytesfrbuf -= 2;
-				}
-			}
-			else if (ht == 0 && !Vtrimmed)	{
-				bytestobuf -= 2;
-				bytesfrbuf -= 2;
-				vadr += 2;
-				hadr += 2;
-				bf = (char far *)bf + 2;
-			}
-			if (!TopLine && !Hiding && !Htrimmed)
-				bytesfrbuf -= 2;
-			TopLine = FALSE;
-		}
-		else
-			bytestobuf = bytesfrbuf = bytes_row;
-		/* ----- getvideo | swapvideo ------- */
-		if (!Noload)
-	        movedata(video_address, vadr, FP_SEG(hadr),
-                FP_OFF(hadr), bytestobuf);
-		/* ----- storevideo | swapvideo ------- */
-		if (ht || Hiding || !TestAttribute(wnd, SHADOW) || Vtrimmed)
-	        movedata(FP_SEG(bf), FP_OFF(bf), video_address,
-                vadr, bytesfrbuf);
-		/* ----- swapvideo ------- */
-		if (!Noload)
-	        movedata(FP_SEG(hadr), FP_OFF(hadr), FP_SEG(bf),
-                FP_OFF(bf), bytestobuf);
-        vadr += SCREENWIDTH*2;
-        bf = (char far *)bf + bufferwidth;
-    }
-	free(hd);
-	if (Noload)	{
-        free(wnd->videosave);
-        wnd->videosave = NULL;
-	}
-	if (!Hiding)
-		PaintShadow(wnd);
-    show_mousecursor();
-}
+static int near vpeek(int far *vp);
+static void near vpoke(int far *vp, int c);
+void movefromscreen(void *bf, int offset, int len);
+void movetoscreen(void *bf, int offset, int len);
 
 /* -- read a rectangle of video memory into a save buffer -- */
 void getvideo(RECT rc, void far *bf)
@@ -87,8 +19,7 @@ void getvideo(RECT rc, void far *bf)
     unsigned vadr = vad(RectLeft(rc), RectTop(rc));
     hide_mousecursor();
     while (ht--)    {
-        movedata(video_address, vadr, FP_SEG(bf),
-                FP_OFF(bf), bytes_row);
+		movefromscreen(bf, vadr, bytes_row);
         vadr += SCREENWIDTH*2;
         bf = (char far *)bf + bytes_row;
     }
@@ -103,8 +34,7 @@ void storevideo(RECT rc, void far *bf)
     unsigned vadr = vad(RectLeft(rc), RectTop(rc));
     hide_mousecursor();
     while (ht--)    {
-        movedata(FP_SEG(bf), FP_OFF(bf), video_address,
-                vadr, bytes_row);
+		movetoscreen(bf, vadr, bytes_row);
         vadr += SCREENWIDTH*2;
         bf = (char far *)bf + bytes_row;
     }
@@ -116,7 +46,10 @@ unsigned int GetVideoChar(int x, int y)
 {
     int c;
     hide_mousecursor();
-    c = peek(video_address, vad(x,y));
+	if (snowy)
+	    c = vpeek(MK_FP(video_address, vad(x,y)));
+	else
+	    c = peek(video_address, vad(x,y));
     show_mousecursor();
     return c;
 }
@@ -126,19 +59,12 @@ void PutVideoChar(int x, int y, int c)
 {
     if (x < SCREENWIDTH && y < SCREENHEIGHT)    {
         hide_mousecursor();
-        poke(video_address, vad(x,y), c);
+		if (snowy)
+	        vpoke(MK_FP(video_address, vad(x,y)), c);
+		else
+	        poke(video_address, vad(x,y), c);
         show_mousecursor();
     }
-}
-
-static BOOL isAncestor(WINDOW wnd, WINDOW awnd)
-{
-	while (wnd != NULL)	{
-		if (wnd == awnd)
-			return TRUE;
-		wnd = GetParent(wnd);
-	}
-	return FALSE;
 }
 
 BOOL CharInView(WINDOW wnd, int x, int y)
@@ -188,10 +114,14 @@ BOOL CharInView(WINDOW wnd, int x, int y)
 void wputch(WINDOW wnd, int c, int x, int y)
 {
 	if (CharInView(wnd, x, y))	{
+		int ch = (c & 255) | (clr(foreground, background) << 8);
+		int xc = GetLeft(wnd)+x;
+		int yc = GetTop(wnd)+y;
         hide_mousecursor();
-        poke(video_address,
-            vad(GetLeft(wnd)+x,GetTop(wnd)+y),(c & 255) |
-                (clr(foreground, background) << 8));
+		if (snowy)
+        	vpoke(MK_FP(video_address, vad(xc, yc)), ch);
+		else
+        	poke(video_address, vad(xc, yc), ch);
         show_mousecursor();
 	}
 }
@@ -264,8 +194,7 @@ void wputs(WINDOW wnd, void *s, int x, int y)
 		}
 		if (len > 0)	{
         	hide_mousecursor();
-			movedata(FP_SEG(ln), FP_OFF(ln+off),
-				video_address, vad(x1+off,y1), len*2);
+			movetoscreen(ln+off, vad(x1+off,y1), len*2);
         	show_mousecursor();
 		}
     }
@@ -276,28 +205,86 @@ void get_videomode(void)
 {
     videomode();
     /* ---- Monochrome Display Adaptor or text mode ---- */
+	snowy = FALSE;
     if (ismono())
         video_address = 0xb000;
-    else
+    else	{
         /* ------ Text mode -------- */
         video_address = 0xb800 + video_page;
+		if (!isEGA() && !isVGA())
+			/* -------- CGA --------- */
+			snowy = cfg.snowy;
+	}
 }
 
 /* --------- scroll the window. d: 1 = up, 0 = dn ---------- */
 void scroll_window(WINDOW wnd, RECT rc, int d)
 {
-	union REGS regs;
-    hide_mousecursor();
-	regs.h.cl = RectLeft(rc);
-	regs.h.ch = RectTop(rc);
-	regs.h.dl = RectRight(rc);
-	regs.h.dh = RectBottom(rc);
-	regs.h.bh = clr(WndForeground(wnd),WndBackground(wnd));
-	regs.h.ah = 7 - d;
-	regs.h.al = 1;
-    int86(VIDEO, &regs, &regs);
-    show_mousecursor();
+	if (RectTop(rc) != RectBottom(rc))	{
+		union REGS regs;
+		regs.h.cl = RectLeft(rc);
+		regs.h.ch = RectTop(rc);
+		regs.h.dl = RectRight(rc);
+		regs.h.dh = RectBottom(rc);
+		regs.h.bh = clr(WndForeground(wnd),WndBackground(wnd));
+		regs.h.ah = 7 - d;
+		regs.h.al = 1;
+    	hide_mousecursor();
+    	int86(VIDEO, &regs, &regs);
+    	show_mousecursor();
+	}
 }
 
+
+static void near waitforretrace(void)
+{
+#ifndef WATCOM
+asm		mov		dx,3dah
+loop1:
+asm		mov		cx,6
+loop2:
+asm		in		al,dx
+asm		test	al,8
+asm		jnz		loop2
+asm		test	al,1
+asm		jz		loop2
+asm		cli
+loop3:
+asm		in		al,dx
+asm		test	al,1
+asm		loopnz	loop3
+asm		sti
+asm		jz		loop1
+#endif
+}
+
+void movetoscreen(void *bf, int offset, int len)
+{
+	if (snowy)
+		waitforretrace();
+	movedata(FP_SEG(bf), FP_OFF(bf), video_address, offset, len);
+}
+
+void movefromscreen(void *bf, int offset, int len)
+{
+	if (snowy)
+		waitforretrace();
+	movedata(video_address, offset,	FP_SEG(bf), FP_OFF(bf),	len);
+}
+
+
+static int near vpeek(int far *vp)
+{
+	int c;
+	waitforretrace();
+	c = *vp;
+	return c;
+}
+
+static void near vpoke(int far *vp, int c)
+{
+	waitforretrace();
+	*vp = c;
+}
 
 

@@ -422,6 +422,7 @@ unsigned char reverse[CLASSCOUNT] [4] [2] = {
 CONFIG cfg = {
     VERSION,
     0,               /* Color                       */
+	FALSE,			 /* Snowy CGA                   */
     TRUE,            /* Editor Insert Mode          */
     4,               /* Editor tab stops            */
     TRUE,            /* Editor word wrap            */
@@ -474,10 +475,15 @@ BOOL LoadConfig(void)
         	if (strcmp(cfg.version, VERSION) == 0)    {
             	fseek(fp, 0L, SEEK_SET);
             	fread(&cfg, sizeof(CONFIG), 1, fp);
+ 		       	fclose(fp);
         	}
-        	else
+        	else	{
+				char path[64];
+				BuildFileName(path, ".cfg");
+	        	fclose(fp);
+				unlink(path);
             	strcpy(cfg.version, VERSION);
-        	fclose(fp);
+			}
 			ConfigLoaded = TRUE;
     	}
 	}

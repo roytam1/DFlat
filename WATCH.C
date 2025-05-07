@@ -22,7 +22,7 @@ static int WatchIconProc(
             writeline(wnd, "Í", 2, 0, FALSE);
             return rtn;
         case MOUSE_MOVED:
-            SendMessage(wnd, HIDE_WINDOW, TRUE, 0);
+            SendMessage(wnd, HIDE_WINDOW, 0, 0);
             SendMessage(wnd, MOVE, p1, p2);
             SendMessage(wnd, SHOW_WINDOW, 0, 0);
             return TRUE;

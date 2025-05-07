@@ -16,6 +16,7 @@ enum grounds { FG, BG };
 typedef struct config {
     char version[sizeof VERSION];
     char mono;         /* 0=color, 1=mono, 2=reverse mono    */
+	BOOL snowy;        /* TRUE = snowy CGA display           */
     BOOL InsertMode;   /* Editor insert mode                 */
     int Tabs;          /* Editor tab stops                   */
     BOOL WordWrap;     /* True to word wrap editor           */

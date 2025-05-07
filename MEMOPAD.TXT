@@ -316,7 +316,7 @@ help window in one of these three ways:
 Extended Help
 The MEMOPAD program has few features and procedures
 that are not taken directly from the SAA/CUA
-interface that F-Flat implements. The [..Log Messages]<ID_LOG>
+interface that D-Flat implements. The [..Log Messages]<ID_LOG>
 and [..Display]<ID_DISPLAY> selections on the [..Options]<Options> menu are
 unique to MEMOPAD and would not necessarily be in
 an application. Some of the Display features would
@@ -362,9 +362,7 @@ From a [..Document Window]<docwindow>
                   and end of the line.
   Ctrl+Home/End   Move the cursor to the beginning
                   and end of the document.
-  Alt+P           Form a paragraph from the marked
-                  block. If no block is marked, form 
-                  a paragraph from the cursor 
+  Alt+P           Form a paragraph from the cursor 
                   position to the next blank line.
   Ins             Toggle Insert/Overstrike mode.
   Tab             Tab to the next Tab Stop position.
@@ -579,16 +577,12 @@ This command reforms a paragraph beginning at the
 current keyboard cursor position. The end of the
 paragraph is the last line preceding the next blank
 line.
-
-If a [..marked block]<Block> is defined, the
-Paragraph command forms a new paragraph from the
-block without regard to the cursor position.
 ; -----------------------------------------
 <ID_SEARCH>
 [<<]<Search>
 [>>]<ID_REPLACE>
 The Search Command
-This command opens the [..Search Text]<SearchText> Dialog Box to
+This command opens the [..Search Text]<SearchTextDB> Dialog Box to
 allow you to search the text for a
 matching string.
 ; -----------------------------------------
@@ -668,12 +662,19 @@ desktop.
 ; -----------------------------------------
 <ID_WINDOW>
 [<<]<ID_CLOSEALL>
+[>>]<ID_MOREWINDOWS>
 The Open Window List
 The [..Window]<Window> menu displays a list of open document
 windows. You can select one of them as the current
 active window by selecting its title on the Window
 menu. When the menu first displays, the active
 window has a check mark (û) next to it.
+<ID_MOREWINDOWS>
+[<<]<ID_WINDOW>
+More Windows
+This command indicates that there are more open document
+windows than the [..Window]<Window> menu can display.
+Choose this command to see the [..Windows]<Windows> dialog box.
 ; -----------------------------------------
 <ID_HELPHELP>
 [<<]<Help>
@@ -841,12 +842,6 @@ The Replace Every Match Check Box
 Use this checkbox to select whether the search 
 will replace every match in the document.
 ; -----------------------------------------
-<ID_WINDOWLIST>
-The ID_WINDOWLIST Command
-
-     ======== Text needed =========
-
-; -----------------------------------------
 <ID_TITLE>
 [<<]<Display>
 [>>]<ID_BORDER>
@@ -914,9 +909,17 @@ Use this button to select a 43-line display.
 ; -----------------------------------------
 <ID_50LINES>
 [<<]<ID_43LINES>
+[>>]<ID_SNOWY>
 The 50 Lines Option Button
 Use this button to select a 50-line display.
 (VGA only)
+; -----------------------------------------
+<ID_SNOWY>
+[<<]<ID_50LINES>
+Snowy Display
+Select this check box if your display
+(usually a CGA) displays video snow when
+you change the screen.
 ; -----------------------------------------
 <ID_LOGLIST>
 [<<]<Options>
@@ -1294,13 +1297,13 @@ The Print Setup Dialog Box
      ======== Text needed =========
 
 ; -----------------------------------------
-<SearchText>
+<SearchTextDB>
 The Search Text Dialog Box
 
      ======== Text needed =========
 
 ; -----------------------------------------
-<ReplaceText>
+<ReplaceTextDB>
 The Replace Text Dialog Box
 
      ======== Text needed =========
@@ -1329,9 +1332,9 @@ The Display Dialog Box
 ; -----------------------------------------
 <Windows>
 The Windows Dialog Box
-
-     ======== Text needed =========
-
+This dialog box lists all the open windows.
+Select one and choose OK to make that window
+the active one.
 ; -----------------------------------------
 <Log>
 The Log Message Dialog Box

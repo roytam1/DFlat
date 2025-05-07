@@ -20,24 +20,6 @@ static int cs;
 
 static union REGS regs;
 
-void initvideo(void)
-{
-	if (isEGA() || isVGA())	{
-		regs.x.ax = 0x1003;
-		regs.h.bl = 0;
-    	int86(VIDEO, &regs, &regs);
-	}
-}
-
-void restorevideo(void)
-{
-	if (isEGA() || isVGA())	{
-		regs.x.ax = 0x1003;
-		regs.h.bl = 1;
-	    int86(VIDEO, &regs, &regs);
-	}
-}
-
 void SwapCursorStack(void)
 {
 	if (cs > 1)	{
@@ -64,7 +46,7 @@ int getkey(void)
 {
     int c;
     while (keyhit() == FALSE)
-        ;
+        geninterrupt(0x28);
     if (((c = bioskey(0)) & 0xff) == 0)
         c = (c >> 8) | 0x1080;
     else

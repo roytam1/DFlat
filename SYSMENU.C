@@ -99,6 +99,7 @@ void BuildSystemMenu(WINDOW wnd)
 
     SendMessage(SystemMenuWnd, BUILD_SELECTIONS,
                 (PARAM) &SystemMenu.PullDown[0], 0);
+    SendMessage(SystemMenuWnd, SETFOCUS, TRUE, 0);
     SendMessage(SystemMenuWnd, SHOW_WINDOW, 0, 0);
 }
 

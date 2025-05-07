@@ -104,7 +104,6 @@ static void StopMsg(void)
         setvect(KEYBOARDVECT, oldkeyboard);
         oldkeyboard = NULL;
     }
-	restorevideo();
 	ClearClipboard();
 	ClearDialogBoxes();
 	restorecursor();	
@@ -120,7 +119,6 @@ BOOL init_messages(void)
 		StopMsg();
 		return FALSE;
 	}
-	initvideo();
     resetmouse();
 	set_mousetravel(0, SCREENWIDTH-1, 0, SCREENHEIGHT-1);
 	savecursor();
@@ -498,7 +496,7 @@ static WINDOW MouseWindow(int x, int y)
 {
     /* ------ get the window in which a
                     mouse event occurred ------ */
-    WINDOW Mwnd = inWindow(NULL, x, y);
+    WINDOW Mwnd = inWindow(x, y);
 
     /* ---- process mouse captures ----- */
     if (CaptureMouse != NULL)

@@ -594,7 +594,7 @@ static void KeyTyped(WINDOW wnd, int c)
 	                SendMessage(wnd, KEYBOARD, DEL, 0);
 	                --dif;
 	            }
-	            SendMessage(wnd, KEYBOARD, '\r', 0);
+	            SendMessage(wnd, KEYBOARD, '\n', 0);
 	            currchar = CurrChar;
 	            wnd->CurrCol = dif;
 	            if (c == ' ')
@@ -687,6 +687,8 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         DoKeyStroke(wnd, c, p2);
         SendMessage(wnd, KEYBOARD_CURSOR, WndCol, wnd->WndRow);
     }
+	else
+		beep();
     return TRUE;
 }
 /* ----------- SHIFT_CHANGED Message ---------- */
@@ -747,7 +749,6 @@ static void ClearCmd(WINDOW wnd)
         ClearTextBlock(wnd);
         BuildTextPointers(wnd);
         SendMessage(wnd, KEYBOARD_CURSOR, WndCol, wnd->WndRow);
-        SendMessage(wnd, PAINT, 0, 0);
         wnd->TextChanged = TRUE;
     }
 }
@@ -765,67 +766,41 @@ static void UndoCmd(WINDOW wnd)
 /* ----------- ID_PARAGRAPH Command ---------- */
 static void ParagraphCmd(WINDOW wnd)
 {
-    int bc, ec, fl, el, Blocked;
+    int bc, fl;
     char *bl, *bbl, *bel, *bb;
 
-    if (!TextBlockMarked(wnd))    {
-        Blocked = FALSE;
-        /* ---- forming paragraph from cursor position --- */
-        fl = wnd->wtop + wnd->WndRow;
-        bbl = bel = bl = TextLine(wnd, wnd->CurrLine);
-        if ((bc = wnd->CurrCol) >= ClientWidth(wnd))
-            bc = 0;
-        Home(wnd);
-        /* ---- locate the end of the paragraph ---- */
-        while (*bel)    {
-            int blank = TRUE;
-            char *bll = bel;
-            /* --- blank line marks end of paragraph --- */
-            while (*bel && *bel != '\n')    {
-                if (*bel != ' ')
-                    blank = FALSE;
-                bel++;
-            }
-            if (blank)    {
-                bel = bll;
-                break;
-            }
-            if (*bel)
-                bel++;
-        }
-        if (bel == bbl)    {
-            SendMessage(wnd, KEYBOARD, DN, 0);
-            return;
-        }
-        if (*bel == '\0')
-            --bel;
-        if (*bel == '\n')
-            --bel;
-    }
-    else    {
-        /* ---- forming paragraph from marked block --- */
-        Blocked = TRUE;
-	    el = wnd->BlkEndLine;
-    	ec = wnd->BlkEndCol;
-        bbl = TextLine(wnd, wnd->BlkBegLine) + wnd->BlkBegCol;
-        bel = TextLine(wnd, wnd->BlkEndLine) + wnd->BlkEndCol;
-        fl = wnd->CurrLine = wnd->BlkBegLine;
-        bc = wnd->CurrCol = wnd->BlkBegCol;
-        if (fl < wnd->wtop)
-            wnd->wtop = fl;
-        wnd->WndRow = fl - wnd->wtop;
-        SendMessage(wnd, KEYBOARD, '\r', 0);
-        el++, fl++;
-        if (bc != 0)    {
-            SendMessage(wnd, KEYBOARD, '\r', 0);
-            el++, fl ++;
-        }
+    ClearTextBlock(wnd);
+    /* ---- forming paragraph from cursor position --- */
+    fl = wnd->wtop + wnd->WndRow;
+    bbl = bel = bl = TextLine(wnd, wnd->CurrLine);
+    if ((bc = wnd->CurrCol) >= ClientWidth(wnd))
         bc = 0;
-        bl = TextLine(wnd, fl);
-        wnd->CurrLine = fl;
-        bbl = bl + bc;
-        bel = TextLine(wnd, el) + ec;
+    Home(wnd);
+    /* ---- locate the end of the paragraph ---- */
+    while (*bel)    {
+        int blank = TRUE;
+        char *bll = bel;
+        /* --- blank line marks end of paragraph --- */
+        while (*bel && *bel != '\n')    {
+            if (*bel != ' ')
+                blank = FALSE;
+            bel++;
+        }
+        if (blank)    {
+            bel = bll;
+            break;
+        }
+        if (*bel)
+            bel++;
     }
+    if (bel == bbl)    {
+        SendMessage(wnd, KEYBOARD, DN, 0);
+        return;
+    }
+    if (*bel == '\0')
+        --bel;
+    if (*bel == '\n')
+        --bel;
     /* --- change all newlines in block to spaces --- */
     while (CurrChar < bel)    {
         if (*CurrChar == '\n')    {
@@ -852,29 +827,13 @@ static void ParagraphCmd(WINDOW wnd)
             bb = bbl+1;
         }
     }
-    ec = (int)(bel - bb);
     BuildTextPointers(wnd);
-    if (Blocked)    {
-        /* ---- position cursor at end of new paragraph ---- */
-        if (el < wnd->wtop ||
-                wnd->wtop + ClientHeight(wnd) < el)
-            wnd->wtop = el-ClientHeight(wnd);
-        if (wnd->wtop < 0)
-            wnd->wtop = 0;
-        wnd->WndRow = el - wnd->wtop;
-        wnd->CurrLine = el;
-        wnd->CurrCol = ec;
-        SendMessage(wnd, KEYBOARD, '\r', 0);
-        SendMessage(wnd, KEYBOARD, '\r', 0);
-    }
-    else    {
-        /* --- put cursor back at beginning --- */
-        wnd->CurrLine = TextLineNumber(wnd, bl);
-        wnd->CurrCol = bc;
-        if (fl < wnd->wtop)
-            wnd->wtop = fl;
-        wnd->WndRow = fl - wnd->wtop;
-    }
+    /* --- put cursor back at beginning --- */
+    wnd->CurrLine = TextLineNumber(wnd, bl);
+    wnd->CurrCol = bc;
+    if (fl < wnd->wtop)
+        wnd->wtop = fl;
+    wnd->WndRow = fl - wnd->wtop;
     SendMessage(wnd, PAINT, 0, 0);
     SendMessage(wnd, KEYBOARD_CURSOR, WndCol, wnd->WndRow);
     wnd->TextChanged = TRUE;

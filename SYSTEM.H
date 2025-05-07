@@ -81,8 +81,6 @@ void set_mousetravel(int, int, int, int);
 #define countdown(timer)         --timer
 #define timer_disabled(timer)     (timer == -1)
 /* ----------- video adaptor prototypes ----------- */
-void initvideo(void);
-void restorevideo(void);
 BOOL isEGA(void);
 BOOL isVGA(void);
 void Set25(void);
@@ -114,6 +112,7 @@ void Set50(void);
 
 #if MSC | WATCOM
 /* ============= Compatibility Macros ============ */
+#define asm __asm
 #undef FP_OFF
 #undef FP_SEG
 #undef MK_FP

@@ -13,6 +13,7 @@ int MessageBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     switch (msg)    {
         case CREATE_WINDOW:
             GetClass(wnd) = MESSAGEBOX;
+			InitWindowColors(wnd);
             ClearAttribute(wnd, CONTROLBOX);
             break;
         case KEYBOARD:
@@ -30,6 +31,7 @@ int YesNoBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     switch (msg)    {
         case CREATE_WINDOW:
             GetClass(wnd) = MESSAGEBOX;
+			InitWindowColors(wnd);
             ClearAttribute(wnd, CONTROLBOX);
             break;
         case KEYBOARD:    {
@@ -51,6 +53,7 @@ int ErrorBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     switch (msg)    {
         case CREATE_WINDOW:
             GetClass(wnd) = ERRORBOX;
+			InitWindowColors(wnd);
             break;
         case KEYBOARD:
             if (p1 == '\r' || p1 == ESC)

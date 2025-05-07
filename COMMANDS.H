@@ -93,6 +93,7 @@ enum commands {
     ID_TITLE,
     ID_STATUSBAR,
     ID_TEXTURE,
+	ID_SNOWY,
     ID_COLOR,
     ID_MONO,
     ID_REVERSE,

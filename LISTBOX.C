@@ -434,7 +434,7 @@ static void ClearSelection(WINDOW wnd, int sel)
 
 BOOL ItemSelected(WINDOW wnd, int sel)
 {
-    if (isMultiLine(wnd) && sel < wnd->wlines)    {
+	if (sel != -1 && isMultiLine(wnd) && sel < wnd->wlines)    {
         char *cp = TextLine(wnd, sel);
         return (int)((*cp) & 255) == LISTSELECTOR;
     }

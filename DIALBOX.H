@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#define MAXCONTROLS 26
+#define MAXCONTROLS 30
 #define MAXRADIOS 20
 
 #define OFF FALSE

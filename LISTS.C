@@ -2,164 +2,126 @@
 
 #include "dflat.h"
 
-struct LinkedList Focus;
-
-/* --- set focus to the window beneath the one specified --- */
-void SetPrevFocus(WINDOW wnd)
+/* ----- set focus to the next sibling ----- */
+void SetNextFocus()
 {
-    if (wnd != NULL && wnd == inFocus)    {
-        WINDOW wnd1 = wnd;
+    if (inFocus != NULL)    {
+        WINDOW wnd1 = inFocus, pwnd;
         while (TRUE)    {
-            if ((wnd1 = PrevWindow(wnd1)) == NULL)
-                wnd1 = Focus.LastWindow;
-            if (wnd1 == NULL || wnd1 == wnd)
-                return;
+			pwnd = GetParent(wnd1);
+            if (NextWindow(wnd1) != NULL)
+				wnd1 = NextWindow(wnd1);
+			else if (pwnd != NULL)
+                wnd1 = FirstWindow(pwnd);
+            if (wnd1 == NULL || wnd1 == inFocus)	{
+				wnd1 = pwnd;
+				break;
+			}
+			if (GetClass(wnd1) == STATUSBAR || GetClass(wnd1) == MENUBAR)
+				continue;
             if (isVisible(wnd1))
                 break;
         }
-        if (wnd1 != NULL)
-            SendMessage(wnd1, SETFOCUS, TRUE, 0);
+        if (wnd1 != NULL)	{
+			while (wnd1->childfocus != NULL)
+				wnd1 = wnd1->childfocus;
+            if (wnd1->condition != ISCLOSING)
+	            SendMessage(wnd1, SETFOCUS, TRUE, 0);
+		}
     }
 }
 
-/* this function assumes that wnd is in the Focus linked list */
-static WINDOW SearchFocusNext(WINDOW wnd, WINDOW pwnd)
+/* ----- set focus to the previous sibling ----- */
+void SetPrevFocus()
 {
-    WINDOW wnd1 = wnd;
-
-    if (wnd != NULL)    {
+    if (inFocus != NULL)    {
+        WINDOW wnd1 = inFocus, pwnd;
         while (TRUE)    {
-            if ((wnd1 = NextWindow(wnd1)) == NULL)
-                wnd1 = Focus.FirstWindow;
-            if (wnd1 == wnd)
-                return NULL;
-            if (wnd1 != NULL)
-                if (pwnd == NULL || pwnd == GetParent(wnd1))
-                    break;
+			pwnd = GetParent(wnd1);
+            if (PrevWindow(wnd1) != NULL)
+				wnd1 = PrevWindow(wnd1);
+			else if (pwnd != NULL)
+                wnd1 = LastWindow(pwnd);
+            if (wnd1 == NULL || wnd1 == inFocus)	{
+				wnd1 = pwnd;
+				break;
+			}
+			if (GetClass(wnd1) == STATUSBAR)
+				continue;
+            if (isVisible(wnd1))
+                break;
         }
+        if (wnd1 != NULL)	{
+			while (wnd1->childfocus != NULL)
+				wnd1 = wnd1->childfocus;
+            if (wnd1->condition != ISCLOSING)
+	            SendMessage(wnd1, SETFOCUS, TRUE, 0);
+		}
     }
-    return wnd1;
 }
 
-/* ----- set focus to the next sibling ----- */
-void SetNextFocus(WINDOW wnd)
+/* ------- move a window to the end of its parents list ----- */
+void ReFocus(WINDOW wnd)
 {
-    WINDOW wnd1;
-
-    if (wnd != inFocus)
-        return;
-    if ((wnd1 = SearchFocusNext(wnd, GetParent(wnd)))==NULL)
-        wnd1 = SearchFocusNext(wnd, NULL);
-    if (wnd1 != NULL)
-        SendMessage(wnd1, SETFOCUS, TRUE, 0);
+	if (GetParent(wnd) != NULL)	{
+		if (!isDerivedFrom(GetParent(wnd), DIALOG))	{
+			RemoveWindow(wnd);
+			AppendWindow(wnd);
+		}
+		ReFocus(GetParent(wnd));
+	}
 }
 
-/* ---- remove a window from the Focus linked list ---- */
-void RemoveFocusWindow(WINDOW wnd)
+/* ---- remove a window from the linked list ---- */
+void RemoveWindow(WINDOW wnd)
 {
     if (wnd != NULL)    {
+		WINDOW pwnd = GetParent(wnd);
         if (PrevWindow(wnd) != NULL)
             NextWindow(PrevWindow(wnd)) = NextWindow(wnd);
         if (NextWindow(wnd) != NULL)
             PrevWindow(NextWindow(wnd)) = PrevWindow(wnd);
-        if (wnd == Focus.FirstWindow)
-            Focus.FirstWindow = NextWindow(wnd);
-        if (wnd == Focus.LastWindow)
-            Focus.LastWindow = PrevWindow(wnd);
+		if (pwnd != NULL)	{
+        	if (wnd == FirstWindow(pwnd))
+            	FirstWindow(pwnd) = NextWindow(wnd);
+        	if (wnd == LastWindow(pwnd))
+            	LastWindow(pwnd) = PrevWindow(wnd);
+		}
     }
 }
 
-/* ---- append a window to the Focus linked list ---- */
-void AppendFocusWindow(WINDOW wnd)
+/* ---- append a window to the linked list ---- */
+void AppendWindow(WINDOW wnd)
 {
     if (wnd != NULL)    {
-        if (Focus.FirstWindow == NULL)
-            Focus.FirstWindow = wnd;
-        if (Focus.LastWindow != NULL)
-            NextWindow(Focus.LastWindow) = wnd;
-        PrevWindow(wnd) = Focus.LastWindow;
+		WINDOW pwnd = GetParent(wnd);
+		if (pwnd != NULL)	{
+        	if (FirstWindow(pwnd) == NULL)
+            	FirstWindow(pwnd) = wnd;
+        	if (LastWindow(pwnd) != NULL)
+            	NextWindow(LastWindow(pwnd)) = wnd;
+        	PrevWindow(wnd) = LastWindow(pwnd);
+	        LastWindow(pwnd) = wnd;
+		}
         NextWindow(wnd) = NULL;
-        Focus.LastWindow = wnd;
     }
 }
 
-/* ---- add a window to the beginning of the Focus linked list ---- */
-void PrependFocusWindow(WINDOW wnd)
+/* ----- if document windows and statusbar or menubar get the focus,
+              pass it on ------- */
+void SkipApplicationControls(void)
 {
-    if (wnd != NULL)    {
-        if (Focus.LastWindow == NULL)
-            Focus.LastWindow = wnd;
-        if (Focus.FirstWindow != NULL)
-            PrevWindow(Focus.FirstWindow) = wnd;
-        NextWindow(wnd) = Focus.FirstWindow;
-        PrevWindow(wnd) = NULL;
-        Focus.FirstWindow = wnd;
-    }
-}
-
-/* -------- get the first child of a parent window ------- */
-WINDOW GetFirstChild(WINDOW wnd)
-{
-    WINDOW ThisWindow = NULL;
-	if (wnd->ChildCt)
-		ThisWindow = *(wnd->Children);
-    return ThisWindow;
-}
-
-/* -------- get the next child of a parent window ------- */
-WINDOW GetNextChild(WINDOW wnd, WINDOW ThisWindow)
-{
-    if (ThisWindow != NULL)    {
-		int i;
-		for (i = 0; i < wnd->ChildCt; i++)
-			if (ThisWindow == *(wnd->Children+i))
-				break;
-		if (++i < wnd->ChildCt)
-			ThisWindow = *(wnd->Children+i);
+	BOOL EmptyAppl = FALSE;
+	int ct = 0;
+	while (!EmptyAppl && inFocus != NULL)	{
+		CLASS cl = GetClass(inFocus);
+		if (cl == MENUBAR || cl == STATUSBAR)	{
+			SetPrevFocus();
+			EmptyAppl = (cl == MENUBAR && ct++);
+		}
 		else
-			ThisWindow = NULL;
-    }
-    return ThisWindow;
+			break;
+	}
 }
-
-/* -- get first child of parent window from the Focus list -- */
-WINDOW GetFirstFocusChild(WINDOW wnd)
-{
-    WINDOW ThisWindow = Focus.FirstWindow;
-    while (ThisWindow != NULL)    {
-        if (GetParent(ThisWindow) == wnd)
-            break;
-        ThisWindow = NextWindow(ThisWindow);
-    }
-    return ThisWindow;
-}
-
-/* -- get next child of parent window from the Focus list -- */
-WINDOW GetNextFocusChild(WINDOW wnd, WINDOW ThisWindow)
-{
-    while (ThisWindow != NULL)    {
-        ThisWindow = NextWindow(ThisWindow);
-        if (ThisWindow != NULL)
-            if (GetParent(ThisWindow) == wnd)
-                break;
-    }
-    return ThisWindow;
-}
-
-/* --- bypass system windows when stepping through focus --- */
-void SkipSystemWindows(int Prev)
-{
-    int cl, ct = 0;
-    while ((cl = GetClass(inFocus)) == MENUBAR ||
-            cl == APPLICATION || cl == STATUSBAR)    {
-        if (Prev)
-            SetPrevFocus(inFocus);
-        else 
-            SetNextFocus(inFocus);
-        if (++ct == 3)
-            break;
-    }
-}
-
 
 

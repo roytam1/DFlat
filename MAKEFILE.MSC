@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------
-#          D - F L A T   M A K E F I L E - Microsoft C 6.0
+#          D - F L A T   M A K E F I L E - Microsoft C 7.0
 #-------------------------------------------------------------------
 
 all : memopad.exe memopad.hlp
@@ -22,7 +22,7 @@ FULL = BUILD_FULL_DFLAT
 MODEL = L
 #DEBUG = /Zi
 #LINKDEBUG = /CO
-COMPILE = cl $(DEBUG) /DMSC /D$(TESTING) /D$(FULL) /c /W4 /Gs /A$(MODEL)
+COMPILE = cl /Od $(DEBUG) /DMSC /D$(TESTING) /D$(FULL) /c /W3 /Gs /A$(MODEL)
 LINK = link $(LINKDEBUG) /ST:8192
 #------------------------------------------------
 .c.obj:

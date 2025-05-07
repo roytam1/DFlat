@@ -52,6 +52,7 @@ void main(int argc, char *argv[])
                         HASSTATUSBAR
                         );
 
+    LoadHelpFile();
     SendMessage(wnd, SETFOCUS, TRUE, 0);
     while (argc > 1)    {
         PadWindow(wnd, argv[1]);
@@ -185,14 +186,14 @@ static void SelectFile(WINDOW wnd)
     char FileName[64];
     if (OpenFileDialogBox("*.PAD", FileName))    {
         /* --- see if the document is already in a window --- */
-        WINDOW wnd1 = GetFirstChild(wnd);
+        WINDOW wnd1 = FirstWindow(wnd);
         while (wnd1 != NULL)    {
             if (stricmp(FileName, wnd1->extension) == 0)    {
                 SendMessage(wnd1, SETFOCUS, TRUE, 0);
                 SendMessage(wnd1, RESTORE, 0, 0);
                 return;
             }
-            wnd1 = GetNextChild(wnd, wnd1);
+            wnd1 = NextWindow(wnd1);
         }
         OpenPadWindow(wnd, FileName);
     }
@@ -429,6 +430,11 @@ static int EditorProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 					PasteFromClipboard(wnd);
 					SendMessage(wnd, PAINT, 0, 0);
 					return TRUE;
+				case ID_DELETETEXT:
+				case ID_CLEAR:
+		            rtn = DefaultWndProc(wnd, msg, p1, p2);
+			        SendMessage(wnd, PAINT, 0, 0);
+					return rtn;
 				case ID_HELP:
 	                DisplayHelp(wnd, "MEMOPADDOC");
     	            return TRUE;

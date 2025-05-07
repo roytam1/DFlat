@@ -23,8 +23,8 @@ int ComboProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             wnd->rc.bt = wnd->rc.tp;
             break;
         case PAINT:
-            foreground = FrameForeground(wnd);
-            background = FrameBackground(wnd);
+            foreground = WndBackground(wnd);
+            background = WndForeground(wnd);
             wputch(wnd, DOWNSCROLLBOX, WindowWidth(wnd), 0);
             break;
         case KEYBOARD:
@@ -57,6 +57,10 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case CREATE_WINDOW:
             wnd->ct = DFmalloc(sizeof(CTLWINDOW));
             wnd->ct->setting = OFF;
+			wnd->WindowColors[FRAME_COLOR][FG] = 
+				wnd->WindowColors[STD_COLOR][FG];
+			wnd->WindowColors[FRAME_COLOR][BG] = 
+				wnd->WindowColors[STD_COLOR][BG];
             break;
         case SETFOCUS:
             if ((int)p1 == FALSE)    {
