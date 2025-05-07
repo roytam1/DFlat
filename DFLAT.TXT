@@ -186,6 +186,12 @@ CREATE_WINDOW          create a window
   P2:      
   Returns: 
 
+OPEN_WINDOW           open a window                
+  Sent:    (posted) by DFLAT to new window after window is created
+  P1:      
+  P2:      
+  Returns: 
+
 SHOW_WINDOW            show a window                  
   Sent:    by the app to the window to display the window
   P1:      
@@ -487,7 +493,7 @@ ADDTEXT                add text to the text box
   Returns: 
 
 DELETETEXT         delete line of text from the text box       
-  Sent:    to append a line of text to the text box
+  Sent:    to delete a line of text from the text box
   P1:      line number relative to zero
   P2:      
   Returns: 
@@ -589,7 +595,8 @@ LB_CURRENTSELECTION    return the current selection
            cursor is positioned)
   P1:      
   P2:      
-  Returns: selection number: 0, 1, ...
+  Returns: selection number: 0, 1, ..., or -1 if listbox is empty or
+           no line is selected.
 
 LB_GETTEXT             return the text of selection   
   Sent:    To get a copy of the text at a specified line
@@ -656,7 +663,7 @@ available.
 
 -------------------------------------------------------------------
 WINDOW CreateWindow(
-    CLASS class,              /* class of this window       */
+    CLASS Class,              /* class of this window       */
     char *ttl,                /* title or NULL              */
     int left, int top,        /* upper left coordinates     */
     int height, int width,    /* dimensions                 */
@@ -709,7 +716,7 @@ Call this from a window-processing function to chain to the default
 window-processing function for the window's class.
 
 -------------------------------------------------------------------
-int BaseWndProc(CLASS class, WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+int BaseWndProc(CLASS Class, WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 
 Call this from the window-processing function of a derived window
 class to chain to the window-processing function of the base window's
@@ -855,6 +862,13 @@ char *TextLine(WINDOW wnd, int line)
 
 Returns the address of a specified line of text (0, 1, ...) in a
 TEXTBOX or derived class.
+
+-------------------------------------------------------------------
+void SetProtected(WINDOW wnd)
+
+Protects a TEXTBOX or control derived from a TEXT from having its
+data displayed. Displays * for each displayable character. Typically
+used for EDITBOX controls used for password input.
 
 -------------------------------------------------------------------
 int isActive(MENU *mnu, int command)
@@ -1006,6 +1020,10 @@ This function disables a command button on a dialog box. command
 buttons are initially enabled when the dialog box is first opened.
 
 -------------------------------------------------------------------
+int ButtonEnabled(DBOX *db, enum commands cmd)
+
+Returns true if the button is enabled.
+-------------------------------------------------------------------
 void PushRadioButton(DBOX *db, enum commands cmd)
 
 This function presses the specified radio button command on the
@@ -1067,9 +1085,6 @@ editbox control in a dialog box. You can call it after the dialog box
 has completed processing. The buffer is on the heap. Do not free it.
 Instead, call SetEditBoxText with a NULL pointer.
 
-If the text has not changed since it was initialized, this function
-returns NULL.
-
 -------------------------------------------------------------------
 char *GetComboBoxText(DBOX *db, enum commands cmd)
 
@@ -1078,22 +1093,19 @@ combo box control in a dialog box. You can call it after the dialog box
 has completed processing. The buffer is on the heap. Do not free it.
 Instead, call SetEditBoxText with a NULL pointer.
 
-If the text has not changed since it was initialized, this function
-returns NULL.
-
 -------------------------------------------------------------------
 void SetEditBoxText(DBOX *db, enum commands cmd, char *text)
 
 This function sets the text of a dialog box editbox. You can call
 this function before or while the dialog box is open. The dialog box
-makes it own copy on the heap, so your text can go out of scope.
+makes its own copy on the heap, so your text can go out of scope.
 
 -------------------------------------------------------------------
 void SetComboBoxText(DBOX *db, enum commands cmd, char *text)
 
 This function sets the text of a dialog box combo box. You can call
 this function before or while the dialog box is open. The dialog box
-makes it own copy on the heap, so your text can go out of scope.
+makes its own copy on the heap, so your text can go out of scope.
 
 -------------------------------------------------------------------
 char *GetDlgText(DBOX *db, enum commands cmd, char *text)

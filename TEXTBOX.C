@@ -34,6 +34,7 @@ static BOOL AddTextMsg(WINDOW wnd, char *txt)
         wnd->text = DFcalloc(1, adln+3);
         wnd->textlen = adln+1;
     }
+	wnd->TextChanged = TRUE;
     if (wnd->text != NULL)    {
         /* ---- append the text ---- */
         strcat(wnd->text, txt);
@@ -62,13 +63,14 @@ static void DeleteTextMsg(WINDOW wnd, int lno)
 static void InsertTextMsg(WINDOW wnd, char *txt, int lno)
 {
 	if (AddTextMsg(wnd, txt))	{
-		int len = strlen(txt);
+		int len = strlen(txt)+1;
 		char *cp2 = TextLine(wnd, lno);
-		char *cp1 = cp2+len+1;
+		char *cp1 = cp2+len;
 		memmove(cp1, cp2, strlen(cp2)-len);
 		strcpy(cp2, txt);
-		*(cp2+len) = '\n';
+		*(cp2+len-1) = '\n';
 	    BuildTextPointers(wnd);
+		wnd->TextChanged = TRUE;
 	}
 }
 
@@ -656,6 +658,15 @@ void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
         return;
     lnlen = LineLength(lp);
 
+	if (wnd->protect)	{
+		char *pp = lp;
+		while (*pp)	{
+			if (isprint(*pp))
+				*pp = '*';
+			pp++;
+		}
+	}
+
     /* -------- insert block color change controls ------- */
     if (TextBlockMarked(wnd))    {
         int bbl = wnd->BlkBegLine;
@@ -872,4 +883,3 @@ int TextLineNumber(WINDOW wnd, char *lp)
 }
 
 
-

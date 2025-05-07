@@ -7,7 +7,10 @@ static BOOL DisplayModified = FALSE;
 WINDOW ApplicationWindow;
 
 extern DBOX Display;
+
+#ifdef INCLUDE_MULTI_WINDOWS
 extern DBOX Windows;
+#endif
 
 #ifdef INCLUDE_LOGGING
 extern DBOX Log;
@@ -49,6 +52,8 @@ static char *Menus[9] = {
 #endif
 
 static char Cwd[65];
+
+char **Argv;
 
 /* --------------- CREATE_WINDOW Message -------------- */
 static int CreateWindowMsg(WINDOW wnd)
@@ -153,6 +158,7 @@ static void SetFocusMsg(WINDOW wnd, BOOL p1)
     if (p1)
         SendMessage(inFocus, SETFOCUS, FALSE, 0);
     inFocus = p1 ? wnd : NULL;
+	SendMessage(NULL, HIDE_CURSOR, 0, 0);
 	if (isVisible(wnd))
 	    SendMessage(wnd, BORDER, 0, 0);
 	else 
@@ -274,7 +280,7 @@ static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
             break;
 #ifdef INCLUDE_MULTI_WINDOWS
         case ID_WINDOW:
-            ChooseWindow(wnd, (int)p2-2);
+            ChooseWindow(wnd, CurrentMenuSelection-2);
             break;
         case ID_CLOSEALL:
             CloseAll(wnd, FALSE);
@@ -356,11 +362,7 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             return TRUE;
         case PAINT:
             if (isVisible(wnd))    {
-#ifdef INCLUDE_WINDOWOPTIONS
                 int cl = cfg.Texture ? APPLCHAR : ' ';
-#else
-                int cl = APPLCHAR;
-#endif
                 ClearWindow(wnd, (RECT *)p1, cl);
             }
             return TRUE;
@@ -481,7 +483,7 @@ void PrepWindowMenu(void *w, struct Menu *mnu)
 		cwnd = FirstWindow(ApplicationWindow);
         /* ----- get the first 9 document windows ----- */
         while (cwnd != NULL && MenuNo < 9)    {
-            if (GetClass(cwnd) != MENUBAR &&
+            if (isVisible(cwnd) && GetClass(cwnd) != MENUBAR &&
                     GetClass(cwnd) != STATUSBAR) {
                 /* --- add the document window to the menu --- */
                 strncpy(Menus[MenuNo]+4, WindowName(cwnd), 20);
@@ -523,8 +525,9 @@ static int WindowPrep(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
                 return FALSE;
 			wnd1 = FirstWindow(ApplicationWindow);
 			while (wnd1 != NULL)	{
-                if (wnd1 != wnd && GetClass(wnd1) != MENUBAR &&
-                        GetClass(wnd1) != STATUSBAR)    {
+                if (isVisible(wnd1) && wnd1 != wnd &&
+						GetClass(wnd1) != MENUBAR &&
+                        	GetClass(wnd1) != STATUSBAR)    {
                     if (wnd1 == oldFocus)
                         WindowSel = sel;
                     SendMessage(cwnd, ADDTEXT,
@@ -574,8 +577,9 @@ static void ChooseWindow(WINDOW wnd, int WindowNo)
 {
     WINDOW cwnd = FirstWindow(wnd);
 	while (cwnd != NULL)	{
-        if (GetClass(cwnd) != MENUBAR &&
-                GetClass(cwnd) != STATUSBAR)
+        if (isVisible(cwnd) &&
+				GetClass(cwnd) != MENUBAR &&
+                	GetClass(cwnd) != STATUSBAR)
             if (WindowNo-- == 0)
                 break;
 		cwnd = NextWindow(cwnd);
@@ -595,7 +599,9 @@ static void CloseAll(WINDOW wnd, int closing)
 	wnd1 = LastWindow(wnd);
 	while (wnd1 != NULL)	{
 		wnd2 = PrevWindow(wnd1);
-        if (GetClass(wnd1) != MENUBAR && GetClass(wnd1) != STATUSBAR)    {
+        if (isVisible(wnd1) &&
+				GetClass(wnd1) != MENUBAR &&
+					GetClass(wnd1) != STATUSBAR)    {
 	        ClearVisible(wnd1);
     	    SendMessage(wnd1, CLOSE_WINDOW, 0, 0);
 		}

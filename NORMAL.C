@@ -77,6 +77,7 @@ static void HideWindowMsg(WINDOW wnd)
         else
             PaintOverLappers(wnd);
 #endif
+		wnd->wasCleared = FALSE;
     }
 }
 
@@ -197,7 +198,7 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 {
 	RECT rc = {0,0,0,0};
     if (p1 && wnd != NULL && inFocus != wnd)    {
-		WINDOW this, thispar;
+		WINDOW This, thispar;
 		WINDOW that = NULL, thatpar = NULL;
 
 		WINDOW cwnd = wnd, fwnd = GetParent(wnd);
@@ -215,25 +216,25 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 			fwnd = cwnd;
 		}
 
-		this = wnd;
+		This = wnd;
 		that = thatpar = inFocus;
 
 		/* ---- find common ancestor of prev focus and this window --- */
 		while (thatpar != NULL)	{
 			thispar = wnd;
 			while (thispar != NULL)	{
-				if (this == CaptureMouse || this == CaptureKeyboard)	{
+				if (This == CaptureMouse || This == CaptureKeyboard)	{
 					/* ---- don't repaint if this window has capture ---- */
 					that = thatpar = NULL;
 					break;
 				}
 				if (thispar == thatpar)	{
 					/* ---- don't repaint if SAVESELF window had focus ---- */
-					if (this != that && TestAttribute(that, SAVESELF))
+					if (This != that && TestAttribute(that, SAVESELF))
 						that = thatpar = NULL;
 					break;
 				}
-				this = thispar;
+				This = thispar;
 				thispar = GetParent(thispar);
 			}
 			if (thispar != NULL)
@@ -245,7 +246,7 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 	        SendMessage(inFocus, SETFOCUS, FALSE, 0);
         inFocus = wnd;
 		if (that != NULL && isVisible(wnd))	{
-			rc = subRectangle(WindowRect(that), WindowRect(this));
+			rc = subRectangle(WindowRect(that), WindowRect(This));
 			if (!ValidRect(rc))	{
 				if (ApplicationWindow != NULL)	{
 					WINDOW fwnd = FirstWindow(ApplicationWindow);
@@ -261,11 +262,15 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 			}
 		}
 		if (that != NULL && !ValidRect(rc) && isVisible(wnd))
-			this = NULL;
+			This = NULL;
 		ReFocus(wnd);
-		if (this != NULL &&
-				(!isVisible(this) || !TestAttribute(this, SAVESELF)))
-	        SendMessage(this, SHOW_WINDOW, 0, 0);
+		if (This != NULL &&
+				(!isVisible(This) || !TestAttribute(This, SAVESELF)))	{
+			wnd->wasCleared = FALSE;
+	        SendMessage(This, SHOW_WINDOW, 0, 0);
+		}
+		else if (!isVisible(wnd))
+	        SendMessage(wnd, SHOW_WINDOW, 0, 0);
 		else 
 		    SendMessage(wnd, BORDER, 0, 0);
     }
@@ -357,6 +362,8 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
             /* ----- resizing a maximized window over a
                     borderless parent ----- */
             wnd = GetParent(wnd);
+	        if (!TestAttribute(wnd, SIZEABLE))
+    	        return;
         }
 #endif
         WindowSizing = TRUE;
@@ -866,8 +873,10 @@ static void near PaintOverLap(WINDOW wnd, RECT rc)
         if (TestAttribute(wnd, SHADOW))
             isBorder |= RectRight(rc) == WindowWidth(wnd) ||
                         RectBottom(rc) == WindowHeight(wnd);
-        if (isData)
+        if (isData)	{
+			wnd->wasCleared = FALSE;
             SendMessage(wnd, PAINT, (PARAM) &rc, TRUE);
+		}
         if (isBorder)
             SendMessage(wnd, BORDER, (PARAM) &rc, 0);
         else if (isTitle)
@@ -1017,11 +1026,11 @@ static BOOL InsideWindow(WINDOW wnd, int x, int y)
     return InsideRect(x, y, rc);
 }
 
-BOOL isDerivedFrom(WINDOW wnd, CLASS class)
+BOOL isDerivedFrom(WINDOW wnd, CLASS Class)
 {
     CLASS tclass = GetClass(wnd);
     while (tclass != -1)    {
-        if (tclass == class)
+        if (tclass == Class)
             return TRUE;
         tclass = (classdefs[tclass].base);
     }

@@ -26,7 +26,6 @@ static void FixTabMenu(void);
 void Calendar(WINDOW);
 #endif
 void BarChart(WINDOW);
-char **Argv;
 
 #define CHARSLINE 80
 #define LINESPAGE 66
@@ -414,34 +413,6 @@ static int EditorProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
             return rtn;
         case COMMAND:
 			switch ((int) p1)	{
-				case ID_SEARCH:
-					SearchText(wnd);
-					return TRUE;
-				case ID_REPLACE:
-					ReplaceText(wnd);
-					return TRUE;
-				case ID_SEARCHNEXT:
-					SearchNext(wnd);
-					return TRUE;
-				case ID_CUT:
-					CopyToClipboard(wnd);
-					SendMessage(wnd, COMMAND, ID_DELETETEXT, 0);
-					SendMessage(wnd, PAINT, 0, 0);
-					return TRUE;
-				case ID_COPY:
-					CopyToClipboard(wnd);
-					ClearTextBlock(wnd);
-					SendMessage(wnd, PAINT, 0, 0);
-					return TRUE;
-				case ID_PASTE:
-					PasteFromClipboard(wnd);
-					SendMessage(wnd, PAINT, 0, 0);
-					return TRUE;
-				case ID_DELETETEXT:
-				case ID_CLEAR:
-		            rtn = DefaultWndProc(wnd, msg, p1, p2);
-			        SendMessage(wnd, PAINT, 0, 0);
-					return rtn;
 				case ID_HELP:
 	                DisplayHelp(wnd, "MEMOPADDOC");
     	            return TRUE;

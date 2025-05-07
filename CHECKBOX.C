@@ -41,8 +41,6 @@ int CheckBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 BOOL CheckBoxSetting(DBOX *db, enum commands cmd)
 {
     CTLWINDOW *ct = FindCommand(db, cmd, CHECKBOX);
-    if (ct != NULL)
-        return (ct->isetting == ON);
-    return FALSE;
+    return ct ? (ct->wnd ? (ct->setting==ON) : (ct->isetting==ON)) : FALSE;
 }
-
+

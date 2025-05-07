@@ -10,8 +10,8 @@ static void TopLine(WINDOW, int, RECT);
 
 /* --------- create a window ------------ */
 WINDOW CreateWindow(
-    CLASS class,              /* class of this window       */
-    char *ttl,                /* title or NULL              */
+    CLASS Class,              /* class of this window       */
+    const char *ttl,          /* title or NULL              */
     int left, int top,        /* upper left coordinates     */
     int height, int width,    /* dimensions                 */
     void *extension,          /* pointer to additional data */
@@ -39,13 +39,14 @@ WINDOW CreateWindow(
             wnd->rc.tp = top;
         wnd->attrib = attrib;
         if (ttl != NULL)
-            AddAttribute(wnd, HASTITLEBAR);
+			if (*ttl != '\0')
+	            AddAttribute(wnd, HASTITLEBAR);
         if (wndproc == NULL)
-            wnd->wndproc = classdefs[class].wndproc;
+            wnd->wndproc = classdefs[Class].wndproc;
         else
             wnd->wndproc = wndproc;
         /* ---- derive attributes of base classes ---- */
-        base = class;
+        base = Class;
         while (base != -1)    {
             AddAttribute(wnd, classdefs[base].attrib);
             base = classdefs[base].base;
@@ -59,7 +60,7 @@ WINDOW CreateWindow(
 		}
 		else
 			parent = ApplicationWindow;
-        wnd->class = class;
+        wnd->Class = Class;
         wnd->extension = extension;
         wnd->rc.rt = GetLeft(wnd)+width-1;
         wnd->rc.bt = GetTop(wnd)+height-1;
@@ -79,14 +80,14 @@ WINDOW CreateWindow(
 }
 
 /* -------- add a title to a window --------- */
-void AddTitle(WINDOW wnd, char *ttl)
+void AddTitle(WINDOW wnd, const char *ttl)
 {
     InsertTitle(wnd, ttl);
     SendMessage(wnd, BORDER, 0, 0);
 }
 
 /* ----- insert a title into a window ---------- */
-void InsertTitle(WINDOW wnd, char *ttl)
+void InsertTitle(WINDOW wnd, const char *ttl)
 {
     wnd->title=DFrealloc(wnd->title,strlen(ttl)+1);
     strcpy(wnd->title, ttl);
@@ -210,6 +211,24 @@ void DisplayTitle(WINDOW wnd, RECT *rcc)
 	}
 }
 
+#ifdef INCLUDE_MINIMIZE
+#define MinTest() (wnd->condition == ISMINIMIZED) ||
+#else
+#define MinTest() /**/
+#endif
+
+#ifdef INCLUDE_MAXIMIZE
+#define MaxTest() (wnd->condition == ISMAXIMIZED) ||
+#else
+#define MaxTest() /**/
+#endif
+
+#define NoShadow(wnd)                    \
+     (TestAttribute(wnd, SHADOW) == 0 || \
+      MinTest()                          \
+      MaxTest()                          \
+	  cfg.mono)
+
 /* --- display right border shadow character of a window --- */
 static void near shadow_char(WINDOW wnd, int y)
 {
@@ -218,7 +237,7 @@ static void near shadow_char(WINDOW wnd, int y)
     int x = WindowWidth(wnd);
     int c = videochar(GetLeft(wnd)+x, GetTop(wnd)+y);
 
-    if (TestAttribute(wnd, SHADOW) == 0 || cfg.mono)
+	if (NoShadow(wnd))
         return;
     foreground = DARKGRAY;
     background = BLACK;
@@ -235,7 +254,7 @@ static void near shadowline(WINDOW wnd, RECT rc)
     int fg = foreground;
     int bg = background;
 
-    if ((TestAttribute(wnd, SHADOW)) == 0 || cfg.mono)
+	if (NoShadow(wnd))
         return;
     for (i = 0; i < WindowWidth(wnd)+1; i++)
         line[i] = videochar(GetLeft(wnd)+i, y);
@@ -277,6 +296,13 @@ void PaintShadow(WINDOW wnd)
     shadowline(wnd, rc);
 }
 
+static unsigned int SeCorner(WINDOW wnd, unsigned int stdse)
+{
+	if (TestAttribute(wnd, SIZEABLE) && wnd->condition == ISRESTORED)
+		return SIZETOKEN;
+	return stdse;
+}
+
 /* ------- display a window's border ----- */
 void RepaintBorder(WINDOW wnd, RECT *rcc)
 {
@@ -294,7 +320,7 @@ void RepaintBorder(WINDOW wnd, RECT *rcc)
         side = FOCUS_SIDE;
         ne   = FOCUS_NE;
         nw   = FOCUS_NW;
-        se   = FOCUS_SE;
+        se   = SeCorner(wnd, FOCUS_SE);
         sw   = FOCUS_SW;
     }
     else    {
@@ -302,7 +328,7 @@ void RepaintBorder(WINDOW wnd, RECT *rcc)
         side = SIDE;
         ne   = NE;
         nw   = NW;
-        se   = SE;
+        se   = SeCorner(wnd, SE);
         sw   = SW;
     }
     line[WindowWidth(wnd)] = '\0';
@@ -420,12 +446,10 @@ void ClearWindow(WINDOW wnd, RECT *rcc, int clrchar)
 {
     if (isVisible(wnd))    {
         int y;
-        RECT rc;
+        RECT rc = rcc ? *rcc : RelativeWindowRect(wnd, WindowRect(wnd));
 
-        if (rcc == NULL)
-            rc = RelativeWindowRect(wnd, WindowRect(wnd));
-        else
-            rc = *rcc;
+		int top = TopBorderAdj(wnd);
+		int bot = WindowHeight(wnd)-1-BottomBorderAdj(wnd);
 
         if (RectLeft(rc) == 0)
             RectLeft(rc) = BorderAdj(wnd);
@@ -435,9 +459,7 @@ void ClearWindow(WINDOW wnd, RECT *rcc, int clrchar)
         memset(line, clrchar, sizeof line);
         line[RectRight(rc)+1] = '\0';
         for (y = RectTop(rc); y <= RectBottom(rc); y++)    {
-            if (y < TopBorderAdj(wnd) ||
-                    y > ClientHeight(wnd)+
-						(TestAttribute(wnd, HASMENUBAR) ? 1 : 0))
+            if (y < top || y > bot)
                 continue;
             writeline(wnd,
                 line+(RectLeft(rc)),

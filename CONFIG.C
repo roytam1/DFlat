@@ -423,7 +423,7 @@ unsigned char reverse[CLASSCOUNT] [4] [2] = {
     {LIGHTGRAY, BLACK}, /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
-    /* ---------- TITLEBAR ------------ */
+	/* ---------- TITLEBAR ------------ */
    {{LIGHTGRAY, BLACK},      /* STD_COLOR    */
     {LIGHTGRAY, BLACK},      /* SELECT_COLOR */
     {LIGHTGRAY, BLACK},      /* FRAME_COLOR  */
@@ -448,8 +448,8 @@ CONFIG cfg = {
     TRUE,            /* Application Border          */
     TRUE,            /* Application Title           */
     TRUE,            /* Status Bar                  */
-    TRUE,            /* Textured application window */
 #endif
+    TRUE,            /* Textured application window */
     25,              /* Number of screen lines      */
 	"Lpt1",			 /* Printer Port                */
 	66,              /* Lines per printer page      */
@@ -462,7 +462,6 @@ CONFIG cfg = {
 
 void BuildFileName(char *path, const char *fn, const char *ext)
 {
-	extern char **Argv;
     char *cp;
 
 	strcpy(path, Argv[0]);

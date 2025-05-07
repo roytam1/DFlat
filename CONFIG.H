@@ -24,8 +24,8 @@ typedef struct config {
     BOOL Border;       /* True for application window border */
     BOOL Title;        /* True for application window title  */
 	BOOL StatusBar;    /* True for appl'n window status bar  */
-    BOOL Texture;      /* True for textured appl window      */
 #endif
+    BOOL Texture;      /* True for textured appl window      */
     int ScreenLines;   /* Number of screen lines (25/43/50)  */
 	char PrinterPort[5];
 	int LinesPage;     /* Lines per printer page             */

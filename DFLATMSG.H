@@ -12,6 +12,7 @@ DFlatMsg(STOP)               /* stop message processing      */
 DFlatMsg(COMMAND)            /* send a command to a window   */
 /* -------------- window management messages --------------- */
 DFlatMsg(CREATE_WINDOW)      /* create a window              */
+DFlatMsg(OPEN_WINDOW)        /* open a window                */
 DFlatMsg(SHOW_WINDOW)        /* show a window                */
 DFlatMsg(HIDE_WINDOW)        /* hide a window                */
 DFlatMsg(CLOSE_WINDOW)       /* delete a window              */

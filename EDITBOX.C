@@ -31,6 +31,8 @@ static int CreateWindowMsg(WINDOW wnd)
     wnd->MaxTextLength = MAXTEXTLEN+1;
     wnd->textlen = EditBufLen(wnd);
     wnd->InsertMode = TRUE;
+	if (isMultiLine(wnd))
+	    wnd->WordWrapMode = TRUE;
 	SendMessage(wnd, CLEARTEXT, 0, 0);
     return rtn;
 }
@@ -250,53 +252,52 @@ static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
         return TRUE;
     if (WindowMoving || WindowSizing)
         return FALSE;
-    if (isMultiLine(wnd))    {
-        if (TextMarking)    {
-            if (!InsideRect(p1, p2, rc))    {
-				int x = MouseX, y = MouseY;
-				int dir;
-				MESSAGE msg = 0;
-                if ((int)p2 == GetTop(wnd))
-					y++, dir = FALSE, msg = SCROLL;
-                else if ((int)p2 == GetBottom(wnd))
-					--y, dir = TRUE, msg = SCROLL;
-                else if ((int)p1 == GetLeft(wnd))
-					--x, dir = FALSE, msg = HORIZSCROLL;
-                else if ((int)p1 == GetRight(wnd))
-					x++, dir = TRUE, msg = HORIZSCROLL;
-				if (msg != 0)	{
-                    if (SendMessage(wnd, msg, dir, 0))
-                        ExtendBlock(wnd, x, y);
-	                SendMessage(wnd, PAINT, 0, 0);
-				}
-            }
-            return TRUE;
+    if (TextMarking)    {
+        if (!InsideRect(p1, p2, rc))    {
+			int x = MouseX, y = MouseY;
+			int dir;
+			MESSAGE msg = 0;
+            if ((int)p2 == GetTop(wnd))
+				y++, dir = FALSE, msg = SCROLL;
+            else if ((int)p2 == GetBottom(wnd))
+				--y, dir = TRUE, msg = SCROLL;
+            else if ((int)p1 == GetLeft(wnd))
+				--x, dir = FALSE, msg = HORIZSCROLL;
+            else if ((int)p1 == GetRight(wnd))
+				x++, dir = TRUE, msg = HORIZSCROLL;
+			if (msg != 0)	{
+                if (SendMessage(wnd, msg, dir, 0))
+                    ExtendBlock(wnd, x, y);
+	            SendMessage(wnd, PAINT, 0, 0);
+			}
         }
-        if (!InsideRect(p1, p2, rc))
-            return FALSE;
-        if (TextBlockMarked(wnd))    {
-            ClearTextBlock(wnd);
-            SendMessage(wnd, PAINT, 0, 0);
-        }
-        if (wnd->wlines)    {
-            if (MouseY > wnd->wlines-1)
-                return TRUE;
-            lp = TextLine(wnd, MouseY+wnd->wtop);
-            len = (int) (strchr(lp, '\n') - lp);
-            MouseX = min(MouseX, len);
-            if (MouseX < wnd->wleft)    {
-                MouseX = 0;
-                SendMessage(wnd, KEYBOARD, HOME, 0);
-            }
-            ButtonDown = TRUE;
-            ButtonX = MouseX;
-            ButtonY = MouseY;
-        }
-        else
-            MouseX = MouseY = 0;
-        wnd->WndRow = MouseY;
-        SetLinePointer(wnd, MouseY+wnd->wtop);
+        return TRUE;
     }
+    if (!InsideRect(p1, p2, rc))
+        return FALSE;
+    if (TextBlockMarked(wnd))    {
+        ClearTextBlock(wnd);
+        SendMessage(wnd, PAINT, 0, 0);
+    }
+    if (wnd->wlines)    {
+        if (MouseY > wnd->wlines-1)
+            return TRUE;
+        lp = TextLine(wnd, MouseY+wnd->wtop);
+        len = (int) (strchr(lp, '\n') - lp);
+        MouseX = min(MouseX, len);
+        if (MouseX < wnd->wleft)    {
+            MouseX = 0;
+            SendMessage(wnd, KEYBOARD, HOME, 0);
+        }
+        ButtonDown = TRUE;
+        ButtonX = MouseX;
+        ButtonY = MouseY;
+    }
+    else
+        MouseX = MouseY = 0;
+    wnd->WndRow = MouseY;
+    SetLinePointer(wnd, MouseY+wnd->wtop);
+
     if (isMultiLine(wnd) ||
         (!TextBlockMarked(wnd)
             && MouseX+wnd->wleft < strlen(wnd->text)))
@@ -341,23 +342,20 @@ static void StopMarking(WINDOW wnd)
 /* ----------- BUTTON_RELEASED Message ---------- */
 static int ButtonReleasedMsg(WINDOW wnd)
 {
-    if (isMultiLine(wnd))    {
-        ButtonDown = FALSE;
-        if (TextMarking && !(WindowMoving || WindowSizing))  {
-            /* release the mouse ouside the edit box */
-            SendMessage(NULL, MOUSE_TRAVEL, 0, 0);
-            StopMarking(wnd);
-            return TRUE;
-        }
-        else
-            PrevY = -1;
+    ButtonDown = FALSE;
+    if (TextMarking && !(WindowMoving || WindowSizing))  {
+        /* release the mouse ouside the edit box */
+        SendMessage(NULL, MOUSE_TRAVEL, 0, 0);
+        StopMarking(wnd);
+        return TRUE;
     }
+    PrevY = -1;
     return FALSE;
 }
 /* ---- Process text block keys for multiline text box ---- */
 static void DoMultiLines(WINDOW wnd, int c, PARAM p2)
 {
-    if (isMultiLine(wnd) && !KeyBoardMarking)    {
+    if (!KeyBoardMarking)    {
         if ((int)p2 & (LEFTSHIFT | RIGHTSHIFT))    {
             switch (c)    {
                 case HOME:
@@ -601,10 +599,13 @@ static void KeyTyped(WINDOW wnd, int c)
 	}
     /* ------ display the character ------ */
     SetStandardColor(wnd);
+	if (wnd->protect)
+		c = '*';
     PutWindowChar(wnd, c, WndCol, wnd->WndRow);
     /* ----- advance the pointers ------ */
     wnd->CurrCol++;
 }
+
 /* ------------ screen changing key strokes ------------- */
 static void DoKeyStroke(WINDOW wnd, int c, PARAM p2)
 {
@@ -686,6 +687,8 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         DoKeyStroke(wnd, c, p2);
         SendMessage(wnd, KEYBOARD_CURSOR, WndCol, wnd->WndRow);
     }
+	else if (c == '\t')
+	    PostMessage(GetParent(wnd), KEYBOARD, '\t', p2);
 	else
 		beep();
     return TRUE;
@@ -842,17 +845,44 @@ static void ParagraphCmd(WINDOW wnd)
 static int CommandMsg(WINDOW wnd, PARAM p1)
 {
     switch ((int)p1)    {
+		case ID_SEARCH:
+			SearchText(wnd);
+			return TRUE;
+		case ID_REPLACE:
+			ReplaceText(wnd);
+			return TRUE;
+		case ID_SEARCHNEXT:
+			SearchNext(wnd);
+			return TRUE;
+		case ID_CUT:
+			CopyToClipboard(wnd);
+			SendMessage(wnd, COMMAND, ID_DELETETEXT, 0);
+			SendMessage(wnd, PAINT, 0, 0);
+			return TRUE;
+		case ID_COPY:
+			CopyToClipboard(wnd);
+			ClearTextBlock(wnd);
+			SendMessage(wnd, PAINT, 0, 0);
+			return TRUE;
+		case ID_PASTE:
+			PasteFromClipboard(wnd);
+			SendMessage(wnd, PAINT, 0, 0);
+			return TRUE;
         case ID_DELETETEXT:
             DeleteTextCmd(wnd);
+			SendMessage(wnd, PAINT, 0, 0);
             return TRUE;
         case ID_CLEAR:
             ClearCmd(wnd);
+			SendMessage(wnd, PAINT, 0, 0);
             return TRUE;
         case ID_UNDO:
             UndoCmd(wnd);
+			SendMessage(wnd, PAINT, 0, 0);
             return TRUE;
         case ID_PARAGRAPH:
             ParagraphCmd(wnd);
+			SendMessage(wnd, PAINT, 0, 0);
             return TRUE;
         default:
             break;

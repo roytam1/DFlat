@@ -4,6 +4,7 @@
 
 static int SelectionWidth(struct PopDown *);
 static int py = -1;
+int CurrentMenuSelection;
 
 /* ------------ CREATE_WINDOW Message ------------- */
 static int CreateWindowMsg(WINDOW wnd)
@@ -112,14 +113,23 @@ static void PaintMsg(WINDOW wnd)
                 int i;
                 int wd1 = 2+SelectionWidth(ActivePopDown) -
                                     strlen(pd1->SelectionTitle);
-                for (i = 0; keys[i].keylabel; i++)    {
-                    if (keys[i].keycode == pd1->Accelerator)   {
-                        while (wd1--)
-                            strcat(sel, " ");
-                        sprintf(sel+strlen(sel), "[%s]",
-                            keys[i].keylabel);
-                        break;
-                    }
+				int key = pd1->Accelerator;
+				if (key > 0 && key < 27)	{
+					/* --- CTRL+ key --- */
+                    while (wd1--)
+                        strcat(sel, " ");
+                   	sprintf(sel+strlen(sel), "[Ctrl+%c]", key-1+'A');
+				}
+				else	{
+                	for (i = 0; keys[i].keylabel; i++)    {
+                    	if (keys[i].keycode == key)   {
+                        	while (wd1--)
+                            	strcat(sel, " ");
+                        	sprintf(sel+strlen(sel), "[%s]",
+                            	keys[i].keylabel);
+                        	break;
+                    	}
+					}
                 }
             }
             if (pd1->Attrib & CASCADED)    {
@@ -169,10 +179,14 @@ static void LBChooseMsg(WINDOW wnd, PARAM p1)
         int *attr = &(ActivePopDown+(int)p1)->Attrib;
         wnd->mnu->Selection = (int)p1;
         if (!(*attr & INACTIVE))    {
+			WINDOW pwnd = GetParent(wnd);
             if (*attr & TOGGLE)
                 *attr ^= CHECKED;
-            PostMessage(GetParent(wnd), COMMAND,
-                (ActivePopDown+(int)p1)->ActionId, p1);
+			if (pwnd != NULL)	{
+				CurrentMenuSelection = p1;
+    	        PostMessage(pwnd, COMMAND,
+        	        (ActivePopDown+(int)p1)->ActionId, 0); // p2 was p1
+			}
         }
         else
             beep();

@@ -65,8 +65,8 @@ void PushRadioButton(DBOX *db, enum commands cmd)
             same x vector ---------- */
     for (i = 0; i < MAXRADIOS; i++)
         rct[i] = NULL;
-    while (ctt->class)    {
-        if (ctt->class == RADIOBUTTON)
+    while (ctt->Class)    {
+        if (ctt->Class == RADIOBUTTON)
             if (ct->dwnd.x == ctt->dwnd.x)
                 rct[ctt->dwnd.y] = ctt;
         ctt++;
@@ -108,8 +108,6 @@ void PushRadioButton(DBOX *db, enum commands cmd)
 BOOL RadioButtonSetting(DBOX *db, enum commands cmd)
 {
     CTLWINDOW *ct = FindCommand(db, cmd, RADIOBUTTON);
-    if (ct != NULL)
-        return (ct->setting == ON);
-    return FALSE;
+    return ct ? (ct->wnd ? (ct->setting==ON) : (ct->isetting==ON)) : FALSE;
 }
-
+

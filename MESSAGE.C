@@ -49,6 +49,7 @@ static BOOL NoChildCaptureKeyboard;
 static int doubletimer = -1;
 static int delaytimer  = -1;
 static int clocktimer  = -1;
+char time_string[] = "         ";
 
 static WINDOW Cwnd;
 
@@ -166,7 +167,6 @@ static void near collect_events(void)
 	int sk;
     struct tm *now;
     static BOOL flipflop = FALSE;
-    static char timestr[9];
     int hr;
 
     /* -------- test for a clock event (one/second) ------- */
@@ -179,16 +179,16 @@ static void near collect_events(void)
              now->tm_hour;
         if (hr == 0)
             hr = 12;
-        sprintf(timestr, "%2d:%02d", hr, now->tm_min);
-        strcpy(timestr+5, now->tm_hour > 11 ? "pm " : "am ");
+        sprintf(time_string, "%2d:%02d", hr, now->tm_min);
+        strcpy(time_string+5, now->tm_hour > 11 ? "pm " : "am ");
         /* ------- blink the : at one-second intervals ----- */
         if (flipflop)
-            *(timestr+2) = ' ';
+            *(time_string+2) = ' ';
         flipflop ^= TRUE;
         /* -------- reset the timer -------- */
         set_timer(clocktimer, 1);
         /* -------- post the clock event -------- */
-        PostEvent(CLOCKTICK, FP_SEG(timestr), FP_OFF(timestr));
+        PostEvent(CLOCKTICK, FP_SEG(time_string), FP_OFF(time_string));
     }
 
     /* --------- keyboard events ---------- */
@@ -636,10 +636,12 @@ BOOL dispatch_message(void)
         SendMessage(mq.wnd, mq.msg, mq.p1, mq.p2);
         if (mq.msg == ENDDIALOG)
 			return FALSE;
-        if (mq.msg == STOP)
+        if (mq.msg == STOP)	{
+		    PostMessage(NULL, STOP, 0, 0);
 			return FALSE;
+		}
     }
     return TRUE;
 }
 
-
+

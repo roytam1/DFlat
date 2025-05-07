@@ -43,7 +43,7 @@ typedef struct MenuBar {
 #define SELECTION(stxt,acc,id,attr)   {stxt,acc,id,attr,#acc},
 #define SEPARATOR                     {SEPCHAR},
 #define ENDPOPDOWN                    {NULL}}},
-#define ENDMENU                {(void *)-1} }};
+#define ENDMENU                {(char *)-1} }};
 
 /* -------- menu selection attributes -------- */
 #define INACTIVE    1

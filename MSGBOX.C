@@ -156,7 +156,7 @@ BOOL GenericMessage(WINDOW wnd,char *ttl,char *msg,int buttonct,
     else    {
         MsgBox.ctl[1].dwnd.x = (MsgBox.dwnd.w - 20) / 2;
         MsgBox.ctl[2].dwnd.x = MsgBox.ctl[1].dwnd.x + 10;
-        MsgBox.ctl[2].class = BUTTON;
+        MsgBox.ctl[2].Class = BUTTON;
     }
     MsgBox.ctl[1].dwnd.y = MsgBox.dwnd.h - 4;
     MsgBox.ctl[2].dwnd.y = MsgBox.dwnd.h - 4;
@@ -168,7 +168,7 @@ BOOL GenericMessage(WINDOW wnd,char *ttl,char *msg,int buttonct,
     MsgBox.ctl[1].isetting = ON;
     MsgBox.ctl[2].isetting = ON;
     rtn = DialogBox(wnd, &MsgBox, isModal, wndproc);
-    MsgBox.ctl[2].class = 0;
+    MsgBox.ctl[2].Class = 0;
     return rtn;
 }
 

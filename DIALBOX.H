@@ -21,7 +21,7 @@ typedef struct  {
 /* ------ one of these for each control window ------- */
 typedef struct {
     DIALOGWINDOW dwnd;
-    CLASS class;    /* LISTBOX, BUTTON, etc */
+    CLASS Class;    /* LISTBOX, BUTTON, etc */
     char *itext;    /* initialized text     */
     int command;    /* command code         */
     char *help;     /* help mnemonic        */

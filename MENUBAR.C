@@ -27,6 +27,8 @@ static int SetFocusMsg(WINDOW wnd, PARAM p1)
 	rtn = BaseWndProc(MENUBAR, wnd, SETFOCUS, p1, 0);
 	if (!(int)p1)
 		SendMessage(GetParent(wnd), ADDSTATUS, 0, 0);
+	else
+		SendMessage(NULL, HIDE_CURSOR, 0, 0);
 	return rtn;
 }
 

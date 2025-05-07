@@ -2,12 +2,13 @@
 
 #include "dflat.h"
 
+extern char time_string[];
+
 int StatusBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
 	char *statusbar;
 	switch (msg)	{
 		case CREATE_WINDOW:
-		case MOVE:
 			SendMessage(wnd, CAPTURE_CLOCK, 0, 0);
 			break;
 		case KEYBOARD:
@@ -30,6 +31,8 @@ int StatusBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 			}
 			if (wnd->TimePosted)
 				*(statusbar+WindowWidth(wnd)-8) = '\0';
+			else
+				strncpy(statusbar+WindowWidth(wnd)-8, time_string, 9);
 			SetStandardColor(wnd);
     	    PutWindowLine(wnd, statusbar, 0, 0);
 			free(statusbar);

@@ -309,12 +309,12 @@ int ListBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             break;
         case PAINT:
             BaseWndProc(LISTBOX, wnd, msg, p1, p2);
-			if (wnd == inFocus)
-	            WriteSelection(wnd, wnd->selection, TRUE, (RECT *)p1);
+            WriteSelection(wnd, wnd->selection, TRUE, (RECT *)p1);
             return TRUE;
 		case SETFOCUS:
             BaseWndProc(LISTBOX, wnd, msg, p1, p2);
-            WriteSelection(wnd, wnd->selection, p1, NULL);
+			if ((int)p1)
+            	WriteSelection(wnd, wnd->selection, TRUE, NULL);
             return TRUE;
         case SCROLL:
         case HORIZSCROLL:
@@ -448,7 +448,7 @@ static void near ChangeSelection(WINDOW wnd,int sel,int shift)
 {
     if (sel != wnd->selection)    {
 #ifdef INCLUDE_EXTENDEDSELECTIONS
-        if (isMultiLine(wnd))        {
+        if (sel != -1 && isMultiLine(wnd))        {
             int sels;
             if (!wnd->AddMode)
                 ClearAllSelections(wnd);
@@ -464,7 +464,8 @@ static void near ChangeSelection(WINDOW wnd,int sel,int shift)
 #endif
         WriteSelection(wnd, wnd->selection, FALSE, NULL);
         wnd->selection = sel;
-        WriteSelection(wnd, sel, TRUE, NULL);
+		if (sel != -1)
+	        WriteSelection(wnd, sel, TRUE, NULL);
      }
 }
 

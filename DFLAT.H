@@ -29,8 +29,10 @@
 #include <setjmp.h>
 
 #ifndef VERSION
-#define VERSION "Version 19"
+#define VERSION "Version 20"
 #endif
+
+extern char **Argv;
 
 void *DFcalloc(size_t, size_t);
 void *DFmalloc(size_t);
@@ -38,7 +40,7 @@ void *DFrealloc(void *, size_t);
 
 typedef enum {FALSE, TRUE} BOOL;
 
-#define MAXMESSAGES 50
+#define MAXMESSAGES 100
 #define DELAYTICKS 1
 #define FIRSTDELAY 7
 #define DOUBLETICKS 5
@@ -65,17 +67,17 @@ enum Condition     {
 };
 
 typedef struct window {
-    CLASS class;           /* window class                  */
+    CLASS Class;           /* window class                  */
     char *title;           /* window title                  */
     int (*wndproc)
         (struct window *, enum messages, PARAM, PARAM);
-	/* ----------------- window colors -------------------- */
-	char WindowColors[4][2];
     /* ---------------- window dimensions ----------------- */
     RECT rc;               /* window coordinates
                                             (0/0 to 79/24)  */
     int ht, wd;            /* window height and width       */
     RECT RestoredRC;       /* restored condition rect       */
+	/* ----------------- window colors -------------------- */
+	char WindowColors[4][2];
     /* -------------- linked list pointers ---------------- */
     struct window *parent; /* parent window                 */
     struct window *firstchild;  /* first child this parent  */
@@ -92,6 +94,7 @@ typedef struct window {
 	BOOL wasCleared;
     int restored_attrib;        /* attributes when restored */
     void *extension;      /* menus, dialogs, documents, etc */
+	void *wrapper;             /* used by C++ wrapper class */
     struct window *PrevMouse;   /* previous mouse capture   */
     struct window *PrevKeyboard;/* previous keyboard capture*/
 	struct window *PrevClock;   /* previous clock capture   */
@@ -122,6 +125,7 @@ typedef struct window {
     int CurrLine;     /* Current line                       */
     int WndRow;       /* Current window row                 */
     BOOL TextChanged; /* TRUE if text has changed           */
+	BOOL protect;	  /* TRUE to display '*'                */
     unsigned char *DeletedText; /* for undo                 */
     unsigned DeletedLength; /* Length of deleted field      */
 	BOOL InsertMode;   /* TRUE or FALSE for text insert     */
@@ -179,7 +183,7 @@ void MessageLog(WINDOW);
 #define LastWindow(w)        ((w)->lastchild)
 #define NextWindow(w)        ((w)->nextsibling)
 #define PrevWindow(w)        ((w)->prevsibling)
-#define GetClass(w)          ((w)->class)
+#define GetClass(w)          ((w)->Class)
 #define GetAttribute(w)      ((w)->attrib)
 #define AddAttribute(w,a)    (GetAttribute(w) |= a)
 #define ClearAttribute(w,a)  (GetAttribute(w) &= ~(a))
@@ -189,10 +193,10 @@ void MessageLog(WINDOW);
 #define ClearVisible(w)      (GetAttribute(w) &= ~VISIBLE)
 #define gotoxy(w,x,y) cursor(w->rc.lf+(x)+1,w->rc.tp+(y)+1)
 BOOL isVisible(WINDOW);
-WINDOW CreateWindow(CLASS,char *,int,int,int,int,void*,WINDOW,
+WINDOW CreateWindow(CLASS,const char *,int,int,int,int,void*,WINDOW,
        int (*)(struct window *,enum messages,PARAM,PARAM),int);
-void AddTitle(WINDOW, char *);
-void InsertTitle(WINDOW, char *);
+void AddTitle(WINDOW, const char *);
+void InsertTitle(WINDOW, const char *);
 void DisplayTitle(WINDOW, RECT *);
 void RepaintBorder(WINDOW, RECT *);
 void PaintShadow(WINDOW);
@@ -216,12 +220,12 @@ BOOL isDerivedFrom(WINDOW, CLASS);
 WINDOW GetAncestor(WINDOW);
 void PutWindowChar(WINDOW,int,int,int);
 void PutWindowLine(WINDOW, void *,int,int);
-#define BaseWndProc(class,wnd,msg,p1,p2)    \
-    (*classdefs[(classdefs[class].base)].wndproc)(wnd,msg,p1,p2)
+#define BaseWndProc(Class,wnd,msg,p1,p2)    \
+    (*classdefs[(classdefs[Class].base)].wndproc)(wnd,msg,p1,p2)
 #define DefaultWndProc(wnd,msg,p1,p2)         \
-	(classdefs[wnd->class].wndproc == NULL) ? \
-	BaseWndProc(wnd->class,wnd,msg,p1,p2) :	  \
-    (*classdefs[wnd->class].wndproc)(wnd,msg,p1,p2)
+	(classdefs[wnd->Class].wndproc == NULL) ? \
+	BaseWndProc(wnd->Class,wnd,msg,p1,p2) :	  \
+    (*classdefs[wnd->Class].wndproc)(wnd,msg,p1,p2)
 struct LinkedList    {
     WINDOW FirstWindow;
     WINDOW LastWindow;
@@ -239,6 +243,7 @@ extern char DFlatApplication[];
 extern char *Clipboard;
 extern unsigned ClipboardLength;
 extern BOOL ClipString;
+extern int CurrentMenuSelection;
 /* --------- space between menubar labels --------- */
 #define MSPACE 2
 /* --------------- border characters ------------- */
@@ -256,6 +261,7 @@ extern BOOL ClipString;
 #define LINE          (unsigned char) '\xc4'
 #define LEDGE         (unsigned char) '\xc3'
 #define REDGE         (unsigned char) '\xb4'
+#define SIZETOKEN     (unsigned char) '\x04'
 /* ------------- scroll bar characters ------------ */
 #define UPSCROLLBOX    (unsigned char) '\x1e'
 #define DOWNSCROLLBOX  (unsigned char) '\x1f'
@@ -388,6 +394,7 @@ BOOL ItemSelected(WINDOW, int);
 #define CurrChar (TextLine(wnd, wnd->CurrLine)+wnd->CurrCol)
 #define WndCol   (wnd->CurrCol-wnd->wleft)
 #define isMultiLine(wnd) TestAttribute(wnd, MULTILINE)
+#define SetProtected(wnd) (wnd)->protect=TRUE
 void SearchText(WINDOW);
 void ReplaceText(WINDOW);
 void SearchNext(WINDOW);
@@ -436,10 +443,11 @@ char *GetDlgTextString(DBOX *, enum commands, CLASS);
 void SetDlgTextString(DBOX *, enum commands, char *, CLASS);
 BOOL CheckBoxSetting(DBOX *, enum commands);
 CTLWINDOW *FindCommand(DBOX *, enum commands, int);
-WINDOW ControlWindow(DBOX *, enum commands);
+WINDOW ControlWindow(const DBOX *, enum commands);
 void SetScrollBars(WINDOW);
 void SetRadioButton(DBOX *, CTLWINDOW *);
 void ControlSetting(DBOX *, enum commands, int, int);
+BOOL isControlOn(DBOX *, enum commands, int);
 void SetFocusCursor(WINDOW);
 
 #define GetControl(wnd)             (wnd->ct)
@@ -456,6 +464,8 @@ void SetFocusCursor(WINDOW);
 #define ClearCheckBox(db, cmd)      ControlSetting(db, cmd, CHECKBOX, OFF)
 #define EnableButton(db, cmd)       ControlSetting(db, cmd, BUTTON, ON)
 #define DisableButton(db, cmd)      ControlSetting(db, cmd, BUTTON, OFF)
+#define ButtonEnabled(db, cmd)      isControlOn(db, cmd, BUTTON)
+#define CheckBoxEnabled(db, cmd)    isControlOn(db, cmd, CHECKBOX)
 
 /* ---- types of vectors that can be in a picture box ------- */
 enum VectTypes {VECTOR, SOLIDBAR, HEAVYBAR, CROSSBAR, LIGHTBAR};
