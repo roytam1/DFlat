@@ -5,16 +5,16 @@
 
 #include "rect.h"
 
-void getvideo(RECT, void far *);
-void storevideo(RECT, void far *);
-extern unsigned video_mode;
-extern unsigned video_page;
-void wputch(WINDOW, int, int, int);
-unsigned int GetVideoChar(int, int);
-void PutVideoChar(int, int, int);
+void getvideo(RECT, void *);
+void storevideo(RECT, void *);
+extern unsigned short video_mode;
+extern unsigned short video_page;
+void wputch(WINDOW, short, short, short);
+unsigned short GetVideoChar(short, short);
+void PutVideoChar(short, short, short);
 void get_videomode(void);
-void wputs(WINDOW, void *, int, int);
-void scroll_window(WINDOW, RECT, int);
+void wputs(WINDOW, void *, short, short);
+void scroll_window(WINDOW, RECT, short);
 
 #define clr(fg,bg) ((fg)|((bg)<<4))
 #define vad(x,y) ((y)*(SCREENWIDTH*2)+(x)*2)

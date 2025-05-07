@@ -4,16 +4,16 @@
 #include "htree.h"
 
 extern struct htree *ht;
-extern int root;
-extern int treect;
-static int lastchar = '\n';
+extern short root;
+extern short treect;
+static short lastchar = '\n';
 
-static void compress(FILE *, int, int);
-static void outbit(FILE *fo, int bit);
+static void compress(FILE *, short, short);
+static void outbit(FILE *fo, short bit);
 
-static int fgetcx(FILE *fi)
+static short fgetcx(FILE *fi)
 {
-    int c;
+    short c;
 
     /* ------- bypass comments ------- */
     if ((c = fgetc(fi)) == ';' && lastchar == '\n')
@@ -25,10 +25,10 @@ static int fgetcx(FILE *fi)
     return c;
 }
 
-void main(int argc, char *argv[])
+void main(short argc, char *argv[])
 {
     FILE *fi, *fo;
-    int c;
+    short c;
     BYTECOUNTER bytectr = 0;
 
     if (argc < 3)   {
@@ -69,8 +69,8 @@ void main(int argc, char *argv[])
 
     /* -- write the tree to the output file -- */
     for (c = 256; c < treect; c++)   {
-        int lf = ht[c].left;
-        int rt = ht[c].right;
+        short lf = ht[c].left;
+        short rt = ht[c].right;
         fwrite(&lf, sizeof lf, 1, fo);
         fwrite(&rt, sizeof rt, 1, fo);
     }
@@ -87,7 +87,7 @@ void main(int argc, char *argv[])
 }
 
 /* ---- compress a character value into a bit stream ---- */
-static void compress(FILE *fo, int h, int child)
+static void compress(FILE *fo, short h, short child)
 {
     if (ht[h].parent != -1)
         compress(fo, ht[h].parent, h);
@@ -100,10 +100,10 @@ static void compress(FILE *fo, int h, int child)
 }
 
 static char out8;
-static int ct8;
+static short ct8;
 
 /* -- collect and write bits to the compressed output file -- */
-static void outbit(FILE *fo, int bit)
+static void outbit(FILE *fo, short bit)
 {
     if (ct8 == 8 || bit == -1)  {
         while (ct8 < 8)    {

@@ -2,16 +2,16 @@
 
 #include "dflat.h"
 
-static int (*GenericProc)
+static short (*GenericProc)
     (WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2);
 static BOOL KeepRunning;
-static int SliderLen;
-static int Percent;
+static short SliderLen;
+static short Percent;
 extern DBOX SliderBoxDB;
 
 static void InsertPercent(char *s)
 {
-    int offset;
+    short offset;
     char pcc[5];
 
     sprintf(s, "%c%c%c",
@@ -34,12 +34,12 @@ static void InsertPercent(char *s)
     *(s + strlen(s) - 1) = RESETCOLOR;
 }
 
-static int SliderTextProc(
+static short SliderTextProc(
             WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 {
     switch (msg)    {
         case PAINT:
-            Percent = (int)p2;
+            Percent = (short)p2;
             InsertPercent(GetText(wnd) ?
                 GetText(wnd) : SliderBoxDB.ctl[1].itext);
             GenericProc(wnd, PAINT, 0, 0);
@@ -54,10 +54,10 @@ static int SliderTextProc(
     return GenericProc(wnd, msg, p1, p2);
 }
 
-static int SliderBoxProc(
+static short SliderBoxProc(
             WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn;
+    short rtn;
     WINDOW twnd;
     switch (msg)    {
         case CREATE_WINDOW:
@@ -71,7 +71,7 @@ static int SliderBoxProc(
             SendMessage(wnd, CAPTURE_KEYBOARD, 0, 0);
             return rtn;
         case COMMAND:
-            if ((int)p2 == 0 && (int)p1 == ID_CANCEL)    {
+            if ((short)p2 == 0 && (short)p1 == ID_CANCEL)    {
                 if (Percent >= 100 ||
                         YesNoBox("Terminate process?"))
                     KeepRunning = FALSE;
@@ -89,7 +89,7 @@ static int SliderBoxProc(
     return DefaultWndProc(wnd, msg, p1, p2);
 }
 
-WINDOW SliderBox(int len, char *ttl, char *msg)
+WINDOW SliderBox(short len, char *ttl, char *msg)
 {
     SliderLen = len;
     SliderBoxDB.dwnd.title = ttl;

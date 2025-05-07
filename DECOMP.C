@@ -9,19 +9,19 @@
 #include "dflat.h"
 #include "htree.h"
 
-static int in8;
-static int ct8 = 8;
+static short in8;
+static short ct8 = 8;
 static FILE *fi;
 static BYTECOUNTER bytectr;
-static int LoadingASCII;
+static short LoadingASCII;
 struct htr *HelpTree;
-static int root;
+static short root;
 
 /* ------- open the help database file -------- */
 FILE *OpenHelpFile(void)
 {
     char *cp;
-    int treect, i;
+    short treect, i;
     char helpname[65];
 
     /* -------- get the name of the help file ---------- */
@@ -48,8 +48,8 @@ FILE *OpenHelpFile(void)
         HelpTree = DFcalloc(treect-256, sizeof(struct htr));
         /* ---- read in the tree --- */
         for (i = 0; i < treect-256; i++)    {
-               fread(&HelpTree[i].left,  sizeof(int), 1, fi);
-            fread(&HelpTree[i].right, sizeof(int), 1, fi);
+               fread(&HelpTree[i].left,  sizeof(short), 1, fi);
+            fread(&HelpTree[i].right, sizeof(short), 1, fi);
         }
     }
     return fi;
@@ -58,7 +58,7 @@ FILE *OpenHelpFile(void)
 /* ----- read a line of text from the help database ----- */
 void *GetHelpLine(char *line)
 {
-    int h;
+    short h;
     if (LoadingASCII)	{
 		void *hp;
 		do
@@ -104,7 +104,7 @@ void *GetHelpLine(char *line)
 }
 
 /* --- compute the database file byte and bit position --- */
-void HelpFilePosition(long *offset, int *bit)
+void HelpFilePosition(long *offset, short *bit)
 {
     *offset = ftell(fi);
     if (LoadingASCII)
@@ -117,9 +117,9 @@ void HelpFilePosition(long *offset, int *bit)
 }
 
 /* -- position the database to the specified byte and bit -- */
-void SeekHelpLine(long offset, int bit)
+void SeekHelpLine(long offset, short bit)
 {
-    int i;
+    short i;
     fseek(fi, offset, 0);
     if (!LoadingASCII)    {
         ct8 = bit;

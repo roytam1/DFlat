@@ -1,6 +1,6 @@
-November, 1992
+October, 1994
 
-D-Flat Version 15
+D-Flat Version 16
 
 The source files in the DFLAT archive constitute the D-Flat windowing
 system. This is public domain code. You may use it in your
@@ -41,6 +41,22 @@ Type this command:
 To build with Watcom C 8.0, type this command
 
     C>wmake /f makefile.wat
+
+
+========== WATCOM C 10.0 Flat Model ============
+
+To build with Watcom C 10.0, type this command
+
+    C>wmake /f makefile.386
+
+=======================================================
+Enhancements Needed:
+
+***	Interrupt driven mouse support so button presses won't
+	be lost.
+
+***	Video output written in assembler to speed up screen
+	redraws.
 
 =======================================================
 

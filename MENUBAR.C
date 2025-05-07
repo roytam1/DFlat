@@ -5,10 +5,10 @@
 static void reset_menubar(WINDOW);
 
 static struct {
-    int x1, x2;     /* position in menu bar */
+    short x1, x2;     /* position in menu bar */
     char sc;        /* shortcut key value   */
 } menu[10];
-static int mctr;
+static short mctr;
 
 MBAR *ActiveMenuBar;
 static MENU *ActiveMenu;
@@ -17,15 +17,15 @@ static WINDOW mwnd;
 static BOOL Selecting;
 
 static WINDOW Cascaders[MAXCASCADES];
-static int casc;
+static short casc;
 static WINDOW GetDocFocus(void);
 
 /* ----------- SETFOCUS Message ----------- */
-static int SetFocusMsg(WINDOW wnd, PARAM p1)
+static short SetFocusMsg(WINDOW wnd, PARAM p1)
 {
-	int rtn;
+	short rtn;
 	rtn = BaseWndProc(MENUBAR, wnd, SETFOCUS, p1, 0);
-	if (!(int)p1)
+	if (!(short)p1)
 		SendMessage(GetParent(wnd), ADDSTATUS, 0, 0);
 	return rtn;
 }
@@ -33,7 +33,7 @@ static int SetFocusMsg(WINDOW wnd, PARAM p1)
 /* --------- BUILDMENU Message --------- */
 static void BuildMenuMsg(WINDOW wnd, PARAM p1)
 {
-    int offset = 3;
+    short offset = 3;
     reset_menubar(wnd);
     mctr = 0;
     ActiveMenuBar = (MBAR *) p1;
@@ -74,7 +74,7 @@ static void PaintMsg(WINDOW wnd)
     if (ActiveMenuBar->ActiveSelection != -1 &&
             (wnd == inFocus || mwnd != NULL))    {
         char *sel, *cp;
-        int offset, offset1;
+        short offset, offset1;
 
         sel = DFmalloc(200);
         offset=menu[ActiveMenuBar->ActiveSelection].x1;
@@ -104,12 +104,12 @@ static void PaintMsg(WINDOW wnd)
 static void KeyboardMsg(WINDOW wnd, PARAM p1)
 {
     MENU *mnu;
-	int sel;
+	short sel;
     if (mwnd == NULL)    {
         /* ----- search for menu bar shortcut keys ---- */
-        int c = tolower((int)p1);
-        int a = AltConvert((int)p1);
-        int j;
+        short c = tolower((short)p1);
+        short a = AltConvert((short)p1);
+        short j;
         for (j = 0; j < mctr; j++)    {
             if ((inFocus == wnd && menu[j].sc == c) ||
                     (a && menu[j].sc == a))    {
@@ -126,7 +126,7 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
         if (mnu->PrepMenu)
             (*(mnu->PrepMenu))(GetDocFocus(), mnu);
         while (pd->SelectionTitle != NULL)    {
-            if (pd->Accelerator == (int) p1)    {
+            if (pd->Accelerator == (short) p1)    {
                 if (pd->Attrib & INACTIVE)
                     beep();
                 else    {
@@ -143,7 +143,7 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
         }
         mnu++;
     }
-    switch ((int)p1)    {
+    switch ((short)p1)    {
         case F1:
             if (ActiveMenu == NULL || ActiveMenuBar == NULL)
 				break;
@@ -210,8 +210,8 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
 /* --------------- LEFT_BUTTON Message ---------- */
 static void LeftButtonMsg(WINDOW wnd, PARAM p1)
 {
-    int i;
-    int mx = (int) p1 - GetLeft(wnd);
+    short i;
+    short mx = (short) p1 - GetLeft(wnd);
     /* --- compute the selection that the left button hit --- */
     for (i = 0; i < mctr; i++)
         if (mx >= menu[i].x1-4*i &&
@@ -225,7 +225,7 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1)
 /* -------------- MB_SELECTION Message -------------- */
 static void SelectionMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int wd, mx, my;
+    short wd, mx, my;
     MENU *mnu;
 
 	if (!p2)	{
@@ -233,22 +233,22 @@ static void SelectionMsg(WINDOW wnd, PARAM p1, PARAM p2)
     	SendMessage(wnd, PAINT, 0, 0);
 	}
     Selecting = TRUE;
-    mnu = ActiveMenu+(int)p1;
+    mnu = ActiveMenu+(short)p1;
     if (mnu->PrepMenu != NULL)
         (*(mnu->PrepMenu))(GetDocFocus(), mnu);
     wd = MenuWidth(mnu->Selections);
     if (p2)    {
-		int brd = GetRight(wnd);
+		short brd = GetRight(wnd);
         mx = GetLeft(mwnd) + WindowWidth(mwnd) - 1;
 		if (mx + wd > brd)
 			mx = brd - wd;
         my = GetTop(mwnd) + mwnd->selection;
     }
     else    {
-        int offset = menu[(int)p1].x1 - 4 * (int)p1;
+        short offset = menu[(short)p1].x1 - 4 * (short)p1;
         if (mwnd != NULL)
             SendMessage(mwnd, CLOSE_WINDOW, 0, 0);
-        ActiveMenuBar->ActiveSelection = (int) p1;
+        ActiveMenuBar->ActiveSelection = (short) p1;
         if (offset > WindowWidth(wnd)-wd)
             offset = WindowWidth(wnd)-wd;
         mx = GetLeft(wnd)+offset;
@@ -282,11 +282,11 @@ static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
     	BaseWndProc(MENUBAR, wnd, COMMAND, p1, p2);
 		return;
 	}
-    if (isCascadedCommand(ActiveMenuBar, (int)p1))    {
+    if (isCascadedCommand(ActiveMenuBar, (short)p1))    {
         /* find the cascaded menu based on command id in p1 */
         MENU *mnu = ActiveMenu+mctr;
         while (mnu->Title != (void *)-1)    {
-            if (mnu->CascadeId == (int) p1)    {
+            if (mnu->CascadeId == (short) p1)    {
                 if (casc < MAXCASCADES)    {
                     Cascaders[casc++] = mwnd;
                     SendMessage(wnd, MB_SELECTION,
@@ -334,9 +334,9 @@ static void CloseWindowMsg(WINDOW wnd)
 }
 
 /* --- Window processing module for MENUBAR window class --- */
-int MenuBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short MenuBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn;
+    short rtn;
 
     switch (msg)    {
         case CREATE_WINDOW:

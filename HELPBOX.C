@@ -22,9 +22,9 @@ struct helps {
     char *NextName;
     char *PrevName;
     long hptr;
-    int bit;
-    int hheight;
-    int hwidth;
+    short bit;
+    short hheight;
+    short hwidth;
     WINDOW hwnd;
     struct helps *NextHelp;
 };
@@ -44,9 +44,9 @@ static struct HelpStack *ThisStack;
            text collection (listhead is in window) -------- */
 struct keywords {
     char *hname;
-    int lineno;
-    int off1, off2, off3;
-    int isDefinition;
+    short lineno;
+    short off1, off2, off3;
+    short isDefinition;
     struct keywords *nextword;
     struct keywords *prevword;
 };
@@ -75,7 +75,7 @@ static void CreateWindowMsg(WINDOW wnd)
 /* ------------- COMMAND message ------------ */
 static BOOL CommandMsg(WINDOW wnd, PARAM p1)
 {
-    switch ((int)p1)    {
+    switch ((short)p1)    {
         case ID_CANCEL:
             ThisStack = LastStack;
             while (ThisStack != NULL)    {
@@ -125,7 +125,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1)
     if (cwnd == NULL || inFocus != cwnd)
         return FALSE;
     thisword = cwnd->thisword;
-    switch ((int)p1)    {
+    switch ((short)p1)    {
         case '\r':
             if (thisword != NULL)    {
                 if (thisword->isDefinition)
@@ -167,7 +167,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1)
         if (thisword->lineno < cwnd->wtop ||
                 thisword->lineno >=
                     cwnd->wtop + ClientHeight(cwnd))  {
-            int distance = ClientHeight(cwnd)/2;
+            short distance = ClientHeight(cwnd)/2;
             do    {
                 cwnd->wtop = thisword->lineno-distance;
                 distance /= 2;
@@ -181,7 +181,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1)
 }
 
 /* ---- window processing module for the HELPBOX ------- */
-int HelpBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short HelpBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     DBOX *db = wnd->extension;
 
@@ -233,10 +233,10 @@ static void SelectHelp(WINDOW wnd, char *hname)
 }
 
 /* ---- PAINT message for the helpbox text editbox ---- */
-static int PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static short PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     struct keywords *thisword;
-    int rtn;
+    short rtn;
     if (wnd->thisword != NULL)    {
         WINDOW pwnd = GetParent(wnd);
         char *cp;
@@ -258,14 +258,14 @@ static int PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* ---- LEFT_BUTTON message for the helpbox text editbox ---- */
-static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static short LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     struct keywords *thisword;
-    int rtn, mx, my;
+    short rtn, mx, my;
 
     rtn = DefaultWndProc(wnd, LEFT_BUTTON, p1, p2);
-    mx = (int)p1 - GetClientLeft(wnd);
-    my = (int)p2 - GetClientTop(wnd);
+    mx = (short)p1 - GetClientLeft(wnd);
+    my = (short)p2 - GetClientTop(wnd);
     my += wnd->wtop;
     thisword = wnd->firstword;
     while (thisword != NULL)    {
@@ -289,7 +289,7 @@ static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* --- window processing module for HELPBOX's text EDITBOX -- */
-int HelpTextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short HelpTextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     struct keywords *thisword;
     switch (msg)    {
@@ -320,14 +320,14 @@ int HelpTextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 static void ReadHelp(WINDOW wnd)
 {
     WINDOW cwnd = ControlWindow(wnd->extension, ID_HELPTEXT);
-    int linectr = 0;
+    short linectr = 0;
     if (cwnd == NULL)
         return;
     cwnd->wndproc = HelpTextProc;
     /* ----- read the help text ------- */
     while (TRUE)    {
         unsigned char *cp = hline, *cp1;
-        int colorct = 0;
+        short colorct = 0;
         if (GetHelpLine(hline) == NULL)
             break;
         if (*hline == '<')
@@ -352,7 +352,7 @@ static void ReadHelp(WINDOW wnd)
                 }
                 cwnd->lastword = thisword;
                 thisword->lineno = cwnd->wlines;
-                thisword->off1 = (int) (cp - hline);
+                thisword->off1 = (short) (cp - hline);
                 thisword->off2 = thisword->off1 - colorct * 4;
                 thisword->isDefinition = *(cp+1) == '*';
                 colorct++;
@@ -365,13 +365,13 @@ static void ReadHelp(WINDOW wnd)
                 if ((cp = strchr(cp, ']')) != NULL)    {
                     if (thisword != NULL)
                         thisword->off3 =
-                            thisword->off2 + (int) (cp - cp1);
+                            thisword->off2 + (short) (cp - cp1);
                     *cp++ = RESETCOLOR;
                 }
                 if ((cp = strchr(cp, '<')) != NULL)    {
                     char *cp1 = strchr(cp, '>');
                     if (cp1 != NULL)    {
-                        int len = (int) (cp1 - cp);
+                        short len = (short) (cp1 - cp);
                         thisword->hname = DFcalloc(1, len);
                         strncpy(thisword->hname, cp+1, len-1);
                         memmove(cp, cp1+1, strlen(cp1));
@@ -392,9 +392,9 @@ static void ReadHelp(WINDOW wnd)
 }
 
 /* ---- compute the displayed length of a help text line --- */
-static int HelpLength(char *s)
+static short HelpLength(char *s)
 {
-    int len = strlen(s);
+    short len = strlen(s);
     char *cp = strchr(s, '[');
     while (cp != NULL)    {
         len -= 4;
@@ -404,7 +404,7 @@ static int HelpLength(char *s)
     while (cp != NULL)    {
         char *cp1 = strchr(cp, '>');
         if (cp1 != NULL)
-            len -= (int) (cp1-cp)+1;
+            len -= (short) (cp1-cp)+1;
         cp = strchr(cp1, '<');
     }
     return len;
@@ -455,7 +455,7 @@ void LoadHelpFile()
                     if (cp != NULL)    {
                         char *cp1 = strchr(cp, '>');
                         if (cp1 != NULL)    {
-                            int len = (int) (cp1-cp);
+                            short len = (short) (cp1-cp);
                             ThisHelp->PrevName=DFcalloc(1,len);
                             strncpy(ThisHelp->PrevName,
                                 cp+1,len-1);
@@ -471,7 +471,7 @@ void LoadHelpFile()
                     if (cp != NULL)    {
                         char *cp1 = strchr(cp, '>');
                         if (cp1 != NULL)    {
-                            int len = (int) (cp1-cp);
+                            short len = (short) (cp1-cp);
                             ThisHelp->NextName=DFcalloc(1,len);
                             strncpy(ThisHelp->NextName,
                                             cp+1,len-1);
@@ -547,7 +547,7 @@ BOOL DisplayHelp(WINDOW wnd, char *Help)
         }
         if ((helpfp = OpenHelpFile()) != NULL)    {
             DBOX *db;
-            int offset, i;
+            short offset, i;
 
             db = DFcalloc(1,sizeof HelpBox);
             memcpy(db, &HelpBox, sizeof HelpBox);
@@ -597,7 +597,7 @@ static void DisplayDefinition(WINDOW wnd, char *def)
 {
     WINDOW dwnd;
     WINDOW hwnd = wnd;
-    int y;
+    short y;
 
     if (GetClass(wnd) == POPDOWNMENU)
         hwnd = GetParent(wnd);
@@ -675,9 +675,9 @@ static void FindHelpWindow(WINDOW wnd)
     }
 }
 
-static int OverLap(int a, int b)
+static short OverLap(short a, short b)
 {
-    int ov = a - b;
+    short ov = a - b;
     if (ov < 0)
         ov = 0;
     return ov;
@@ -686,7 +686,7 @@ static int OverLap(int a, int b)
 /* ----- compute the best location for a help dialogbox ----- */
 static void BestFit(WINDOW wnd, DIALOGWINDOW *dwnd)
 {
-    int above, below, right, left;
+    short above, below, right, left;
     if (GetClass(wnd) == MENUBAR ||
                 GetClass(wnd) == APPLICATION)    {
         dwnd->x = dwnd->y = -1;

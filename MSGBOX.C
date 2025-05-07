@@ -6,9 +6,9 @@ extern DBOX MsgBox;
 extern DBOX InputBoxDB;
 WINDOW CancelWnd;
 
-static int ReturnValue;
+static short ReturnValue;
 
-int MessageBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short MessageBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -18,7 +18,7 @@ int MessageBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             break;
         case KEYBOARD:
             if (p1 == '\r' || p1 == ESC)
-                ReturnValue = (int)p1;
+                ReturnValue = (short)p1;
             break;
         default:
             break;
@@ -26,7 +26,7 @@ int MessageBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(MESSAGEBOX, wnd, msg, p1, p2);
 }
 
-int YesNoBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short YesNoBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -35,7 +35,7 @@ int YesNoBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             ClearAttribute(wnd, CONTROLBOX);
             break;
         case KEYBOARD:    {
-            int c = tolower((int)p1);
+            short c = tolower((short)p1);
             if (c == 'y')
                 SendMessage(wnd, COMMAND, ID_OK, 0);
             else if (c == 'n')
@@ -48,7 +48,7 @@ int YesNoBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(MESSAGEBOX, wnd, msg, p1, p2);
 }
 
-int ErrorBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short ErrorBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -57,7 +57,7 @@ int ErrorBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             break;
         case KEYBOARD:
             if (p1 == '\r' || p1 == ESC)
-                ReturnValue = (int)p1;
+                ReturnValue = (short)p1;
             break;
         default:
             break;
@@ -65,7 +65,7 @@ int ErrorBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(ERRORBOX, wnd, msg, p1, p2);
 }
 
-int CancelBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short CancelBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -74,7 +74,7 @@ int CancelBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             SendMessage(wnd, CAPTURE_KEYBOARD, 0, 0);
             break;
         case COMMAND:
-            if ((int) p1 == ID_CANCEL && (int) p2 == 0)
+            if ((short) p1 == ID_CANCEL && (short) p2 == 0)
                 SendMessage(GetParent(wnd), msg, p1, p2);
             return TRUE;
         case CLOSE_WINDOW:
@@ -96,11 +96,11 @@ void CloseCancelBox(void)
 }
 
 static char *InputText;
-static int TextLength;
+static short TextLength;
 
-int InputBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short InputBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn;
+    short rtn;
     switch (msg)    {
         case CREATE_WINDOW:
             rtn = DefaultWndProc(wnd, msg, p1, p2);
@@ -108,7 +108,7 @@ int InputBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                         SETTEXTLENGTH, TextLength, 0);
             return rtn;
         case COMMAND:
-            if ((int) p1 == ID_OK && (int) p2 == 0)
+            if ((short) p1 == ID_OK && (short) p2 == 0)
                 GetItemText(wnd, ID_INPUTTEXT,
                             InputText, TextLength);
             break;
@@ -118,7 +118,7 @@ int InputBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return DefaultWndProc(wnd, msg, p1, p2);
 }
 
-BOOL InputBox(WINDOW wnd,char *ttl,char *msg,char *text,int len)
+BOOL InputBox(WINDOW wnd,char *ttl,char *msg,char *text,short len)
 {
     InputText = text;
     TextLength = len;
@@ -136,9 +136,9 @@ BOOL InputBox(WINDOW wnd,char *ttl,char *msg,char *text,int len)
     return DialogBox(wnd, &InputBoxDB, TRUE, InputBoxProc);
 }
 
-BOOL GenericMessage(WINDOW wnd,char *ttl,char *msg,int buttonct,
-      int (*wndproc)(struct window *,enum messages,PARAM,PARAM),
-      char *b1, char *b2, int c1, int c2, int isModal)
+BOOL GenericMessage(WINDOW wnd,char *ttl,char *msg,short buttonct,
+      short (*wndproc)(struct window *,enum messages,PARAM,PARAM),
+      char *b1, char *b2, short c1, short c2, short isModal)
 {
     BOOL rtn;
     MsgBox.dwnd.title = ttl;
@@ -185,9 +185,9 @@ WINDOW MomentaryMessage(char *msg)
     return wnd;
 }
 
-int MsgHeight(char *msg)
+short MsgHeight(char *msg)
 {
-    int h = 1;
+    short h = 1;
     while ((msg = strchr(msg, '\n')) != NULL)    {
         h++;
         msg++;
@@ -195,12 +195,12 @@ int MsgHeight(char *msg)
     return min(h, SCREENHEIGHT-10);
 }
 
-int MsgWidth(char *msg)
+short MsgWidth(char *msg)
 {
-    int w = 0;
+    short w = 0;
     char *cp = msg;
     while ((cp = strchr(msg, '\n')) != NULL)    {
-        w = max(w, (int) (cp-msg));
+        w = max(w, (short) (cp-msg));
         msg = cp+1;
     }
     return min(max(strlen(msg),w), SCREENWIDTH-10);

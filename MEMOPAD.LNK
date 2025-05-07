@@ -1,45 +1,14 @@
-memopad+
-calendar+
-barchart+
-menu+
-window+
-video+
-message+
-mouse+
-console+
-normal+
-textbox+
-listbox+
-menubar+
-popdown+
-rect+
-applicat+
-keys+
-config+
-sysmenu+
-menus+
-editbox+
-dialogs+
-dialbox+
-button+
-fileopen+
-msgbox+
-helpbox+
-log+
-lists+
-statbar+
-decomp+
-htree+
-combobox+
-pictbox+
-clipbord+
-search+
-dfalloc+
-checkbox.obj+
-text.obj+
-radio.obj+
-box.obj+
-spinbutt.obj+
-watch.obj+
-slidebox.obj+
-
+debug all
+option stack=8192
+system dos4g
+name memopad.exe
+file memopad.obj,dialogs.obj,menus.obj,window.obj,video.obj,message.obj
+file mouse.obj,console.obj,textbox.obj,listbox.obj
+file normal.obj,config.obj,menu.obj,menubar.obj,popdown.obj
+file rect.obj,applicat.obj,keys.obj,sysmenu.obj,editbox.obj
+file dialbox.obj,button.obj,fileopen.obj,msgbox.obj
+file helpbox.obj,log.obj,lists.obj,statbar.obj,decomp.obj
+file combobox.obj,pictbox.obj,calendar.obj,barchart.obj
+file clipbord.obj,search.obj,dfalloc.obj,checkbox.obj
+file text.obj,radio.obj,box.obj,spinbutt.obj, watch.obj
+file slidebox.obj,direct.obj

@@ -14,8 +14,8 @@
 /* -------- dialog box and control window structure ------- */
 typedef struct  {
     char *title;    /* window title         */
-    int x, y;       /* relative coordinates */
-    int h, w;       /* size                 */
+    short x, y;       /* relative coordinates */
+    short h, w;       /* size                 */
 } DIALOGWINDOW;
 
 /* ------ one of these for each control window ------- */
@@ -23,7 +23,7 @@ typedef struct {
     DIALOGWINDOW dwnd;
     CLASS class;    /* LISTBOX, BUTTON, etc */
     char *itext;    /* initialized text     */
-    int command;    /* command code         */
+    short command;    /* command code         */
     char *help;     /* help mnemonic        */
     BOOL isetting;  /* initially ON or OFF  */
     BOOL setting;   /* ON or OFF            */

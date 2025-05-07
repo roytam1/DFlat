@@ -11,10 +11,10 @@ static char ext[MAXEXT];
 /* ----- Create unambiguous path from file spec, filling in the
      drive and directory if incomplete. Optionally change to
      the new drive and subdirectory ------ */
-void CreatePath(char *path,char *fspec,int InclName,int Change)
+void CreatePath(char *path,char *fspec,short InclName,short Change)
 {
-    int cm = 0;
-    unsigned currdrive;
+    short cm = 0;
+    unsigned short currdrive;
     char currdir[64];
     char *cp;
 
@@ -79,9 +79,9 @@ static int dircmp(const void *c1, const void *c2)
 
 BOOL DlgDirList(WINDOW wnd, char *fspec,
                 enum commands nameid, enum commands pathid,
-                unsigned attrib)
+                unsigned short attrib)
 {
-    int ax, i = 0, criterr = 1;
+    short ax, i = 0, criterr = 1;
     struct ffblk ff;
     CTLWINDOW *ct = FindCommand(wnd->extension,nameid,LISTBOX);
     WINDOW lwnd;
@@ -95,19 +95,23 @@ BOOL DlgDirList(WINDOW wnd, char *fspec,
         if (attrib & 0x8000)    {
             union REGS regs;
             char drname[15];
-            unsigned int cd, dr;
+            unsigned short cd, dr;
 
             cd = getdisk();
             for (dr = 0; dr < 26; dr++)    {
-                unsigned ndr;
+                unsigned short ndr;
                 setdisk(dr);
                 ndr = getdisk();
                 if (ndr == dr)    {
                     /* ----- test for remapped B drive ----- */
                     if (dr == 1)    {
-                        regs.x.ax = 0x440e; /* IOCTL func 14 */
+                        regs.w.ax = 0x440e; /* IOCTL func 14 */
                         regs.h.bl = dr+1;
+#ifdef __FLAT__
+							   int386(DOS, &regs, &regs);
+#else
                         int86(DOS, &regs, &regs);
+#endif
                         if (regs.h.al != 0)
                             continue;
                     }
@@ -115,13 +119,17 @@ BOOL DlgDirList(WINDOW wnd, char *fspec,
                     sprintf(drname, "[%c:]", dr+'A');
 
                     /* ---- test for network or RAM disk ---- */
-                    regs.x.ax = 0x4409;     /* IOCTL func 9 */
+                    regs.w.ax = 0x4409;     /* IOCTL func 9 */
                     regs.h.bl = dr+1;
+#ifdef __FLAT__
+						  int386(DOS, &regs, &regs);
+#else
                     int86(DOS, &regs, &regs);
-                    if (!regs.x.cflag)    {
-                        if (regs.x.dx & 0x1000)
+#endif
+                    if (!regs.w.cflag)    {
+                        if (regs.w.dx & 0x1000)
                             strcat(drname, " (Network)");
-                        else if (regs.x.dx == 0x0800)
+                        else if (regs.w.dx == 0x0800)
                             strcat(drname, " (RAMdisk)");
                     }
                     SendMessage(lwnd,ADDTEXT,(PARAM)drname,0);
@@ -152,7 +160,7 @@ BOOL DlgDirList(WINDOW wnd, char *fspec,
             ax = findnext(&ff);
         }
         if (dirlist != NULL)    {
-            int j;
+            short j;
             /* -- sort file/drive/directory list box data -- */
             qsort(dirlist, i, sizeof(void *), dircmp);
 

@@ -2,9 +2,9 @@
 
 #include "dflat.h"
 
-int TextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short TextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int i, len;
+    short i, len;
     CTLWINDOW *ct = GetControl(wnd);
     char *cp, *cp2 = ct->itext;
     switch (msg)    {
@@ -20,7 +20,7 @@ int TextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             len = min(ct->dwnd.h, MsgHeight(cp2));
             cp = cp2;
             for (i = 0; i < len; i++)    {
-                int mlen;
+                short mlen;
                 char *txt = cp;
                 char *cp1 = cp;
                 char *np = strchr(cp, '\n');

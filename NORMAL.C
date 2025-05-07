@@ -7,7 +7,7 @@ static void near PaintOverLappers(WINDOW wnd);
 static void near PaintUnderLappers(WINDOW wnd);
 #endif
 
-static BOOL InsideWindow(WINDOW, int, int);
+static BOOL InsideWindow(WINDOW, short, short);
 static void TerminateMoveSize(void);
 static void SaveBorder(RECT);
 static void RestoreBorder(RECT);
@@ -16,14 +16,14 @@ static void PutVideoBuffer(WINDOW);
 #ifdef INCLUDE_MINIMIZE
 static RECT PositionIcon(WINDOW);
 #endif
-static void near dragborder(WINDOW, int, int);
-static void near sizeborder(WINDOW, int, int);
-static int px = -1, py = -1;
-static int diff;
+static void near dragborder(WINDOW, short, short);
+static void near sizeborder(WINDOW, short, short);
+static short px = -1, py = -1;
+static short diff;
 static struct window dwnd = {DUMMY, NULL, NormalProc,
                                 {-1,-1,-1,-1}};
-static int *Bsave;
-static int Bht, Bwd;
+static short *Bsave;
+static short Bht, Bwd;
 BOOL WindowMoving;
 BOOL WindowSizing;
 /* -------- array of class definitions -------- */
@@ -85,10 +85,10 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     if (WindowMoving || WindowSizing)    {
         /* -- move or size a window with keyboard -- */
-        int x, y;
+        short x, y;
         x=WindowMoving?GetLeft(&dwnd):GetRight(&dwnd);
         y=WindowMoving?GetTop(&dwnd):GetBottom(&dwnd);
-        switch ((int)p1)    {
+        switch ((short)p1)    {
             case ESC:
                 TerminateMoveSize();
                 return TRUE;
@@ -118,12 +118,12 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         SendMessage(wnd, MOUSE_MOVED, x, y);
         return TRUE;
     }
-    switch ((int)p1)    {
+    switch ((short)p1)    {
         case F1:
             SendMessage(wnd, COMMAND, ID_HELP, 0);
             return TRUE;
         case ' ':
-            if ((int)p2 & ALTKEY)
+            if ((short)p2 & ALTKEY)
                 if (TestAttribute(wnd, HASTITLEBAR))
                     if (TestAttribute(wnd, CONTROLBOX))
                         BuildSystemMenu(wnd);
@@ -144,7 +144,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* --------- COMMAND Message ---------- */
 static void CommandMsg(WINDOW wnd, PARAM p1)
 {
-    switch ((int)p1)    {
+    switch ((short)p1)    {
         case ID_HELP:
             DisplayHelp(wnd,ClassNames[GetClass(wnd)]);
             break;
@@ -278,8 +278,8 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 /* --------- DOUBLE_CLICK Message ---------- */
 static void DoubleClickMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int mx = (int) p1 - GetLeft(wnd);
-    int my = (int) p2 - GetTop(wnd);
+    short mx = (short) p1 - GetLeft(wnd);
+    short my = (short) p2 - GetTop(wnd);
     if (!WindowSizing && !WindowMoving)	{
         if (HitControlBox(wnd, mx, my))	{
             PostMessage(wnd, CLOSE_WINDOW, 0, 0);
@@ -291,8 +291,8 @@ static void DoubleClickMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* --------- LEFT_BUTTON Message ---------- */
 static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int mx = (int) p1 - GetLeft(wnd);
-    int my = (int) p2 - GetTop(wnd);
+    short mx = (short) p1 - GetLeft(wnd);
+    short my = (short) p2 - GetTop(wnd);
     if (WindowSizing || WindowMoving)
         return;
     if (HitControlBox(wnd, mx, my))    {
@@ -331,7 +331,7 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
             WindowMoving = TRUE;
             px = mx;
             py = my;
-            diff = (int) mx;
+            diff = (short) mx;
             SendMessage(wnd, CAPTURE_MOUSE, TRUE,
                 (PARAM) &dwnd);
             dragborder(wnd, GetLeft(wnd), GetTop(wnd));
@@ -369,11 +369,11 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 static BOOL MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     if (WindowMoving)    {
-        int leftmost = 0, topmost = 0,
+        short leftmost = 0, topmost = 0,
             bottommost = SCREENHEIGHT-2,
             rightmost = SCREENWIDTH-2;
-        int x = (int) p1 - diff;
-        int y = (int) p2;
+        short x = (short) p1 - diff;
+        short y = (short) p2;
         if (GetParent(wnd) != NULL &&
                 !TestAttribute(wnd, NOCLIP))    {
             WINDOW wnd1 = GetParent(wnd);
@@ -398,7 +398,7 @@ static BOOL MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
         return TRUE;
     }
     if (WindowSizing)    {
-        sizeborder(wnd, (int) p1, (int) p2);
+        sizeborder(wnd, (short) p1, (short) p2);
         return TRUE;
     }
     return FALSE;
@@ -486,15 +486,15 @@ static void MoveMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     WINDOW cwnd;
     BOOL wasVisible = isVisible(wnd);
-    int xdif = (int) p1 - wnd->rc.lf;
-    int ydif = (int) p2 - wnd->rc.tp;
+    short xdif = (short) p1 - wnd->rc.lf;
+    short ydif = (short) p2 - wnd->rc.tp;
 
     if (xdif == 0 && ydif == 0)
         return;
     if (wasVisible)
         SendMessage(wnd, HIDE_WINDOW, 0, 0);
-    wnd->rc.lf = (int) p1;
-    wnd->rc.tp = (int) p2;
+    wnd->rc.lf = (short) p1;
+    wnd->rc.tp = (short) p2;
     wnd->rc.rt = GetLeft(wnd)+WindowWidth(wnd)-1;
     wnd->rc.bt = GetTop(wnd)+WindowHeight(wnd)-1;
     if (wnd->condition == ISRESTORED)
@@ -515,15 +515,15 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
     BOOL wasVisible = isVisible(wnd);
     WINDOW cwnd;
     RECT rc;
-    int xdif = (int) p1 - wnd->rc.rt;
-    int ydif = (int) p2 - wnd->rc.bt;
+    short xdif = (short) p1 - wnd->rc.rt;
+    short ydif = (short) p2 - wnd->rc.bt;
 
     if (xdif == 0 && ydif == 0)
         return;
     if (wasVisible)
         SendMessage(wnd, HIDE_WINDOW, 0, 0);
-    wnd->rc.rt = (int) p1;
-    wnd->rc.bt = (int) p2;
+    wnd->rc.rt = (short) p1;
+    wnd->rc.bt = (short) p2;
     wnd->ht = GetBottom(wnd)-GetTop(wnd)+1;
     wnd->wd = GetRight(wnd)-GetLeft(wnd)+1;
 
@@ -582,7 +582,7 @@ static void CloseWindowMsg(WINDOW wnd)
 }
 
 /* ---- Window-processing module for NORMAL window class ---- */
-int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -598,7 +598,7 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             DisplayHelp(wnd, (char *)p1);
             break;
         case INSIDE_WINDOW:
-            return InsideWindow(wnd, (int) p1, (int) p2);
+            return InsideWindow(wnd, (short) p1, (short) p2);
         case KEYBOARD:
             if (KeyboardMsg(wnd, p1, p2))
                 return TRUE;
@@ -747,7 +747,7 @@ static void TerminateMoveSize(void)
     WindowMoving = WindowSizing = FALSE;
 }
 /* ---- build a dummy window border for moving or sizing --- */
-static void near dragborder(WINDOW wnd, int x, int y)
+static void near dragborder(WINDOW wnd, short x, short y)
 {
     RestoreBorder(dwnd.rc);
     /* ------- build the dummy window -------- */
@@ -764,12 +764,12 @@ static void near dragborder(WINDOW wnd, int x, int y)
     RepaintBorder(&dwnd, NULL);
 }
 /* ---- write the dummy window border for sizing ---- */
-static void near sizeborder(WINDOW wnd, int rt, int bt)
+static void near sizeborder(WINDOW wnd, short rt, short bt)
 {
-    int leftmost = GetLeft(wnd)+10;
-    int topmost = GetTop(wnd)+3;
-    int bottommost = SCREENHEIGHT-1;
-    int rightmost  = SCREENWIDTH-1;
+    short leftmost = GetLeft(wnd)+10;
+    short topmost = GetTop(wnd)+3;
+    short bottommost = SCREENHEIGHT-1;
+    short rightmost  = SCREENWIDTH-1;
     if (GetParent(wnd))    {
         bottommost = min(bottommost,
             GetClientBottom(GetParent(wnd)));
@@ -815,7 +815,7 @@ static RECT adjShadow(WINDOW wnd)
 static void near PaintOverLap(WINDOW wnd, RECT rc)
 {
     if (isVisible(wnd))    {
-        int isBorder, isTitle, isData;
+        short isBorder, isTitle, isData;
         isBorder = isTitle = FALSE;
         isData = TRUE;
         if (TestAttribute(wnd, HASBORDER))    {
@@ -946,8 +946,8 @@ static void near PaintUnderLappers(WINDOW wnd)
 static void SaveBorder(RECT rc)
 {
     RECT lrc;
-    int i;
-    int *cp;
+    short i;
+    short *cp;
     Bht = RectBottom(rc) - RectTop(rc) + 1;
     Bwd = RectRight(rc) - RectLeft(rc) + 1;
     Bsave = DFrealloc(Bsave, (Bht + Bwd) * 4);
@@ -968,8 +968,8 @@ static void RestoreBorder(RECT rc)
 {
     if (Bsave != NULL)    {
         RECT lrc;
-        int i;
-        int *cp;
+        short i;
+        short *cp;
         lrc = rc;
         RectBottom(lrc) = RectTop(lrc);
         storevideo(lrc, Bsave);
@@ -985,7 +985,7 @@ static void RestoreBorder(RECT rc)
     }
 }
 /* ----- test if screen coordinates are in a window ---- */
-static BOOL InsideWindow(WINDOW wnd, int x, int y)
+static BOOL InsideWindow(WINDOW wnd, short x, short y)
 {
     RECT rc;
     rc = WindowRect(wnd);
@@ -1049,8 +1049,8 @@ static RECT near ClipRect(WINDOW wnd)
 static void GetVideoBuffer(WINDOW wnd)
 {
     RECT rc;
-    int ht;
-    int wd;
+    short ht;
+    short wd;
 
     rc = ClipRect(wnd);
     ht = RectBottom(rc) - RectTop(rc) + 1;

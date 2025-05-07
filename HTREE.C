@@ -4,13 +4,13 @@
 #include "htree.h"
 
 struct htree *ht;
-int root;
-int treect;
+short root;
+short treect;
 
 /* ------ build a Huffman tree from a frequency array ------ */
 void buildtree(void)
 {
-    int i;
+    short i;
 
     treect = 256;
     /* ---- preset node pointers to -1 ---- */
@@ -21,7 +21,7 @@ void buildtree(void)
     }
     /* ---- build the huffman tree ----- */
     while (1)   {
-        int h1 = -1, h2 = -1;
+        short h1 = -1, h2 = -1;
         /* ---- find the two lowest frequencies ---- */
         for (i = 0; i < treect; i++)   {
             if (i != h1) {

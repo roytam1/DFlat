@@ -2,14 +2,14 @@
 
 #include "dflat.h"
 
-int CheckBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short CheckBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn;
+    short rtn;
     CTLWINDOW *ct = GetControl(wnd);
     if (ct != NULL)    {
         switch (msg)    {
             case SETFOCUS:
-                if (!(int)p1)
+                if (!(short)p1)
                     SendMessage(NULL, HIDE_CURSOR, 0, 0);
             case MOVE:
                 rtn = BaseWndProc(CHECKBOX, wnd, msg, p1, p2);
@@ -25,7 +25,7 @@ int CheckBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 break;
             }
             case KEYBOARD:
-                if ((int)p1 != ' ')
+                if ((short)p1 != ' ')
                     break;
             case LEFT_BUTTON:
                 ct->setting ^= ON;

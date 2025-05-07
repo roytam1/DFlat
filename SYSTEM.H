@@ -8,7 +8,7 @@
 #include <dir.h>
 #endif
 
-#define swap(a,b){int x=a;a=b;b=x;}
+#define swap(a,b){short x=a;a=b;b=x;}
 /* ----- interrupt vectors ----- */
 #define TIMER  8
 #define VIDEO  0x10
@@ -25,8 +25,15 @@
 #define MAXSAVES 50
 #define SCREENWIDTH  (peekb(0x40,0x4a) & 255)
 #define SCREENHEIGHT (isVGA() || isEGA() ? peekb(0x40,0x84)+1 : 25)
-#define clearBIOSbuffer() *(int far *)(MK_FP(0x40,0x1a)) = \
-		        	      *(int far *)(MK_FP(0x40,0x1c));
+#ifdef __FLAT__
+#define clearBIOSbuffer() *(short *)(MK_FP(0x40,0x1a)) = \
+		        	      *(short *)(MK_FP(0x40,0x1c));
+#else
+#define clearBIOSbuffer() *(short far *)(MK_FP(0x40,0x1a)) = \
+		        	      *(short far *)(MK_FP(0x40,0x1c));
+#endif
+
+
 #define waitforkeyboard() while ((keyportvalue & 0x80) == 0) \
 						  clearBIOSbuffer()
 /* ----- keyboard BIOS (0x16) functions -------- */
@@ -41,35 +48,35 @@
 #define HIDECURSOR 0x20
 /* ------- the interrupt function registers -------- */
 typedef struct {
-    int bp,di,si,ds,es,dx,cx,bx,ax,ip,cs,fl;
+    short bp,di,si,ds,es,dx,cx,bx,ax,ip,cs,fl;
 } IREGS;
 /* ---------- keyboard prototypes -------- */
-int AltConvert(int);
-int getkey(void);
-int getshift(void);
+short AltConvert(short);
+short getkey(void);
+short getshift(void);
 BOOL keyhit(void);
 void beep(void);
 /* ---------- cursor prototypes -------- */
-void curr_cursor(int *x, int *y);
-void cursor(int x, int y);
+void curr_cursor(short *x, short *y);
+void cursor(short x, short y);
 void hidecursor(void);
 void unhidecursor(void);
 void savecursor(void);
 void restorecursor(void);
 void normalcursor(void);
-void set_cursor_type(unsigned t);
+void set_cursor_type(unsigned short t);
 void videomode(void);
 void SwapCursorStack(void);
 /* ---------- mouse prototypes ---------- */
 BOOL mouse_installed(void);
-int mousebuttons(void);
-void get_mouseposition(int *x, int *y);
-void set_mouseposition(int x, int y);
+short mousebuttons(void);
+void get_mouseposition(short *x, short *y);
+void set_mouseposition(short x, short y);
 void show_mousecursor(void);
 void hide_mousecursor(void);
-int button_releases(void);
+short button_releases(void);
 void resetmouse(void);
-void set_mousetravel(int, int, int, int);
+void set_mousetravel(short, short, short, short);
 #define leftbutton()     (mousebuttons()&1)
 #define rightbutton()     (mousebuttons()&2)
 #define waitformouse()     while(mousebuttons());
@@ -116,20 +123,35 @@ void Set50(void);
 #undef FP_OFF
 #undef FP_SEG
 #undef MK_FP
-#define FP_OFF(p)    ((unsigned)(p))
-#define FP_SEG(p)    ((unsigned)((unsigned long)(p) >> 16))
+#ifdef __FLAT__
+#define FP_OFF(p)    ((unsigned short)(p) & 0x0f)
+#define FP_SEG(p)    ((unsigned short)((unsigned long)(p) >> 4))
+#define MK_FP(s,o)   ((void *) \
+               (((unsigned long)(s) << 4) + (unsigned short)(o)))
+#else
+#define FP_OFF(p)    ((unsigned short)(p))
+#define FP_SEG(p)    ((unsigned short)((unsigned long)(p) >> 16))
 #define MK_FP(s,o)   ((void far *) \
-               (((unsigned long)(s) << 16) | (unsigned)(o)))
+               (((unsigned long)(s) << 16) | (unsigned short)(o)))
+#endif
 #define findfirst(p,f,a) _dos_findfirst(p,a,f)
 #define findnext(f)      _dos_findnext(f)
 #define ffblk            find_t
 #define ff_name          name
 #define ff_fsize         size
 #define ff_attrib        attrib
-#define poke(a,b,c)  (*((int  far*)MK_FP((a),(b))) = (int)(c))
+#ifdef	__FLAT__
+#define poke(a,b,c)  (*((short  *)MK_FP((a),(b))) = (short)(c))
+#define pokeb(a,b,c) (*((char *)MK_FP((a),(b))) = (char)(c))
+#define peek(a,b)    (*((short  *)MK_FP((a),(b))))
+#define peekb(a,b)   (*((char *)MK_FP((a),(b))))
+#else
+#define poke(a,b,c)  (*((short  far*)MK_FP((a),(b))) = (short)(c))
 #define pokeb(a,b,c) (*((char far*)MK_FP((a),(b))) = (char)(c))
-#define peek(a,b)    (*((int  far*)MK_FP((a),(b))))
+#define peek(a,b)    (*((short  far*)MK_FP((a),(b))))
 #define peekb(a,b)   (*((char far*)MK_FP((a),(b))))
+#endif
+
 #define getvect(v)   _dos_getvect(v)
 #define setvect(v,f) _dos_setvect(v,f)
 #define fnsplit          _splitpath
@@ -138,7 +160,7 @@ void Set50(void);
 #define FILENAME          4
 #define DIRECTORY         8
 #define DRIVE            16
-int getdisk(void);
+short getdisk(void);
 #define setdisk(d)       _dos_setdrive((d)+1, NULL)
 #define bioskey          _bios_keybrd
 #define MAXPATH          80

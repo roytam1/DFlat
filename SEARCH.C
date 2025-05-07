@@ -3,11 +3,11 @@
 
 extern DBOX SearchTextDB;
 extern DBOX ReplaceTextDB;
-static int CheckCase = TRUE;
-static int Replacing = FALSE;
+static short CheckCase = TRUE;
+static short Replacing = FALSE;
 
 /* - case-insensitive, white-space-normalized char compare - */
-static BOOL SearchCmp(int a, int b)
+static BOOL SearchCmp(short a, short b)
 {
     if (b == '\n')
         b = ' ';
@@ -21,15 +21,15 @@ static void replacetext(WINDOW wnd, char *cp1, DBOX *db)
 {
     char *cr = GetEditBoxText(db, ID_REPLACEWITH);
     char *cp = GetEditBoxText(db, ID_SEARCHFOR);
-    int oldlen = strlen(cp); /* length of text being replaced */
-    int newlen = strlen(cr); /* length of replacing text      */
-    int dif;
+    short oldlen = strlen(cp); /* length of text being replaced */
+    short newlen = strlen(cr); /* length of replacing text      */
+    short dif;
     if (oldlen < newlen)    {
         /* ---- new text expands text size ---- */
         dif = newlen-oldlen;
         if (wnd->textlen < strlen(wnd->text)+dif)    {
             /* ---- need to reallocate the text buffer ---- */
-            int offset = (int)(cp1-wnd->text);
+            short offset = (short)(cp1-wnd->text);
             wnd->textlen += dif;
             wnd->text = DFrealloc(wnd->text, wnd->textlen+2);
             cp1 = wnd->text + offset;
@@ -45,7 +45,7 @@ static void replacetext(WINDOW wnd, char *cp1, DBOX *db)
 }
 
 /* ------- search for the occurrance of a string ------- */
-static void SearchTextBox(WINDOW wnd, int incr)
+static void SearchTextBox(WINDOW wnd, short incr)
 {
     char *s1 = NULL, *s2, *cp1;
     DBOX *db = Replacing ? &ReplaceTextDB : &SearchTextDB;
@@ -87,9 +87,9 @@ static void SearchTextBox(WINDOW wnd, int incr)
             if (wnd->BlkEndLine < wnd->BlkBegLine)
                 wnd->BlkEndLine = wnd->BlkBegLine;
             wnd->BlkEndCol =
-                (int)(s2 - TextLine(wnd, wnd->BlkEndLine));
+                (short)(s2 - TextLine(wnd, wnd->BlkEndLine));
             wnd->BlkBegCol =
-                (int)(cp1 - TextLine(wnd, wnd->BlkBegLine));
+                (short)(cp1 - TextLine(wnd, wnd->BlkBegLine));
 
             /* position the cursor at the matching text */
             wnd->CurrCol = wnd->BlkBegCol;

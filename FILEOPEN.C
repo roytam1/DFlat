@@ -3,7 +3,7 @@
 #include "dflat.h"
 
 static BOOL DlgFileOpen(char *, char *, DBOX *);
-static int DlgFnOpen(WINDOW, MESSAGE, PARAM, PARAM);
+static short DlgFnOpen(WINDOW, MESSAGE, PARAM, PARAM);
 static void InitDlgBox(WINDOW);
 static void StripPath(char *);
 static BOOL IncompleteFilename(char *);
@@ -74,11 +74,11 @@ static BOOL DlgFileOpen(char *Fpath, char *Fname, DBOX *db)
 /*
  *  Process dialog box messages
  */
-static int DlgFnOpen(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
+static short DlgFnOpen(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:    {
-            int rtn = DefaultWndProc(wnd, msg, p1, p2);
+            short rtn = DefaultWndProc(wnd, msg, p1, p2);
             DBOX *db = wnd->extension;
             WINDOW cwnd = ControlWindow(db, ID_FILENAME);
             SendMessage(cwnd, SETTEXTLENGTH, 64, 0);
@@ -88,7 +88,7 @@ static int DlgFnOpen(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
             InitDlgBox(wnd);
             break;
         case COMMAND:
-            switch ((int) p1)    {
+            switch ((short) p1)    {
                 case ID_FILENAME:
                     if (p2 != ENTERFOCUS)    {
                         /* allow user to modify the file spec */
@@ -122,7 +122,7 @@ static int DlgFnOpen(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
                     }
                     break;
                 case ID_FILES:
-                    switch ((int) p2)    {
+                    switch ((short) p2)    {
                         case ENTERFOCUS:
                         case LB_SELECTION:
                             /* selected a different filename */
@@ -142,7 +142,7 @@ static int DlgFnOpen(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
                     }
                     return TRUE;
                 case ID_DRIVE:
-                    switch ((int) p2)    {
+                    switch ((short) p2)    {
                         case ENTERFOCUS:
                             if (Saving)
                                 *FileSpec = '\0';
@@ -231,7 +231,7 @@ static void StripPath(char *filespec)
 
 static BOOL IncompleteFilename(char *s)
 {
-    int lc = strlen(s)-1;
+    short lc = strlen(s)-1;
     if (strchr(s, '?') || strchr(s, '*') || !*s)
         return TRUE;
     if (*(s+lc) == ':' || *(s+lc) == '\\')

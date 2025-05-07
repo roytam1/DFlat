@@ -1,0 +1,65 @@
+#-------------------------------------------------------------------
+#      D - F L A T   M A K E F I L E   -   W A T C O M   C 386
+#-------------------------------------------------------------------
+
+all : memopad.exe memopad.hlp
+	echo all done
+
+# ---- For debugging
+#OBJECTS=      window.obj video.obj message.obj                         &
+#              mouse.obj console.obj textbox.obj listbox.obj            &
+#              normal.obj config.obj menu.obj menubar.obj popdown.obj   &
+#              rect.obj applicat.obj keys.obj sysmenu.obj editbox.obj   &
+#              dialbox.obj button.obj fileopen.obj msgbox.obj           &
+#              helpbox.obj log.obj lists.obj statbar.obj decomp.obj     &
+#              combobox.obj pictbox.obj calendar.obj barchart.obj       &
+#              clipbord.obj search.obj dfalloc.obj checkbox.obj         &
+#              text.obj radio.obj box.obj spinbutt.obj  watch.obj       &
+#              slidebox.obj direct.obj
+
+#-------------------------------------------------------------------
+#  Delete the FULL macro for a minimal D-Flat application. You can
+#  selectively remove features by deleting #define statements at
+#  the beginning of DFLAT.H
+#-------------------------------------------------------------------
+FULL = BUILD_FULL_DFLAT
+#-------------------------------------------------------------------
+#  Delete the TESTING macro to eliminate the D-Flat Log and the Reload
+#  Help file selection on the Help menu
+#-------------------------------------------------------------------
+TESTING = TESTING_DFLAT
+#------------------------------------------------
+# ---- for debugging
+#COMPILE = wcc386 -mf -d3 -od -D__FLAT__ -dWATCOM=1 -dMSC=0 -d$(FULL) -d$(TESTING) -j -w4
+COMPILE = wcc386 -mf -D__FLAT__ -dWATCOM=1 -dMSC=0 -d$(FULL) -d$(TESTING) -j -w4
+#------------------------------------------------
+
+.c.obj:
+    $(COMPILE) $*.c
+
+memopad.exe : memopad.obj dialogs.obj menus.obj dflat.lib
+     wcl386 /l=dos4g memopad.obj dialogs.obj menus.obj dflat.lib /k8192 /fe=memopad.exe
+#     wlink @memopad.lnk 
+# ----- For debugging
+#     wlink @memopad.lnk 
+
+dflat.lib :   window.obj video.obj message.obj                         &
+              mouse.obj console.obj textbox.obj listbox.obj            &
+              normal.obj config.obj menu.obj menubar.obj popdown.obj   &
+              rect.obj applicat.obj keys.obj sysmenu.obj editbox.obj   &
+              dialbox.obj button.obj fileopen.obj msgbox.obj           &
+              helpbox.obj log.obj lists.obj statbar.obj decomp.obj     &
+              combobox.obj pictbox.obj calendar.obj barchart.obj       &
+              clipbord.obj search.obj dfalloc.obj checkbox.obj         &
+              text.obj radio.obj box.obj spinbutt.obj  watch.obj       &
+              slidebox.obj direct.obj
+	del dflat.lib
+	wlib dflat @dflat
+
+huffc.exe : huffc.c htree.c
+     wcl /dWATCOM /ml huffc.c htree.c
+
+memopad.hlp : memopad.txt huffc.exe
+	huffc memopad.txt memopad.hlp
+
+

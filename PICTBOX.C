@@ -52,11 +52,11 @@ unsigned char VectCvt[3][11][2][4] = {
 };
 
 /* -- compute whether character is first, middle, or last -- */
-static int FindVector(WINDOW wnd, RECT rc, int x, int y)
+static short FindVector(WINDOW wnd, RECT rc, short x, short y)
 {
     RECT rcc;
     VECT *vc = wnd->VectorList;
-    int i, coll = -1;
+    short i, coll = -1;
     for (i = 0; i < wnd->VectorCount; i++)    {
         if ((vc+i)->vt == VECTOR)    {
             rcc = (vc+i)->rc;
@@ -99,10 +99,10 @@ static int FindVector(WINDOW wnd, RECT rc, int x, int y)
 
 static void PaintVector(WINDOW wnd, RECT rc)
 {
-	int i, xi, yi, len;
-    unsigned int ch, nc;
-    unsigned int newch;
-    static int cw, fml, vertvect, coll;
+	short i, xi, yi, len;
+    unsigned short ch, nc;
+    unsigned short newch;
+    static short cw, fml, vertvect, coll;
 
     if (rc.rt == rc.lf)    {
         /* ------ vertical vector ------- */
@@ -147,11 +147,11 @@ static void PaintVector(WINDOW wnd, RECT rc)
 
 static void PaintBar(WINDOW wnd, RECT rc, enum VectTypes vt)
 {
-    int i, vertbar, len;
-    unsigned int tys[] = {219, 178, 177, 176};
-/*    unsigned int tys[] = {'Û', '²', '±', '°'};
+    short i, vertbar, len;
+    unsigned short tys[] = {219, 178, 177, 176};
+/*    unsigned short tys[] = {'Û', '²', '±', '°'};
 */
-    unsigned int nc = tys[vt-1];
+    unsigned short nc = tys[vt-1];
 
     if (rc.rt == rc.lf)    {
         /* ------ vertical bar ------- */
@@ -165,7 +165,7 @@ static void PaintBar(WINDOW wnd, RECT rc, enum VectTypes vt)
     }
 
     for (i = 0; i < len; i++)    {
-        int xi = 0, yi = 0;
+        short xi = 0, yi = 0;
         if (vertbar)
             yi = i;
         else
@@ -176,7 +176,7 @@ static void PaintBar(WINDOW wnd, RECT rc, enum VectTypes vt)
 
 static void PaintMsg(WINDOW wnd)
 {
-    int i;
+    short i;
     VECT *vc = wnd->VectorList;
     for (i = 0; i < wnd->VectorCount; i++)    {
         if (vc->vt == VECTOR)
@@ -218,7 +218,7 @@ static void DrawBoxMsg(WINDOW wnd, PARAM p1)
     }
 }
 
-int PictureProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short PictureProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case PAINT:
@@ -244,7 +244,7 @@ int PictureProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(PICTUREBOX, wnd, msg, p1, p2);
 }
 
-static RECT PictureRect(int x, int y, int len, int hv)
+static RECT PictureRect(short x, short y, short len, short hv)
 {
     RECT rc;
     rc.lf = rc.rt = x;
@@ -258,13 +258,13 @@ static RECT PictureRect(int x, int y, int len, int hv)
     return rc;
 }
 
-void DrawVector(WINDOW wnd, int x, int y, int len, int hv)
+void DrawVector(WINDOW wnd, short x, short y, short len, short hv)
 {
     RECT rc = PictureRect(x,y,len,hv);
     SendMessage(wnd, DRAWVECTOR, (PARAM) &rc, 0);
 }
 
-void DrawBox(WINDOW wnd, int x, int y, int ht, int wd)
+void DrawBox(WINDOW wnd, short x, short y, short ht, short wd)
 {
     RECT rc;
     rc.lf = x;
@@ -275,7 +275,7 @@ void DrawBox(WINDOW wnd, int x, int y, int ht, int wd)
 }
 
 void DrawBar(WINDOW wnd,enum VectTypes vt,
-                        int x,int y,int len,int hv)
+                        short x,short y,short len,short hv)
 {
     RECT rc = PictureRect(x,y,len,hv);
     SendMessage(wnd, DRAWBAR, (PARAM) &rc, (PARAM) vt);

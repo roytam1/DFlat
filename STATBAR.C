@@ -2,7 +2,7 @@
 
 #include "dflat.h"
 
-int StatusBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short StatusBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
 	char *statusbar;
 	switch (msg)	{
@@ -11,7 +11,7 @@ int StatusBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 			SendMessage(wnd, CAPTURE_CLOCK, 0, 0);
 			break;
 		case KEYBOARD:
-			if ((int)p1 == CTRL_F4)
+			if ((short)p1 == CTRL_F4)
 				return TRUE;
 			break;
 		case PAINT:	
@@ -22,9 +22,9 @@ int StatusBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 			*(statusbar+WindowWidth(wnd)) = '\0';
 			strncpy(statusbar+1, "F1=Help", 7);
 			if (wnd->text)	{
-				int len = min(strlen(wnd->text), WindowWidth(wnd)-17);
+				short len = min(strlen(wnd->text), WindowWidth(wnd)-17);
 				if (len > 0)	{
-					int off=(WindowWidth(wnd)-len)/2;
+					short off=(WindowWidth(wnd)-len)/2;
 					strncpy(statusbar+off, wnd->text, len);
 				}
 			}

@@ -18,7 +18,7 @@ typedef struct config {
     char mono;         /* 0=color, 1=mono, 2=reverse mono    */
 	BOOL snowy;        /* TRUE = snowy CGA display           */
     BOOL InsertMode;   /* Editor insert mode                 */
-    int Tabs;          /* Editor tab stops                   */
+    short Tabs;          /* Editor tab stops                   */
     BOOL WordWrap;     /* True to word wrap editor           */
 #ifdef INCLUDE_WINDOWOPTIONS
     BOOL Border;       /* True for application window border */
@@ -26,14 +26,14 @@ typedef struct config {
 	BOOL StatusBar;    /* True for appl'n window status bar  */
     BOOL Texture;      /* True for textured appl window      */
 #endif
-    int ScreenLines;   /* Number of screen lines (25/43/50)  */
+    short ScreenLines;   /* Number of screen lines (25/43/50)  */
 	char PrinterPort[5];
-	int LinesPage;     /* Lines per printer page             */
-	int CharsLine;	   /* Characters per printer line        */
-	int LeftMargin;	   /* Printer margins                    */
-	int RightMargin;
-	int TopMargin;
-	int BottomMargin;
+	short LinesPage;     /* Lines per printer page             */
+	short CharsLine;	   /* Characters per printer line        */
+	short LeftMargin;	   /* Printer margins                    */
+	short RightMargin;
+	short TopMargin;
+	short BottomMargin;
     unsigned char clr[CLASSCOUNT] [4] [2]; /* Colors         */
 } CONFIG;
 

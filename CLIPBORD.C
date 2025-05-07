@@ -2,7 +2,7 @@
 #include "dflat.h"
 
 char *Clipboard;
-unsigned ClipboardLength;
+unsigned short ClipboardLength;
 
 void CopyTextToClipboard(char *text)
 {
@@ -16,7 +16,7 @@ void CopyToClipboard(WINDOW wnd)
     if (TextBlockMarked(wnd))    {
         char *bbl=TextLine(wnd,wnd->BlkBegLine)+wnd->BlkBegCol;
         char *bel=TextLine(wnd,wnd->BlkEndLine)+wnd->BlkEndCol;
-        ClipboardLength = (int) (bel - bbl);
+        ClipboardLength = (short) (bel - bbl);
         Clipboard = DFrealloc(Clipboard, ClipboardLength);
         memmove(Clipboard, bbl, ClipboardLength);
     }
@@ -31,10 +31,10 @@ void ClearClipboard(void)
 }
 
 
-BOOL PasteText(WINDOW wnd, char *SaveTo, unsigned len)
+BOOL PasteText(WINDOW wnd, char *SaveTo, unsigned short len)
 {
     if (SaveTo != NULL && len > 0)    {
-        unsigned plen = strlen(wnd->text) + len;
+        unsigned short plen = strlen(wnd->text) + len;
 
 		if (plen <= wnd->MaxTextLength)	{
         	if (plen+1 > wnd->textlen)    {

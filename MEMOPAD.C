@@ -7,20 +7,20 @@ extern DBOX PrintSetup;
 char DFlatApplication[] = "MemoPad";
 
 static char Untitled[] = "Untitled";
-static int wndpos;
+static short wndpos;
 
-static int MemoPadProc(WINDOW, MESSAGE, PARAM, PARAM);
+static short MemoPadProc(WINDOW, MESSAGE, PARAM, PARAM);
 static void NewFile(WINDOW);
 static void SelectFile(WINDOW);
 static void PadWindow(WINDOW, char *);
 static void OpenPadWindow(WINDOW, char *);
 static void LoadFile(WINDOW);
 static void PrintPad(WINDOW);
-static void SaveFile(WINDOW, int);
+static void SaveFile(WINDOW, short);
 static void DeleteFile(WINDOW);
-static int EditorProc(WINDOW, MESSAGE, PARAM, PARAM);
+static short EditorProc(WINDOW, MESSAGE, PARAM, PARAM);
 static char *NameComponent(char *);
-static int PrintSetupProc(WINDOW, MESSAGE, PARAM, PARAM);
+static short PrintSetupProc(WINDOW, MESSAGE, PARAM, PARAM);
 static void FixTabMenu(void);
 #ifndef TURBOC
 void Calendar(WINDOW);
@@ -31,7 +31,7 @@ char **Argv;
 #define CHARSLINE 80
 #define LINESPAGE 66
 
-void main(int argc, char *argv[])
+void main(short argc, char *argv[])
 {
     WINDOW wnd;
     if (!init_messages())
@@ -65,7 +65,7 @@ void main(int argc, char *argv[])
 /* ------ open text files and put them into editboxes ----- */
 static void PadWindow(WINDOW wnd, char *FileName)
 {
-    int ax, criterr = 1;
+    short ax, criterr = 1;
     struct ffblk ff;
     char path[64];
     char *cp;
@@ -85,9 +85,9 @@ static void PadWindow(WINDOW wnd, char *FileName)
 }
 /* ------- window processing module for the
                     memopad application window ----- */
-static int MemoPadProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
+static short MemoPadProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 {
-	int rtn;
+	short rtn;
     switch (msg)    {
 		case CREATE_WINDOW:
 		    rtn = DefaultWndProc(wnd, msg, p1, p2);
@@ -98,7 +98,7 @@ static int MemoPadProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 			FixTabMenu();
 			return rtn;
         case COMMAND:
-            switch ((int)p1)    {
+            switch ((short)p1)    {
                 case ID_NEW:
                     NewFile(wnd);
                     return TRUE;
@@ -254,7 +254,7 @@ static void OpenPadWindow(WINDOW wnd, char *FileName)
 static void LoadFile(WINDOW wnd)
 {
     char *Buf = NULL;
-	int recptr = 0;
+	short recptr = 0;
     FILE *fp;
 
     if ((fp = fopen(wnd->extension, "rt")) != NULL)    {
@@ -273,13 +273,13 @@ static void LoadFile(WINDOW wnd)
     }
 }
 
-static int LineCtr;
-static int CharCtr;
+static short LineCtr;
+static short CharCtr;
 
 /* ------- print a character -------- */
-static void PrintChar(FILE *prn, int c)
+static void PrintChar(FILE *prn, short c)
 {
-	int i;
+	short i;
     if (c == '\n' || CharCtr == cfg.RightMargin)	{
 		fputs("\r\n", prn);
 		LineCtr++;
@@ -312,15 +312,15 @@ static void PrintPad(WINDOW wnd)
 			long percent;
 			BOOL KeepPrinting = TRUE;
 		    unsigned char *text = GetText(wnd);
-			unsigned oldpct = 100, cct = 0, len = strlen(text);
+			unsigned short oldpct = 100, cct = 0, len = strlen(text);
 			WINDOW swnd = SliderBox(20, GetTitle(wnd), "Printing");
     		/* ------- print the notepad text --------- */
 			LineCtr = CharCtr = 0;
 			while (KeepPrinting && *text)	{
 				PrintChar(prn, *text++);
 				percent = ((long) ++cct * 100) / len;
-				if ((int) percent != oldpct)	{
-					oldpct = (int) percent;
+				if ((short) percent != oldpct)	{
+					oldpct = (short) percent;
 					KeepPrinting = SendMessage(swnd, PAINT, 0, oldpct);
 				}
     		}
@@ -341,7 +341,7 @@ static void PrintPad(WINDOW wnd)
 }
 
 /* ---------- save a file to disk ------------ */
-static void SaveFile(WINDOW wnd, int Saveas)
+static void SaveFile(WINDOW wnd, short Saveas)
 {
     FILE *fp;
     if (wnd->extension == NULL || Saveas)    {
@@ -393,17 +393,17 @@ static void ShowPosition(WINDOW wnd)
     SendMessage(GetParent(wnd), ADDSTATUS, (PARAM) status, 0);
 }
 /* ----- window processing module for the editboxes ----- */
-static int EditorProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
+static short EditorProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 {
-    int rtn;
+    short rtn;
     switch (msg)    {
         case SETFOCUS:
-			if ((int)p1)	{
+			if ((short)p1)	{
 				wnd->InsertMode = GetCommandToggle(&MainMenu, ID_INSERT);
 				wnd->WordWrapMode = GetCommandToggle(&MainMenu, ID_WRAP);
 			}
             rtn = DefaultWndProc(wnd, msg, p1, p2);
-            if ((int)p1 == FALSE)
+            if ((short)p1 == FALSE)
                 SendMessage(GetParent(wnd), ADDSTATUS, 0, 0);
             else 
                 ShowPosition(wnd);
@@ -413,7 +413,7 @@ static int EditorProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
             ShowPosition(wnd);
             return rtn;
         case COMMAND:
-			switch ((int) p1)	{
+			switch ((short) p1)	{
 				case ID_SEARCH:
 					SearchText(wnd);
 					return TRUE;
@@ -496,9 +496,9 @@ static char *ports[] = {
  	 NULL
 };
 
-static int PrintSetupProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+static short PrintSetupProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-	int rtn, i = 0, mar;
+	short rtn, i = 0, mar;
 	char marg[10];
 	WINDOW cwnd;
     switch (msg)    {
@@ -531,7 +531,7 @@ static int PrintSetupProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				LINESPAGE-cfg.BottomMargin, 0);
 			return rtn;
 		case COMMAND:
-			if ((int) p1 == ID_OK && (int) p2 == 0)	{
+			if ((short) p1 == ID_OK && (short) p2 == 0)	{
 				GetItemText(wnd, ID_PRINTERPORT, cfg.PrinterPort, 4);
 				cwnd = ControlWindow(&PrintSetup, ID_LEFTMARGIN);
 				cfg.LeftMargin = CHARSLINE -

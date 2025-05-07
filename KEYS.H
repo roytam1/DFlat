@@ -110,7 +110,7 @@
 #define INSERTKEY  0x80
 
 struct keys {
-    int keycode;
+    short keycode;
     char *keylabel;
 };
 extern struct keys keys[];

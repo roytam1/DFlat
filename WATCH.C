@@ -2,9 +2,9 @@
 
 #include "dflat.h"
 
-int WatchIconProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short WatchIconProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn;
+    short rtn;
     switch (msg)    {
         case CREATE_WINDOW:
             rtn = DefaultWndProc(wnd, msg, p1, p2);
@@ -38,7 +38,7 @@ int WatchIconProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 
 WINDOW WatchIcon(void)
 {
-    int mx, my;
+    short mx, my;
     WINDOW wnd;
     SendMessage(NULL, CURRENT_MOUSE_CURSOR,
                         (PARAM) &mx, (PARAM) &my);

@@ -11,9 +11,9 @@
        one for each selection on a popdown menu --------- */
 struct PopDown {
     unsigned char *SelectionTitle; /* title of the selection */
-    int ActionId;          /* the command executed        */
-    int Accelerator;       /* the accelerator key         */
-    int Attrib;  /* INACTIVE | CHECKED | TOGGLE | CASCADED*/
+    short ActionId;          /* the command executed        */
+    short Accelerator;       /* the accelerator key         */
+    short Attrib;  /* INACTIVE | CHECKED | TOGGLE | CASCADED*/
     char *help;            /* Help mnemonic               */
 };
 
@@ -23,14 +23,14 @@ typedef struct Menu {
     char *Title;           /* title on the menu bar       */
     void (*PrepMenu)(void *, struct Menu *); /* function  */
 	char *StatusText;      /* text for the status bar     */
-	int CascadeId;   /* command id of cascading selection */
-    int Selection;         /* most recent selection       */
+	short CascadeId;   /* command id of cascading selection */
+    short Selection;         /* most recent selection       */
     struct PopDown Selections[MAXSELECTIONS+1];
 } MENU;
 
 /* ----- one for each menu bar ----- */
 typedef struct MenuBar {
-	int ActiveSelection;
+	short ActiveSelection;
 	MENU PullDown[MAXPULLDOWNS+1];
 } MBAR;
 
@@ -56,8 +56,8 @@ extern MBAR MainMenu;
 extern MBAR SystemMenu;
 extern MBAR *ActiveMenuBar;
 
-int MenuHeight(struct PopDown *);
-int MenuWidth(struct PopDown *);
+short MenuHeight(struct PopDown *);
+short MenuWidth(struct PopDown *);
 
 #endif
 

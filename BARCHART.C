@@ -10,7 +10,7 @@ static WINDOW Bwnd;
 /* ------- project schedule array ------- */
 static struct ProjChart {
     char *prj;
-    int start, stop;
+    short start, stop;
 } projs[] = {
     {"Center St", 0,3},
     {"City Hall", 0,5},
@@ -23,12 +23,12 @@ static struct ProjChart {
 static char *Title =  "              PROJECT SCHEDULE";
 static char *Months = "           Jan Feb Mar Apr May Jun";
 
-static int BarChartProc(WINDOW wnd, MESSAGE msg,
+static short BarChartProc(WINDOW wnd, MESSAGE msg,
                                     PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case COMMAND:
-            if ((int)p1 == ID_HELP)    {
+            if ((short)p1 == ID_HELP)    {
                 DisplayHelp(wnd, "BarChart");
                 return TRUE;
             }
@@ -44,8 +44,8 @@ static int BarChartProc(WINDOW wnd, MESSAGE msg,
 
 void BarChart(WINDOW pwnd)
 {
-    int pct = sizeof projs / sizeof(struct ProjChart);
-    int i;
+    short pct = sizeof projs / sizeof(struct ProjChart);
+    short i;
 
     if (Bwnd == NULL)    {
         Bwnd = CreateWindow(PICTUREBOX,

@@ -3,7 +3,7 @@
 #define RECT_H
 
 typedef struct    {
-    int lf,tp,rt,bt;
+    short lf,tp,rt,bt;
 } RECT;
 #define within(p,v1,v2)   ((p)>=(v1)&&(p)<=(v2))
 #define RectTop(r)        (r.tp)

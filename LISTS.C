@@ -110,7 +110,7 @@ void AppendWindow(WINDOW wnd)
 void SkipApplicationControls(void)
 {
 	BOOL EmptyAppl = FALSE;
-	int ct = 0;
+	short ct = 0;
 	while (!EmptyAppl && inFocus != NULL)	{
 		CLASS cl = GetClass(inFocus);
 		if (cl == MENUBAR || cl == STATUSBAR)	{

@@ -2,7 +2,7 @@
 
 #include "dflat.h"
 
-static int ScreenHeight;
+static short ScreenHeight;
 static BOOL DisplayModified = FALSE;
 WINDOW ApplicationWindow;
 
@@ -19,7 +19,7 @@ static void ShellDOS(WINDOW);
 static void CreateMenu(WINDOW);
 static void CreateStatusBar(WINDOW);
 static void SelectColors(WINDOW);
-static void SetScreenHeight(int);
+static void SetScreenHeight(short);
 static void SelectLines(WINDOW);
 
 #ifdef INCLUDE_WINDOWOPTIONS
@@ -31,10 +31,10 @@ static void SelectStatusBar(WINDOW);
 
 static WINDOW oldFocus;
 #ifdef INCLUDE_MULTI_WINDOWS
-static void CloseAll(WINDOW, int);
+static void CloseAll(WINDOW, short);
 static void MoreWindows(WINDOW);
-static void ChooseWindow(WINDOW, int);
-static int WindowSel;
+static void ChooseWindow(WINDOW, short);
+static short WindowSel;
 static char *Menus[9] = {
     "~1.                      ",
     "~2.                      ",
@@ -49,13 +49,13 @@ static char *Menus[9] = {
 #endif
 
 /* --------------- CREATE_WINDOW Message -------------- */
-static int CreateWindowMsg(WINDOW wnd)
+static short CreateWindowMsg(WINDOW wnd)
 {
-    int rtn;
+    short rtn;
 	ApplicationWindow = wnd;
     ScreenHeight = SCREENHEIGHT;
     if (!DisplayModified)    {
-       	int i;
+       	short i;
        	CTLWINDOW *ct, *ct1;
        	ct = FindCommand(&Display, ID_SNOWY, CHECKBOX);
     	if (!isVGA())    {
@@ -170,11 +170,11 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* ----------- KEYBOARD Message ------------ */
-static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static short KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    if (WindowMoving || WindowSizing || (int) p1 == F1)
+    if (WindowMoving || WindowSizing || (short) p1 == F1)
         return BaseWndProc(APPLICATION, wnd, KEYBOARD, p1, p2);
-    switch ((int) p1)    {
+    switch ((short) p1)    {
         case ALT_F4:
             PostMessage(wnd, CLOSE_WINDOW, 0, 0);
             return TRUE;
@@ -197,7 +197,7 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 static void ShiftChangedMsg(WINDOW wnd, PARAM p1)
 {
 	extern BOOL AltDown;
-    if ((int)p1 & ALTKEY)
+    if ((short)p1 & ALTKEY)
         AltDown = TRUE;
     else if (AltDown)    {
         AltDown = FALSE;
@@ -210,7 +210,7 @@ static void ShiftChangedMsg(WINDOW wnd, PARAM p1)
 /* -------- COMMAND Message ------- */
 static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    switch ((int)p1)    {
+    switch ((short)p1)    {
         case ID_HELP:
             DisplayHelp(wnd, DFlatApplication);
             break;
@@ -271,7 +271,7 @@ static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
             break;
 #ifdef INCLUDE_MULTI_WINDOWS
         case ID_WINDOW:
-            ChooseWindow(wnd, (int)p2-2);
+            ChooseWindow(wnd, (short)p2-2);
             break;
         case ID_CLOSEALL:
             CloseAll(wnd, FALSE);
@@ -301,9 +301,9 @@ static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* --------- CLOSE_WINDOW Message -------- */
-static int CloseWindowMsg(WINDOW wnd)
+static short CloseWindowMsg(WINDOW wnd)
 {
-    int rtn;
+    short rtn;
 #ifdef INCLUDE_MULTI_WINDOWS
     CloseAll(wnd, TRUE);
 	WindowSel = 0;
@@ -319,7 +319,7 @@ static int CloseWindowMsg(WINDOW wnd)
 }
 
 /* --- APPLICATION Window Class window processing module --- */
-int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -332,7 +332,7 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             AddStatusMsg(wnd, p1);
             return TRUE;
         case SETFOCUS:
-            if ((int)p1 == (inFocus != wnd))    {
+            if ((short)p1 == (inFocus != wnd))    {
                 SetFocusMsg(wnd, (BOOL) p1);
                 return TRUE;
             }
@@ -352,9 +352,9 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case PAINT:
             if (isVisible(wnd))    {
 #ifdef INCLUDE_WINDOWOPTIONS
-                int cl = cfg.Texture ? APPLCHAR : ' ';
+                short cl = cfg.Texture ? APPLCHAR : ' ';
 #else
-                int cl = APPLCHAR;
+                short cl = APPLCHAR;
 #endif
                 ClearWindow(wnd, (RECT *)p1, cl);
             }
@@ -464,7 +464,7 @@ void PrepWindowMenu(void *w, struct Menu *mnu)
     struct PopDown *p0 = mnu->Selections;
     struct PopDown *pd = mnu->Selections + 2;
     struct PopDown *ca = mnu->Selections + 13;
-    int MenuNo = 0;
+    short MenuNo = 0;
     WINDOW cwnd;
     mnu->Selection = 0;
     oldFocus = NULL;
@@ -507,13 +507,13 @@ void PrepWindowMenu(void *w, struct Menu *mnu)
 }
 
 /* window processing module for the More Windows dialog box */
-static int WindowPrep(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
+static short WindowPrep(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 {
     switch (msg)    {
         case INITIATE_DIALOG:    {
             WINDOW wnd1;
             WINDOW cwnd = ControlWindow(&Windows,ID_WINDOWLIST);
-            int sel = 0;
+            short sel = 0;
             if (cwnd == NULL)
                 return FALSE;
 			wnd1 = FirstWindow(ApplicationWindow);
@@ -534,16 +534,16 @@ static int WindowPrep(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
             break;
         }
         case COMMAND:
-            switch ((int) p1)    {
+            switch ((short) p1)    {
                 case ID_OK:
-                    if ((int)p2 == 0)
+                    if ((short)p2 == 0)
                         WindowSel = SendMessage(
                                     ControlWindow(&Windows,
                                     ID_WINDOWLIST),
                                     LB_CURRENTSELECTION, 0, 0);
                     break;
                 case ID_WINDOWLIST:
-                    if ((int) p2 == LB_CHOOSE)
+                    if ((short) p2 == LB_CHOOSE)
                         SendMessage(wnd, COMMAND, ID_OK, 0);
                     break;
                 default:
@@ -565,7 +565,7 @@ static void MoreWindows(WINDOW wnd)
 
 /* ----- user chose a window from the Window menu
         or the More Window dialog box ----- */
-static void ChooseWindow(WINDOW wnd, int WindowNo)
+static void ChooseWindow(WINDOW wnd, short WindowNo)
 {
     WINDOW cwnd = FirstWindow(wnd);
 	while (cwnd != NULL)	{
@@ -583,7 +583,7 @@ static void ChooseWindow(WINDOW wnd, int WindowNo)
 }
 
 /* ----- Close all document windows ----- */
-static void CloseAll(WINDOW wnd, int closing)
+static void CloseAll(WINDOW wnd, short closing)
 {
     WINDOW wnd1, wnd2;
     SendMessage(wnd, SETFOCUS, TRUE, 0);
@@ -668,7 +668,7 @@ static void SelectLines(WINDOW wnd)
 }
 
 /* ---- set the screen height in the video hardware ---- */
-static void SetScreenHeight(int height)
+static void SetScreenHeight(short height)
 {
     if (isEGA() || isVGA())    {
         SendMessage(NULL, SAVE_CURSOR, 0, 0);

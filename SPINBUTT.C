@@ -2,9 +2,9 @@
 
 #include "dflat.h"
 
-int SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn;
+    short rtn;
     CTLWINDOW *ct = GetControl(wnd);
     if (ct != NULL)    {
         switch (msg)    {
@@ -14,7 +14,7 @@ int SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 break;
             case SETFOCUS:
                 rtn = BaseWndProc(SPINBUTTON, wnd, msg, p1, p2);
-                if (!(int)p1)
+                if (!(short)p1)
                     SendMessage(NULL, HIDE_CURSOR, 0, 0);
                 SetFocusCursor(wnd);
                 return rtn;
@@ -35,7 +35,7 @@ int SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 return TRUE;
             case LB_SETSELECTION:
                 rtn = BaseWndProc(SPINBUTTON, wnd, msg, p1, p2);
-                wnd->wtop = (int) p1;
+                wnd->wtop = (short) p1;
                 SendMessage(wnd, PAINT, 0, 0);
                 return rtn;
             default:

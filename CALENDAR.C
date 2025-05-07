@@ -6,9 +6,9 @@
 #define CALHEIGHT 17
 #define CALWIDTH 33
 
-static int DyMo[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+static short DyMo[] = {31,28,31,30,31,30,31,31,30,31,30,31};
 static struct tm ttm;
-static int dys[42];
+static short dys[42];
 static WINDOW Cwnd;
 
 static void FixDate(void)
@@ -21,7 +21,7 @@ static void FixDate(void)
 /* ---- build calendar dates array ---- */
 static void BuildDateArray(void)
 {
-    int offset, dy = 0;
+    short offset, dy = 0;
     memset(dys, 0, sizeof dys);
     FixDate();
     /* ----- compute the weekday for the 1st ----- */
@@ -37,7 +37,7 @@ static void BuildDateArray(void)
 
 static void CreateWindowMsg(WINDOW wnd)
 {
-    int x, y;
+    short x, y;
     DrawBox(wnd, 1, 2, CALHEIGHT-4, CALWIDTH-4);
     for (x = 5; x < CALWIDTH-4; x += 4)
         DrawVector(wnd, x, 2, CALHEIGHT-4, FALSE);
@@ -47,9 +47,9 @@ static void CreateWindowMsg(WINDOW wnd)
 
 static void DisplayDates(WINDOW wnd)
 {
-    int week, day;
+    short week, day;
     char dyln[10];
-    int offset;
+    short offset;
     char banner[CALWIDTH-1];
     char banner1[30];
 
@@ -64,7 +64,7 @@ static void DisplayDates(WINDOW wnd)
     BuildDateArray();
     for (week = 0; week < 6; week++)    {
         for (day = 0; day < 7; day++)    {
-            int dy = dys[week*7+day];
+            short dy = dys[week*7+day];
             if (dy == 0)
                 strcpy(dyln, "   ");
             else    {
@@ -83,9 +83,9 @@ static void DisplayDates(WINDOW wnd)
     }
 }
 
-static int KeyboardMsg(WINDOW wnd, PARAM p1)
+static short KeyboardMsg(WINDOW wnd, PARAM p1)
 {
-    switch ((int)p1)    {
+    switch ((short)p1)    {
         case PGUP:
             if (ttm.tm_mon == 0)    {
                 ttm.tm_mon = 12;
@@ -112,7 +112,7 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1)
     return FALSE;
 }
 
-static int CalendarProc(WINDOW wnd,MESSAGE msg,
+static short CalendarProc(WINDOW wnd,MESSAGE msg,
                                 PARAM p1,PARAM p2)
 {
     switch (msg)    {
@@ -129,7 +129,7 @@ static int CalendarProc(WINDOW wnd,MESSAGE msg,
             DisplayDates(wnd);
             return TRUE;
         case COMMAND:
-            if ((int)p1 == ID_HELP)    {
+            if ((short)p1 == ID_HELP)    {
                 DisplayHelp(wnd, "Calendar");
                 return TRUE;
             }

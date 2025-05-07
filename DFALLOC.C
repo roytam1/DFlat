@@ -13,7 +13,7 @@ static void AllocationError(void)
 		"� Out of Memory! �",
 		"읕컴컴컴컴컴컴컴켸"
 	};
-	int x, y;
+	short x, y;
 	char savbuf[108];
 	RECT rc = {30,11,47,13};
 
@@ -24,7 +24,7 @@ static void AllocationError(void)
         getvideo(rc, savbuf);
 		for (x = 0; x < 18; x++)	{
 			for (y = 0; y < 3; y++)		{
-				int c = (255 & (*(*(ErrMsg+y)+x))) | 0x7000;
+				short c = (255 & (*(*(ErrMsg+y)+x))) | 0x7000;
 				PutVideoChar(x+rc.lf, y+rc.tp, c);
 			}
 		}

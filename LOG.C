@@ -24,7 +24,7 @@ void LogMessages (WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             message[msg]+1, p1, p2);
 }
 
-static int LogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+static short LogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     WINDOW cwnd = ControlWindow(&Log, ID_LOGLIST);
     char **mn = message;
@@ -38,9 +38,9 @@ static int LogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             SendMessage(cwnd, SHOW_WINDOW, 0, 0);
             break;
         case COMMAND:
-            if ((int) p1 == ID_OK)    {
-                int item;
-                int tl = GetTextLines(cwnd);
+            if ((short) p1 == ID_OK)    {
+                short item;
+                short tl = GetTextLines(cwnd);
                 for (item = 0; item < tl; item++)
                     if (ItemSelected(cwnd, item))
                         mn[item][0] = LISTSELECTOR;

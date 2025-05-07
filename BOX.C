@@ -2,9 +2,9 @@
 
 #include "dflat.h"
 
-int BoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short BoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn;
+    short rtn;
 	WINDOW oldFocus;
     CTLWINDOW *ct = GetControl(wnd);
 	static BOOL SettingFocus = FALSE;

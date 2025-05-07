@@ -4,25 +4,25 @@
 
 WINDOW inFocus = NULL;
 
-int foreground, background;   /* current video colors */
+short foreground, background;   /* current video colors */
 
-static void TopLine(WINDOW, int, RECT);
+static void TopLine(WINDOW, short, RECT);
 
 /* --------- create a window ------------ */
 WINDOW CreateWindow(
     CLASS class,              /* class of this window       */
     char *ttl,                /* title or NULL              */
-    int left, int top,        /* upper left coordinates     */
-    int height, int width,    /* dimensions                 */
+    short left, short top,        /* upper left coordinates     */
+    short height, short width,    /* dimensions                 */
     void *extension,          /* pointer to additional data */
     WINDOW parent,            /* parent of this window      */
-    int (*wndproc)(struct window *,enum messages,PARAM,PARAM),
-    int attrib)               /* window attribute           */
+    short (*wndproc)(struct window *,enum messages,PARAM,PARAM),
+    short attrib)               /* window attribute           */
 {
     WINDOW wnd = DFcalloc(1, sizeof(struct window));
     get_videomode();
     if (wnd != NULL)    {
-        int base;
+        short base;
         /* ----- height, width = -1: fill the screen ------- */
         if (height == -1)
             height = SCREENHEIGHT;
@@ -95,11 +95,11 @@ void InsertTitle(WINDOW wnd, char *ttl)
 static unsigned char line[300];
 
 /* ------ write a line to video window client area ------ */
-void writeline(WINDOW wnd, char *str, int x, int y, BOOL pad)
+void writeline(WINDOW wnd, char *str, short x, short y, BOOL pad)
 {
     char *cp;
-    int len;
-    int dif;
+    short len;
+    short dif;
 	char wline[200];
 
 	memset(wline, 0, 200);
@@ -142,8 +142,8 @@ RECT AdjustRectangle(WINDOW wnd, RECT rc)
 void DisplayTitle(WINDOW wnd, RECT *rcc)
 {
 	if (GetTitle(wnd) != NULL)	{
-    	int tlen = min(strlen(GetTitle(wnd)), WindowWidth(wnd)-2);
-    	int tend = WindowWidth(wnd)-3-BorderAdj(wnd);
+    	short tlen = min(strlen(GetTitle(wnd)), WindowWidth(wnd)-2);
+    	short tend = WindowWidth(wnd)-3-BorderAdj(wnd);
     	RECT rc;
 
     	if (rcc == NULL)
@@ -211,12 +211,12 @@ void DisplayTitle(WINDOW wnd, RECT *rcc)
 }
 
 /* --- display right border shadow character of a window --- */
-static void near shadow_char(WINDOW wnd, int y)
+static void near shadow_char(WINDOW wnd, short y)
 {
-    int fg = foreground;
-    int bg = background;
-    int x = WindowWidth(wnd);
-    int c = videochar(GetLeft(wnd)+x, GetTop(wnd)+y);
+    short fg = foreground;
+    short bg = background;
+    short x = WindowWidth(wnd);
+    short c = videochar(GetLeft(wnd)+x, GetTop(wnd)+y);
 
     if (TestAttribute(wnd, SHADOW) == 0 || cfg.mono)
         return;
@@ -230,10 +230,10 @@ static void near shadow_char(WINDOW wnd, int y)
 /* --- display the bottom border shadow line for a window -- */
 static void near shadowline(WINDOW wnd, RECT rc)
 {
-    int i;
-    int y = GetBottom(wnd)+1;
-    int fg = foreground;
-    int bg = background;
+    short i;
+    short y = GetBottom(wnd)+1;
+    short fg = foreground;
+    short bg = background;
 
     if ((TestAttribute(wnd, SHADOW)) == 0 || cfg.mono)
         return;
@@ -270,7 +270,7 @@ static RECT ParamRect(WINDOW wnd, RECT *rcc)
 
 void PaintShadow(WINDOW wnd)
 {
-	int y;
+	short y;
 	RECT rc = ParamRect(wnd, NULL);
 	for (y = 1; y < WindowHeight(wnd); y++)
 		shadow_char(wnd, y);
@@ -280,8 +280,8 @@ void PaintShadow(WINDOW wnd)
 /* ------- display a window's border ----- */
 void RepaintBorder(WINDOW wnd, RECT *rcc)
 {
-    int y;
-    unsigned int lin, side, ne, nw, se, sw;
+    short y;
+    unsigned short lin, side, ne, nw, se, sw;
     RECT rc, clrc;
 
     if (!TestAttribute(wnd, HASBORDER))
@@ -326,7 +326,7 @@ void RepaintBorder(WINDOW wnd, RECT *rcc)
 
     /* ----------- window body ------------ */
     for (y = RectTop(rc); y <= RectBottom(rc); y++)    {
-        int ch;
+        short ch;
         if (y == 0 || y >= WindowHeight(wnd)-1)
             continue;
         if (RectLeft(rc) == 0)
@@ -389,7 +389,7 @@ void RepaintBorder(WINDOW wnd, RECT *rcc)
         shadowline(wnd, rc);
 }
 
-static void TopLine(WINDOW wnd, int lin, RECT rc)
+static void TopLine(WINDOW wnd, short lin, RECT rc)
 {
     if (TestAttribute(wnd, HASMENUBAR))
         return;
@@ -416,10 +416,10 @@ static void TopLine(WINDOW wnd, int lin, RECT rc)
 }
 
 /* ------ clear the data space of a window -------- */
-void ClearWindow(WINDOW wnd, RECT *rcc, int clrchar)
+void ClearWindow(WINDOW wnd, RECT *rcc, short clrchar)
 {
     if (isVisible(wnd))    {
-        int y;
+        short y;
         RECT rc;
 
         if (rcc == NULL)
@@ -449,9 +449,9 @@ void ClearWindow(WINDOW wnd, RECT *rcc, int clrchar)
 }
 
 /* ------ compute the logical line length of a window ------ */
-int LineLength(char *ln)
+short LineLength(char *ln)
 {
-    int len = strlen(ln);
+    short len = strlen(ln);
     char *cp = ln;
     while ((cp = strchr(cp, CHANGECOLOR)) != NULL)    {
         cp++;
@@ -467,8 +467,8 @@ int LineLength(char *ln)
 
 void InitWindowColors(WINDOW wnd)
 {
-	int fbg,col;
-	int cls = GetClass(wnd);
+	short fbg,col;
+	short cls = GetClass(wnd);
 	/* window classes without assigned colors inherit parent's colors */
 	if (cfg.clr[cls][0][0] == 0xff && GetParent(wnd) != NULL)
 		cls = GetClass(GetParent(wnd));
@@ -478,15 +478,15 @@ void InitWindowColors(WINDOW wnd)
 			wnd->WindowColors[col][fbg] = cfg.clr[cls][col][fbg];
 }
 
-void PutWindowChar(WINDOW wnd, int c, int x, int y)
+void PutWindowChar(WINDOW wnd, short c, short x, short y)
 {
 	if (x < ClientWidth(wnd) && y < ClientHeight(wnd))
 		wputch(wnd, c, x+BorderAdj(wnd), y+TopBorderAdj(wnd));
 }
 
-void PutWindowLine(WINDOW wnd, void *s, int x, int y)
+void PutWindowLine(WINDOW wnd, void *s, short x, short y)
 {
-	int saved = FALSE, sv;
+	short saved = FALSE, sv;
 	if (x < ClientWidth(wnd) && y < ClientHeight(wnd))	{
 		char *en = (char *)s+ClientWidth(wnd)-x;
 		if (strlen(s)+x > ClientWidth(wnd))	{

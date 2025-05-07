@@ -5,46 +5,46 @@
 BOOL ClipString;
 static BOOL snowy;
 
-static unsigned video_address;
-static int near vpeek(int far *vp);
-static void near vpoke(int far *vp, int c);
-void movefromscreen(void *bf, int offset, int len);
-void movetoscreen(void *bf, int offset, int len);
+static unsigned short video_address;
+static short near vpeek(short *vp);
+static void near vpoke(short *vp, short c);
+void movefromscreen(void *bf, short offset, short len);
+void movetoscreen(void *bf, short offset, short len);
 
 /* -- read a rectangle of video memory into a save buffer -- */
-void getvideo(RECT rc, void far *bf)
+void getvideo(RECT rc, void *bf)
 {
-    int ht = RectBottom(rc)-RectTop(rc)+1;
-    int bytes_row = (RectRight(rc)-RectLeft(rc)+1) * 2;
-    unsigned vadr = vad(RectLeft(rc), RectTop(rc));
+    short ht = RectBottom(rc)-RectTop(rc)+1;
+    short bytes_row = (RectRight(rc)-RectLeft(rc)+1) * 2;
+    unsigned short vadr = vad(RectLeft(rc), RectTop(rc));
     hide_mousecursor();
     while (ht--)    {
 		movefromscreen(bf, vadr, bytes_row);
         vadr += SCREENWIDTH*2;
-        bf = (char far *)bf + bytes_row;
+        bf = (char *)bf + bytes_row;
     }
     show_mousecursor();
 }
 
 /* -- write a rectangle of video memory from a save buffer -- */
-void storevideo(RECT rc, void far *bf)
+void storevideo(RECT rc, void *bf)
 {
-    int ht = RectBottom(rc)-RectTop(rc)+1;
-    int bytes_row = (RectRight(rc)-RectLeft(rc)+1) * 2;
-    unsigned vadr = vad(RectLeft(rc), RectTop(rc));
+    short ht = RectBottom(rc)-RectTop(rc)+1;
+    short bytes_row = (RectRight(rc)-RectLeft(rc)+1) * 2;
+    unsigned short vadr = vad(RectLeft(rc), RectTop(rc));
     hide_mousecursor();
     while (ht--)    {
 		movetoscreen(bf, vadr, bytes_row);
         vadr += SCREENWIDTH*2;
-        bf = (char far *)bf + bytes_row;
+        bf = (char *)bf + bytes_row;
     }
     show_mousecursor();
 }
 
 /* -------- read a character of video memory ------- */
-unsigned int GetVideoChar(int x, int y)
+unsigned short GetVideoChar(short x, short y)
 {
-    int c;
+    short c;
     hide_mousecursor();
 	if (snowy)
 	    c = vpeek(MK_FP(video_address, vad(x,y)));
@@ -55,7 +55,7 @@ unsigned int GetVideoChar(int x, int y)
 }
 
 /* -------- write a character of video memory ------- */
-void PutVideoChar(int x, int y, int c)
+void PutVideoChar(short x, short y, short c)
 {
     if (x < SCREENWIDTH && y < SCREENHEIGHT)    {
         hide_mousecursor();
@@ -67,13 +67,13 @@ void PutVideoChar(int x, int y, int c)
     }
 }
 
-BOOL CharInView(WINDOW wnd, int x, int y)
+BOOL CharInView(WINDOW wnd, short x, short y)
 {
 	WINDOW nwnd = NextWindow(wnd);
 	WINDOW pwnd;
 	RECT rc;
-    int x1 = GetLeft(wnd)+x;
-    int y1 = GetTop(wnd)+y;
+    short x1 = GetLeft(wnd)+x;
+    short y1 = GetTop(wnd)+y;
 
 	if (!TestAttribute(wnd, VISIBLE))
 		return FALSE;
@@ -111,12 +111,12 @@ BOOL CharInView(WINDOW wnd, int x, int y)
 }
 
 /* -------- write a character to a window ------- */
-void wputch(WINDOW wnd, int c, int x, int y)
+void wputch(WINDOW wnd, short c, short x, short y)
 {
 	if (CharInView(wnd, x, y))	{
-		int ch = (c & 255) | (clr(foreground, background) << 8);
-		int xc = GetLeft(wnd)+x;
-		int yc = GetTop(wnd)+y;
+		short ch = (c & 255) | (clr(foreground, background) << 8);
+		short xc = GetLeft(wnd)+x;
+		short yc = GetTop(wnd)+y;
         hide_mousecursor();
 		if (snowy)
         	vpoke(MK_FP(video_address, vad(xc, yc)), ch);
@@ -127,19 +127,19 @@ void wputch(WINDOW wnd, int c, int x, int y)
 }
 
 /* ------- write a string to a window ---------- */
-void wputs(WINDOW wnd, void *s, int x, int y)
+void wputs(WINDOW wnd, void *s, short x, short y)
 {
-	int x1 = GetLeft(wnd)+x;
-	int x2 = x1;
-	int y1 = GetTop(wnd)+y;
+	short x1 = GetLeft(wnd)+x;
+	short x2 = x1;
+	short y1 = GetTop(wnd)+y;
     if (x1 < SCREENWIDTH && y1 < SCREENHEIGHT && isVisible(wnd))	{
-		int ln[200];
-		int *cp1 = ln;
+		short ln[200];
+		short *cp1 = ln;
 	    unsigned char *str = s;
-	    int fg = foreground;
-    	int bg = background;
-	    int len;
-		int off = 0;
+	    short fg = foreground;
+    	short bg = background;
+	    short len;
+		short off = 0;
         while (*str)    {
             if (*str == CHANGECOLOR)    {
                 str++;
@@ -164,7 +164,7 @@ void wputs(WINDOW wnd, void *s, int x, int y)
         }
         foreground = fg;
         background = bg;
-   		len = (int)(cp1-ln);
+   		len = (short)(cp1-ln);
    		if (x1+len > SCREENWIDTH)
        		len = SCREENWIDTH-x1;
 
@@ -218,7 +218,7 @@ void get_videomode(void)
 }
 
 /* --------- scroll the window. d: 1 = up, 0 = dn ---------- */
-void scroll_window(WINDOW wnd, RECT rc, int d)
+void scroll_window(WINDOW wnd, RECT rc, short d)
 {
 	if (RectTop(rc) != RectBottom(rc))	{
 		union REGS regs;
@@ -230,15 +230,19 @@ void scroll_window(WINDOW wnd, RECT rc, int d)
 		regs.h.ah = 7 - d;
 		regs.h.al = 1;
     	hide_mousecursor();
+#ifdef __FLAT__
+    	int386(VIDEO, &regs, &regs);
+#else
     	int86(VIDEO, &regs, &regs);
+#endif
     	show_mousecursor();
 	}
 }
 
 
+#ifndef WATCOM
 static void near waitforretrace(void)
 {
-#ifndef WATCOM
 asm		mov		dx,3dah
 loop1:
 asm		mov		cx,6
@@ -255,33 +259,65 @@ asm		test	al,1
 asm		loopnz	loop3
 asm		sti
 asm		jz		loop1
-#endif
 }
+#else
+void waitforretrace(void);
+#pragma aux waitforretrace = \
+		"mov		dx,3dah",	\
+"loop1:",						\
+		"mov		cx,6",		\
+"loop2:",						\
+		"in		al,dx",		\
+		"test		al,8",		\
+		"jnz		loop2",		\
+		"test		al,1",		\
+		"jz		loop2",		\
+		"cli",					\
+"loop3:",						\
+		"in		al,dx",		\
+		"test		al,1",		\
+		"loopnz	loop3",		\
+		"sti",					\
+		"jz		loop1";
 
-void movetoscreen(void *bf, int offset, int len)
+#endif
+
+void movetoscreen(void *bf, short offset, short len)
 {
+#ifdef __FLAT__
+	if (snowy)
+		waitforretrace();
+	memcpy(MK_FP(video_address, offset), bf, len);
+#else
 	if (snowy)
 		waitforretrace();
 	movedata(FP_SEG(bf), FP_OFF(bf), video_address, offset, len);
+#endif
 }
 
-void movefromscreen(void *bf, int offset, int len)
+void movefromscreen(void *bf, short offset, short len)
 {
+#ifdef __FLAT__
+	if (snowy)
+		waitforretrace();
+	memcpy(bf, MK_FP(video_address, offset), len);
+#else
 	if (snowy)
 		waitforretrace();
 	movedata(video_address, offset,	FP_SEG(bf), FP_OFF(bf),	len);
+#endif
 }
 
 
-static int near vpeek(int far *vp)
+static short near vpeek(short *vp)
 {
-	int c;
+	short c;
 	waitforretrace();
 	c = *vp;
 	return c;
 }
 
-static void near vpoke(int far *vp, int c)
+static void near vpoke(short *vp, short c)
 {
 	waitforretrace();
 	*vp = c;

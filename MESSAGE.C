@@ -2,10 +2,10 @@
 
 #include "dflat.h"
 
-static int px = -1, py = -1;
-static int pmx = -1, pmy = -1;
-static int mx, my;
-static int handshaking = 0;
+static short px = -1, py = -1;
+static short pmx = -1, pmy = -1;
+static short mx, my;
+static short handshaking = 0;
 static BOOL CriticalError;
 BOOL AllocTesting = FALSE;
 jmp_buf AllocError;
@@ -14,8 +14,8 @@ BOOL AltDown = FALSE;
 /* ---------- event queue ---------- */
 static struct events    {
     MESSAGE event;
-    int mx;
-    int my;
+    short mx;
+    short my;
 } EventQueue[MAXMESSAGES];
 
 /* ---------- message queue --------- */
@@ -26,40 +26,40 @@ static struct msgs {
     PARAM p2;
 } MsgQueue[MAXMESSAGES];
 
-static int EventQueueOnCtr;
-static int EventQueueOffCtr;
-static int EventQueueCtr;
+static short EventQueueOnCtr;
+static short EventQueueOffCtr;
+static short EventQueueCtr;
 
-static int MsgQueueOnCtr;
-static int MsgQueueOffCtr;
-static int MsgQueueCtr;
+static short MsgQueueOnCtr;
+static short MsgQueueOffCtr;
+static short MsgQueueCtr;
 
-static int lagdelay = FIRSTDELAY;
+static short lagdelay = FIRSTDELAY;
 
-static void (interrupt far *oldtimer)(void);
-static void (interrupt far *oldkeyboard)(void);
+static void (interrupt *oldtimer)(void);
+static void (interrupt *oldkeyboard)(void);
 
-static int keyportvalue;	/* for watching for key release */
+static short keyportvalue;	/* for watching for key release */
 
 WINDOW CaptureMouse;
 WINDOW CaptureKeyboard;
 static BOOL NoChildCaptureMouse;
 static BOOL NoChildCaptureKeyboard;
 
-static int doubletimer = -1;
-static int delaytimer  = -1;
-static int clocktimer  = -1;
+static short doubletimer = -1;
+static short delaytimer  = -1;
+static short clocktimer  = -1;
 
 static WINDOW Cwnd;
 
-static void interrupt far newkeyboard(void)
+static void interrupt newkeyboard(void)
 {
 	keyportvalue = inp(KEYBOARDPORT);
 	oldkeyboard();
 }
 
 /* ------- timer interrupt service routine ------- */
-static void interrupt far newtimer(void)
+static void interrupt newtimer(void)
 {
     if (timer_running(doubletimer))
         countdown(doubletimer);
@@ -73,9 +73,9 @@ static void interrupt far newtimer(void)
 static char ermsg[] = "Error accessing drive x";
 
 /* -------- test for critical errors --------- */
-int TestCriticalError(void)
+short TestCriticalError(void)
 {
-    int rtn = 0;
+    short rtn = 0;
     if (CriticalError)    {
         rtn = 1;
         CriticalError = FALSE;
@@ -86,7 +86,7 @@ int TestCriticalError(void)
 }
 
 /* ------ critical error interrupt service routine ------ */
-static void interrupt far newcrit(IREGS ir)
+static void interrupt newcrit(IREGS ir)
 {
     if (!(ir.ax & 0x8000))     {
         ermsg[sizeof(ermsg) - 2] = (ir.ax & 0xff) + 'A';
@@ -147,7 +147,7 @@ BOOL init_messages(void)
 }
 
 /* ----- post an event and parameters to event queue ---- */
-static void PostEvent(MESSAGE event, int p1, int p2)
+static void PostEvent(MESSAGE event, short p1, short p2)
 {
     if (EventQueueCtr != MAXMESSAGES)    {
         EventQueue[EventQueueOnCtr].event = event;
@@ -162,12 +162,12 @@ static void PostEvent(MESSAGE event, int p1, int p2)
 /* ------ collect mouse, clock, and keyboard events ----- */
 static void near collect_events(void)
 {
-    static int ShiftKeys = 0;
-	int sk;
+    static short ShiftKeys = 0;
+	short sk;
     struct tm *now;
     static BOOL flipflop = FALSE;
     static char timestr[9];
-    int hr;
+    short hr;
 
     /* -------- test for a clock event (one/second) ------- */
     if (timed_out(clocktimer))    {
@@ -223,9 +223,9 @@ static void near collect_events(void)
 	}
     /* ----------- test for keystroke ------- */
     if (keyhit())    {
-        static int cvt[] = {SHIFT_INS,END,DN,PGDN,BS,'5',
+        static short cvt[] = {SHIFT_INS,END,DN,PGDN,BS,'5',
                         FWD,HOME,UP,PGUP};
-        int c = getkey();
+        short c = getkey();
 
 		AltDown = FALSE;
         /* -------- convert numeric pad keys ------- */
@@ -311,9 +311,9 @@ void PostMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 }
 
 /* --------- send a message to a window ----------- */
-int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn = TRUE, x, y;
+    short rtn = TRUE, x, y;
 
 #ifdef INCLUDE_LOGGING
 	LogMessages(wnd, msg, p1, p2);
@@ -367,10 +367,10 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             /* -------- keyboard messages ------- */
             case KEYBOARD_CURSOR:
                 if (wnd == NULL)
-                    cursor((int)p1, (int)p2);
+                    cursor((short)p1, (short)p2);
                 else if (wnd == inFocus)
-                    cursor(GetClientLeft(wnd)+(int)p1,
-                                GetClientTop(wnd)+(int)p2);
+                    cursor(GetClientLeft(wnd)+(short)p1,
+                                GetClientTop(wnd)+(short)p2);
                 break;
             case CAPTURE_KEYBOARD:
                 if (p2)
@@ -378,11 +378,11 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 else
                     wnd->PrevKeyboard = CaptureKeyboard;
                 CaptureKeyboard = wnd;
-                NoChildCaptureKeyboard = (int)p1;
+                NoChildCaptureKeyboard = (short)p1;
                 break;
             case RELEASE_KEYBOARD:
 				if (wnd != NULL)	{
-					if (CaptureKeyboard == wnd || (int)p1)
+					if (CaptureKeyboard == wnd || (short)p1)
 	                	CaptureKeyboard = wnd->PrevKeyboard;
 					else	{
 						WINDOW twnd = CaptureKeyboard;
@@ -404,8 +404,8 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 break;
             case CURRENT_KEYBOARD_CURSOR:
                 curr_cursor(&x, &y);
-                *(int*)p1 = x;
-                *(int*)p2 = y;
+                *(short*)p1 = x;
+                *(short*)p2 = y;
                 break;
             case SAVE_CURSOR:
                 savecursor();
@@ -454,10 +454,10 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 hide_mousecursor();
                 break;
             case MOUSE_CURSOR:
-                set_mouseposition((int)p1, (int)p2);
+                set_mouseposition((short)p1, (short)p2);
                 break;
             case CURRENT_MOUSE_CURSOR:
-                get_mouseposition((int*)p1,(int*)p2);
+                get_mouseposition((short*)p1,(short*)p2);
                 break;
             case WAITMOUSE:
                 waitformouse();
@@ -471,11 +471,11 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 else
                     wnd->PrevMouse = CaptureMouse;
                 CaptureMouse = wnd;
-                NoChildCaptureMouse = (int)p1;
+                NoChildCaptureMouse = (short)p1;
                 break;
             case RELEASE_MOUSE:
 				if (wnd != NULL)	{
-					if (CaptureMouse == wnd || (int)p1)
+					if (CaptureMouse == wnd || (short)p1)
 	                	CaptureMouse = wnd->PrevMouse;
 					else	{
 						WINDOW twnd = CaptureMouse;
@@ -523,7 +523,7 @@ static RECT VisibleRect(WINDOW wnd)
 }
 
 /* ----- find window that mouse coordinates are in --- */
-static WINDOW inWindow(WINDOW wnd, int x, int y)
+static WINDOW inWindow(WINDOW wnd, short x, short y)
 {
 	WINDOW Hit = NULL;
 	while (wnd != NULL)	{
@@ -542,7 +542,7 @@ static WINDOW inWindow(WINDOW wnd, int x, int y)
 	return Hit;
 }
 
-static WINDOW MouseWindow(int x, int y)
+static WINDOW MouseWindow(short x, short y)
 {
     /* ------ get the window in which a
                     mouse event occurred ------ */

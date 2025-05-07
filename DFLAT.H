@@ -66,14 +66,14 @@ enum Condition     {
 typedef struct window {
     CLASS class;           /* window class                  */
     char *title;           /* window title                  */
-    int (*wndproc)
+    short (*wndproc)
         (struct window *, enum messages, PARAM, PARAM);
 	/* ----------------- window colors -------------------- */
 	char WindowColors[4][2];
     /* ---------------- window dimensions ----------------- */
     RECT rc;               /* window coordinates
                                             (0/0 to 79/24)  */
-    int ht, wd;            /* window height and width       */
+    short ht, wd;            /* window height and width       */
     RECT RestoredRC;       /* restored condition rect       */
     /* -------------- linked list pointers ---------------- */
     struct window *parent; /* parent window                 */
@@ -83,49 +83,49 @@ typedef struct window {
     struct window *prevsibling; /* previous sibling         */
 
 	struct window *childfocus;	/* child that ha(s/d) focus */
-    int attrib;                 /* Window attributes        */
+    short attrib;                 /* Window attributes        */
     char *videosave;            /* video save buffer        */
     enum Condition condition;   /* Restored, Maximized,
                                    Minimized, Closing       */
     enum Condition oldcondition;/* previous condition       */
-    int restored_attrib;        /* attributes when restored */
+    short restored_attrib;        /* attributes when restored */
     void *extension;      /* menus, dialogs, documents, etc */
     struct window *PrevMouse;
     struct window *PrevKeyboard;
 	struct window *MenuBarWnd;/* menu bar                   */
 	struct window *StatusBar; /* status bar                 */
-	int isHelping;	    /* > 0 when help is being displayed */
+	short isHelping;	    /* > 0 when help is being displayed */
     /* ----------------- text box fields ------------------ */
-    int wlines;     /* number of lines of text              */
-    int wtop;       /* text line that is on the top display */
+    short wlines;     /* number of lines of text              */
+    short wtop;       /* text line that is on the top display */
     unsigned char *text; /* window text                     */
-    unsigned int textlen;  /* text length                   */
-    int wleft;      /* left position in window viewport     */
-    int textwidth;  /* width of longest line in textbox     */
-    int BlkBegLine; /* beginning line of marked block       */
-    int BlkBegCol;  /* beginning column of marked block     */
-    int BlkEndLine; /* ending line of marked block          */
-    int BlkEndCol;  /* ending column of marked block        */
-    int HScrollBox; /* position of horizontal scroll box    */
-    int VScrollBox; /* position of vertical scroll box      */
-	unsigned int *TextPointers; /* -> list of line offsets	*/
+    unsigned short textlen;  /* text length                   */
+    short wleft;      /* left position in window viewport     */
+    short textwidth;  /* width of longest line in textbox     */
+    short BlkBegLine; /* beginning line of marked block       */
+    short BlkBegCol;  /* beginning column of marked block     */
+    short BlkEndLine; /* ending line of marked block          */
+    short BlkEndCol;  /* ending column of marked block        */
+    short HScrollBox; /* position of horizontal scroll box    */
+    short VScrollBox; /* position of vertical scroll box      */
+	unsigned short *TextPointers; /* -> list of line offsets	*/
     /* ----------------- list box fields ------------------ */
-    int selection;  /* current selection                    */
+    short selection;  /* current selection                    */
     BOOL AddMode;   /* adding extended selections mode      */
-    int AnchorPoint;/* anchor point for extended selections */
-    int SelectCount;/* count of selected items              */
+    short AnchorPoint;/* anchor point for extended selections */
+    short SelectCount;/* count of selected items              */
     /* ----------------- edit box fields ------------------ */
-    int CurrCol;      /* Current column                     */
-    int CurrLine;     /* Current line                       */
-    int WndRow;       /* Current window row                 */
+    short CurrCol;      /* Current column                     */
+    short CurrLine;     /* Current line                       */
+    short WndRow;       /* Current window row                 */
     BOOL TextChanged; /* TRUE if text has changed           */
     unsigned char *DeletedText; /* for undo                 */
-    unsigned DeletedLength; /* Length of deleted field      */
+    unsigned short DeletedLength; /* Length of deleted field      */
 	BOOL InsertMode;   /* TRUE or FALSE for text insert     */
 	BOOL WordWrapMode; /* TRUE or FALSE for word wrap       */
-	unsigned int MaxTextLength; /* maximum text length      */
+	unsigned short MaxTextLength; /* maximum text length      */
     /* ---------------- dialog box fields ----------------- */
-    int ReturnCode;        /* return code from a dialog box */
+    short ReturnCode;        /* return code from a dialog box */
 	BOOL Modal;		       /* True if a modeless dialog box */
 	CTLWINDOW *ct;		   /* control structure             */
 	struct window *dfocus; /* control window that has focus */
@@ -141,7 +141,7 @@ typedef struct window {
 	BOOL TimePosted; /* True if time has been posted        */
 #ifdef INCLUDE_PICTUREBOX
 	/* ------------- picture box fields ------------------- */
-	int VectorCount;  /* number of vectors in vector list   */
+	short VectorCount;  /* number of vectors in vector list   */
 	void *VectorList; /* list of picture box vectors        */
 #endif
 } * WINDOW;
@@ -190,15 +190,15 @@ void MessageLog(WINDOW);
 #define ClearVisible(w)      (GetAttribute(w) &= ~VISIBLE)
 #define gotoxy(w,x,y) cursor(w->rc.lf+(x)+1,w->rc.tp+(y)+1)
 BOOL isVisible(WINDOW);
-WINDOW CreateWindow(CLASS,char *,int,int,int,int,void*,WINDOW,
-       int (*)(struct window *,enum messages,PARAM,PARAM),int);
+WINDOW CreateWindow(CLASS,char *,short,short,short,short,void*,WINDOW,
+       short (*)(struct window *,enum messages,PARAM,PARAM),short);
 void AddTitle(WINDOW, char *);
 void InsertTitle(WINDOW, char *);
 void DisplayTitle(WINDOW, RECT *);
 void RepaintBorder(WINDOW, RECT *);
 void PaintShadow(WINDOW);
-void ClearWindow(WINDOW, RECT *, int);
-void writeline(WINDOW, char *, int, int, BOOL);
+void ClearWindow(WINDOW, RECT *, short);
+void writeline(WINDOW, char *, short, short, BOOL);
 void InitWindowColors(WINDOW);
 
 void SetNextFocus(void);
@@ -208,15 +208,15 @@ void AppendWindow(WINDOW);
 void ReFocus(WINDOW);
 void SkipApplicationControls(void);
 
-BOOL CharInView(WINDOW, int, int);
-void CreatePath(char *, char *, int, int);
+BOOL CharInView(WINDOW, short, short);
+void CreatePath(char *, char *, short, short);
 #define SwapVideoBuffer(wnd, ish, fh) swapvideo(wnd, wnd->videosave, ish, fh)
-int LineLength(char *);
+short LineLength(char *);
 RECT AdjustRectangle(WINDOW, RECT);
 BOOL isDerivedFrom(WINDOW, CLASS);
 WINDOW GetAncestor(WINDOW);
-void PutWindowChar(WINDOW,int,int,int);
-void PutWindowLine(WINDOW, void *,int,int);
+void PutWindowChar(WINDOW,short,short,short);
+void PutWindowLine(WINDOW, void *,short,short);
 #define BaseWndProc(class,wnd,msg,p1,p2)    \
     (*classdefs[(classdefs[class].base)].wndproc)(wnd,msg,p1,p2)
 #define DefaultWndProc(wnd,msg,p1,p2)         \
@@ -231,14 +231,14 @@ extern WINDOW ApplicationWindow;
 extern WINDOW inFocus;
 extern WINDOW CaptureMouse;
 extern WINDOW CaptureKeyboard;
-extern int foreground, background;
+extern short foreground, background;
 extern BOOL WindowMoving;
 extern BOOL WindowSizing;
 extern BOOL VSliding;
 extern BOOL HSliding;
 extern char DFlatApplication[];
 extern char *Clipboard;
-extern unsigned ClipboardLength;
+extern unsigned short ClipboardLength;
 extern BOOL ClipString;
 /* --------- space between menubar labels --------- */
 #define MSPACE 2
@@ -281,35 +281,35 @@ extern BOOL ClipString;
 /* --------- message prototypes ----------- */
 BOOL init_messages(void);
 void PostMessage(WINDOW, MESSAGE, PARAM, PARAM);
-int SendMessage(WINDOW, MESSAGE, PARAM, PARAM);
+short SendMessage(WINDOW, MESSAGE, PARAM, PARAM);
 BOOL dispatch_message(void);
 void handshake(void);
-int TestCriticalError(void);
+short TestCriticalError(void);
 /* ---- standard window message processing prototypes ----- */
-int ApplicationProc(WINDOW, MESSAGE, PARAM, PARAM);
-int NormalProc(WINDOW, MESSAGE, PARAM, PARAM);
-int TextBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int ListBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int EditBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int PictureProc(WINDOW, MESSAGE, PARAM, PARAM);
-int MenuBarProc(WINDOW, MESSAGE, PARAM, PARAM);
-int PopDownProc(WINDOW, MESSAGE, PARAM, PARAM);
-int ButtonProc(WINDOW, MESSAGE, PARAM, PARAM);
-int ComboProc(WINDOW, MESSAGE, PARAM, PARAM);
-int TextProc(WINDOW, MESSAGE, PARAM, PARAM);
-int RadioButtonProc(WINDOW, MESSAGE, PARAM, PARAM);
-int CheckBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int SpinButtonProc(WINDOW, MESSAGE, PARAM, PARAM);
-int BoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int DialogProc(WINDOW, MESSAGE, PARAM, PARAM);
-int SystemMenuProc(WINDOW, MESSAGE, PARAM, PARAM);
-int HelpBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int MessageBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int CancelBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int ErrorBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int YesNoBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
-int StatusBarProc(WINDOW, MESSAGE, PARAM, PARAM);
-int WatchIconProc(WINDOW, MESSAGE, PARAM, PARAM);
+short ApplicationProc(WINDOW, MESSAGE, PARAM, PARAM);
+short NormalProc(WINDOW, MESSAGE, PARAM, PARAM);
+short TextBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short ListBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short EditBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short PictureProc(WINDOW, MESSAGE, PARAM, PARAM);
+short MenuBarProc(WINDOW, MESSAGE, PARAM, PARAM);
+short PopDownProc(WINDOW, MESSAGE, PARAM, PARAM);
+short ButtonProc(WINDOW, MESSAGE, PARAM, PARAM);
+short ComboProc(WINDOW, MESSAGE, PARAM, PARAM);
+short TextProc(WINDOW, MESSAGE, PARAM, PARAM);
+short RadioButtonProc(WINDOW, MESSAGE, PARAM, PARAM);
+short CheckBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short SpinButtonProc(WINDOW, MESSAGE, PARAM, PARAM);
+short BoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short DialogProc(WINDOW, MESSAGE, PARAM, PARAM);
+short SystemMenuProc(WINDOW, MESSAGE, PARAM, PARAM);
+short HelpBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short MessageBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short CancelBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short ErrorBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short YesNoBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+short StatusBarProc(WINDOW, MESSAGE, PARAM, PARAM);
+short WatchIconProc(WINDOW, MESSAGE, PARAM, PARAM);
 /* ------------- normal box prototypes ------------- */
 void SetStandardColor(WINDOW);
 void SetReverseColor(WINDOW);
@@ -344,44 +344,44 @@ BOOL isAncestor(WINDOW, WINDOW);
 /* -------- text box prototypes ---------- */
 #define TextLine(wnd, sel) \
       (wnd->text + *((wnd->TextPointers) + sel))
-void WriteTextLine(WINDOW, RECT *, int, BOOL);
+void WriteTextLine(WINDOW, RECT *, short, BOOL);
 #define TextBlockMarked(wnd) (  wnd->BlkBegLine ||    \
                                 wnd->BlkEndLine ||    \
                                 wnd->BlkBegCol  ||    \
                                 wnd->BlkEndCol)
-void MarkTextBlock(WINDOW, int, int, int, int);
+void MarkTextBlock(WINDOW, short, short, short, short);
 #define ClearTextBlock(wnd) wnd->BlkBegLine = wnd->BlkEndLine =  \
                         wnd->BlkBegCol  = wnd->BlkEndCol = 0;
 #define GetText(w)        ((w)->text)
 #define GetTextLines(w)   ((w)->wlines)
 void ClearTextPointers(WINDOW);
 void BuildTextPointers(WINDOW);
-int TextLineNumber(WINDOW, char *);
+short TextLineNumber(WINDOW, char *);
 /* ------------ Clipboard prototypes ------------- */
 void CopyTextToClipboard(char *);
 void CopyToClipboard(WINDOW);
 #define PasteFromClipboard(wnd) PasteText(wnd,Clipboard,ClipboardLength)
-BOOL PasteText(WINDOW, char *, unsigned);
+BOOL PasteText(WINDOW, char *, unsigned short);
 void ClearClipboard(void);
 /* --------- menu prototypes ---------- */
-int CopyCommand(unsigned char *, unsigned char *, int, int);
+short CopyCommand(unsigned char *, unsigned char *, short, short);
 void PrepFileMenu(void *, struct Menu *);
 void PrepEditMenu(void *, struct Menu *);
 void PrepSearchMenu(void *, struct Menu *);
 void PrepWindowMenu(void *, struct Menu *);
 void BuildSystemMenu(WINDOW);
-BOOL isActive(MBAR *, int);
-char *GetCommandText(MBAR *, int);
-BOOL isCascadedCommand(MBAR *,int);
-void ActivateCommand(MBAR *,int);
-void DeactivateCommand(MBAR *,int);
-BOOL GetCommandToggle(MBAR *,int);
-void SetCommandToggle(MBAR *,int);
-void ClearCommandToggle(MBAR *,int);
-void InvertCommandToggle(MBAR *,int);
-int BarSelection(int);
+BOOL isActive(MBAR *, short);
+char *GetCommandText(MBAR *, short);
+BOOL isCascadedCommand(MBAR *,short);
+void ActivateCommand(MBAR *,short);
+void DeactivateCommand(MBAR *,short);
+BOOL GetCommandToggle(MBAR *,short);
+void SetCommandToggle(MBAR *,short);
+void ClearCommandToggle(MBAR *,short);
+void InvertCommandToggle(MBAR *,short);
+short BarSelection(short);
 /* ------------- list box prototypes -------------- */
-BOOL ItemSelected(WINDOW, int);
+BOOL ItemSelected(WINDOW, short);
 /* ------------- edit box prototypes ----------- */
 #define CurrChar (TextLine(wnd, wnd->CurrLine)+wnd->CurrCol)
 #define WndCol   (wnd->CurrCol-wnd->wleft)
@@ -390,11 +390,11 @@ void SearchText(WINDOW);
 void ReplaceText(WINDOW);
 void SearchNext(WINDOW);
 /* --------- message box prototypes -------- */
-WINDOW SliderBox(int, char *, char *);
-BOOL InputBox(WINDOW, char *, char *, char *, int);
-BOOL GenericMessage(WINDOW, char *, char *, int,
-	int (*)(struct window *, enum messages, PARAM, PARAM),
-	char *, char *, int, int, int);
+WINDOW SliderBox(short, char *, char *);
+BOOL InputBox(WINDOW, char *, char *, char *, short);
+BOOL GenericMessage(WINDOW, char *, char *, short,
+	short (*)(struct window *, enum messages, PARAM, PARAM),
+	char *, char *, short, short, short);
 #define TestErrorMessage(msg)	\
 	GenericMessage(NULL, "Error", msg, 2, ErrorBoxProc,	  \
 		Ok, Cancel, ID_OK, ID_CANCEL, TRUE)
@@ -412,31 +412,31 @@ BOOL GenericMessage(WINDOW, char *, char *, int,
 		Cancel, NULL, ID_CANCEL, 0, FALSE)
 void CloseCancelBox(void);
 WINDOW MomentaryMessage(char *);
-int MsgHeight(char *);
-int MsgWidth(char *);
+short MsgHeight(char *);
+short MsgWidth(char *);
 
 /* ------------- dialog box prototypes -------------- */
 BOOL DialogBox(WINDOW, DBOX *, BOOL,
-       int (*)(struct window *, enum messages, PARAM, PARAM));
+       short (*)(struct window *, enum messages, PARAM, PARAM));
 void ClearDialogBoxes(void);
 BOOL OpenFileDialogBox(char *, char *);
 BOOL SaveAsDialogBox(char *);
 void GetDlgListText(WINDOW, char *, enum commands);
 BOOL DlgDirList(WINDOW, char *, enum commands,
-                            enum commands, unsigned);
+                            enum commands, unsigned short);
 BOOL RadioButtonSetting(DBOX *, enum commands);
 void PushRadioButton(DBOX *, enum commands);
 void PutItemText(WINDOW, enum commands, char *);
 void PutComboListText(WINDOW, enum commands, char *);
-void GetItemText(WINDOW, enum commands, char *, int);
+void GetItemText(WINDOW, enum commands, char *, short);
 char *GetDlgTextString(DBOX *, enum commands, CLASS);
 void SetDlgTextString(DBOX *, enum commands, char *, CLASS);
 BOOL CheckBoxSetting(DBOX *, enum commands);
-CTLWINDOW *FindCommand(DBOX *, enum commands, int);
+CTLWINDOW *FindCommand(DBOX *, enum commands, short);
 WINDOW ControlWindow(DBOX *, enum commands);
 void SetScrollBars(WINDOW);
 void SetRadioButton(DBOX *, CTLWINDOW *);
-void ControlSetting(DBOX *, enum commands, int, int);
+void ControlSetting(DBOX *, enum commands, short, short);
 void SetFocusCursor(WINDOW);
 
 #define GetControl(wnd)             (wnd->ct)
@@ -458,9 +458,9 @@ void SetFocusCursor(WINDOW);
 enum VectTypes {VECTOR, SOLIDBAR, HEAVYBAR, CROSSBAR, LIGHTBAR};
 
 /* ------------- picture box prototypes ------------- */
-void DrawVector(WINDOW, int, int, int, int);
-void DrawBox(WINDOW, int, int, int, int);
-void DrawBar(WINDOW, enum VectTypes, int, int, int, int);
+void DrawVector(WINDOW, short, short, short, short);
+void DrawBox(WINDOW, short, short, short, short);
+void DrawBar(WINDOW, enum VectTypes, short, short, short, short);
 WINDOW WatchIcon(void);
 
 /* ------------- help box prototypes ------------- */

@@ -5,13 +5,17 @@
 static union REGS regs;
 static struct SREGS sregs;
 
-static void near mouse(int m1,int m2,int m3,int m4)
+static void near mouse(short m1,short m2,short m3,short m4)
 {
-    regs.x.dx = m4;
-    regs.x.cx = m3;
-    regs.x.bx = m2;
-    regs.x.ax = m1;
+    regs.w.dx = m4;
+    regs.w.cx = m3;
+    regs.w.bx = m2;
+    regs.w.ax = m1;
+#ifdef __FLAT__
+	 int386x(MOUSE, &regs, &regs, &sregs);
+#else
     int86x(MOUSE, &regs, &regs, &sregs);
+#endif
 }
 
 /* ---------- reset the mouse ---------- */
@@ -24,38 +28,38 @@ void resetmouse(void)
 /* ----- test to see if the mouse driver is installed ----- */
 BOOL mouse_installed(void)
 {
-    unsigned char far *ms;
+    unsigned char *ms;
     ms = MK_FP(peek(0, MOUSE*4+2), peek(0, MOUSE*4));
     return (SCREENWIDTH <= 80 && ms != NULL && *ms != 0xcf);
 }
 
 /* ------ return true if mouse buttons are pressed ------- */
-int mousebuttons(void)
+short mousebuttons(void)
 {
     if (mouse_installed())	{
 		segread(&sregs);
         mouse(3,0,0,0);
-	    return regs.x.bx & 3;
+	    return regs.w.bx & 3;
 	}
 	return 0;
 }
 
 /* ---------- return mouse coordinates ---------- */
-void get_mouseposition(int *x, int *y)
+void get_mouseposition(short *x, short *y)
 {
 	*x = *y = -1;
     if (mouse_installed())    {
 		segread(&sregs);
         mouse(3,0,0,0);
-        *x = regs.x.cx/8;
-        *y = regs.x.dx/8;
+        *x = regs.w.cx/8;
+        *y = regs.w.dx/8;
 		if (SCREENWIDTH == 40)
 			*x /= 2;
     }
 }
 
 /* -------- position the mouse cursor -------- */
-void set_mouseposition(int x, int y)
+void set_mouseposition(short x, short y)
 {
     if (mouse_installed())	{
 		segread(&sregs);
@@ -84,18 +88,18 @@ void hide_mousecursor(void)
 }
 
 /* --- return true if a mouse button has been released --- */
-int button_releases(void)
+short button_releases(void)
 {
     if (mouse_installed())	{
 		segread(&sregs);
         mouse(6,0,0,0);
-	    return regs.x.bx;
+	    return regs.w.bx;
 	}
 	return 0;
 }
 
 /* ----- set mouse travel limits ------- */
-void set_mousetravel(int minx, int maxx, int miny, int maxy)
+void set_mousetravel(short minx, short maxx, short miny, short maxy)
 {
     if (mouse_installed())	{
 		if (SCREENWIDTH == 40)	{

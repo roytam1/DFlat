@@ -4,10 +4,10 @@
 
 static void ComputeWindowTop(WINDOW);
 static void ComputeWindowLeft(WINDOW);
-static int ComputeVScrollBox(WINDOW);
-static int ComputeHScrollBox(WINDOW);
-static void MoveScrollBox(WINDOW, int);
-static char *GetTextLine(WINDOW, int);
+static short ComputeVScrollBox(WINDOW);
+static short ComputeHScrollBox(WINDOW);
+static void MoveScrollBox(WINDOW, short);
+static char *GetTextLine(WINDOW, short);
 
 BOOL VSliding;
 BOOL HSliding;
@@ -16,13 +16,13 @@ BOOL HSliding;
 static BOOL AddTextMsg(WINDOW wnd, char *txt)
 {
     /* --- append text to the textbox's buffer --- */
-    unsigned adln = strlen(txt);
-    if (adln > (unsigned)0xfff0)
+    unsigned short adln = strlen(txt);
+    if (adln > (unsigned short)0xfff0)
         return FALSE;
     if (wnd->text != NULL)    {
         /* ---- appending to existing text ---- */
-        unsigned txln = strlen(wnd->text);
-        if ((long)txln+adln > (unsigned) 0xfff0)
+        unsigned short txln = strlen(wnd->text);
+        if ((long)txln+adln > (unsigned short) 0xfff0)
             return FALSE;
         if (txln+adln > wnd->textlen)    {
             wnd->text = DFrealloc(wnd->text, txln+adln+3);
@@ -45,7 +45,7 @@ static BOOL AddTextMsg(WINDOW wnd, char *txt)
 }
 
 /* ------------ DELETETEXT Message -------------- */
-static void DeleteTextMsg(WINDOW wnd, int lno)
+static void DeleteTextMsg(WINDOW wnd, short lno)
 {
 	char *cp1 = TextLine(wnd, lno);
 	--wnd->wlines;
@@ -59,10 +59,10 @@ static void DeleteTextMsg(WINDOW wnd, int lno)
 }
 
 /* ------------ INSERTTEXT Message -------------- */
-static void InsertTextMsg(WINDOW wnd, char *txt, int lno)
+static void InsertTextMsg(WINDOW wnd, char *txt, short lno)
 {
 	if (AddTextMsg(wnd, txt))	{
-		int len = strlen(txt);
+		short len = strlen(txt);
 		char *cp2 = TextLine(wnd, lno);
 		char *cp1 = cp2+len+1;
 		memmove(cp1, cp2, strlen(cp2)-len);
@@ -76,7 +76,7 @@ static void InsertTextMsg(WINDOW wnd, char *txt, int lno)
 static void SetTextMsg(WINDOW wnd, char *txt)
 {
     /* -- assign new text value to textbox buffer -- */
-    unsigned int len = strlen(txt)+1;
+    unsigned short len = strlen(txt)+1;
 	SendMessage(wnd, CLEARTEXT, 0, 0);
     wnd->textlen = len;
     wnd->text=DFrealloc(wnd->text, len+1);
@@ -101,9 +101,9 @@ static void ClearTextMsg(WINDOW wnd)
 }
 
 /* ------------ KEYBOARD Message -------------- */
-static int KeyboardMsg(WINDOW wnd, PARAM p1)
+static short KeyboardMsg(WINDOW wnd, PARAM p1)
 {
-    switch ((int) p1)    {
+    switch ((short) p1)    {
         case UP:
             return SendMessage(wnd,SCROLL,FALSE,0);
         case DN:
@@ -131,10 +131,10 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1)
 }
 
 /* ------------ LEFT_BUTTON Message -------------- */
-static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static short LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int mx = (int) p1 - GetLeft(wnd);
-    int my = (int) p2 - GetTop(wnd);
+    short mx = (short) p1 - GetLeft(wnd);
+    short my = (short) p2 - GetTop(wnd);
     if (TestAttribute(wnd, VSCROLLBAR) &&
                         mx == WindowWidth(wnd)-1)    {
         /* -------- in the right border ------- */
@@ -194,8 +194,8 @@ static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* ------------ MOUSE_MOVED Message -------------- */
 static BOOL MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int mx = (int) p1 - GetLeft(wnd);
-    int my = (int) p2 - GetTop(wnd);
+    short mx = (short) p1 - GetLeft(wnd);
+    short my = (short) p2 - GetTop(wnd);
     if (VSliding)    {
         /* ---- dragging the vertical scroll box --- */
         if (my-1 != wnd->VScrollBox)    {
@@ -261,13 +261,13 @@ static BOOL ScrollMsg(WINDOW wnd, PARAM p1)
             if (wnd != inFocus)
                 SendMessage(wnd, PAINT, 0, 0);
             else    {
-                scroll_window(wnd, rc, (int)p1);
-                if (!(int)p1)
+                scroll_window(wnd, rc, (short)p1);
+                if (!(short)p1)
                     /* -- write top line (down) -- */
                     WriteTextLine(wnd,NULL,wnd->wtop,FALSE);
                 else    {
                     /* -- write bottom line (up) -- */
-                    int y=RectBottom(rc)-GetClientTop(wnd);
+                    short y=RectBottom(rc)-GetClientTop(wnd);
                     WriteTextLine(wnd, NULL,
                         wnd->wtop+y, FALSE);
                 }
@@ -275,7 +275,7 @@ static BOOL ScrollMsg(WINDOW wnd, PARAM p1)
         }
         /* ---- reset the scroll box ---- */
         if (TestAttribute(wnd, VSCROLLBAR))    {
-            int vscrollbox = ComputeVScrollBox(wnd);
+            short vscrollbox = ComputeVScrollBox(wnd);
             if (vscrollbox != wnd->VScrollBox)
                 MoveScrollBox(wnd, vscrollbox);
         }
@@ -307,7 +307,7 @@ static BOOL HorizScrollMsg(WINDOW wnd, PARAM p1)
 static void ScrollPageMsg(WINDOW wnd, PARAM p1)
 {
     /* --- vertical scroll one page --- */
-    if ((int) p1 == FALSE)    {
+    if ((short) p1 == FALSE)    {
         /* ---- page up ---- */
         if (wnd->wtop)
             wnd->wtop -= ClientHeight(wnd);
@@ -329,7 +329,7 @@ static void ScrollPageMsg(WINDOW wnd, PARAM p1)
 static void HorizScrollPageMsg(WINDOW wnd, PARAM p1)
 {
     /* --- horizontal scroll one page --- */
-    if ((int) p1 == FALSE)
+    if ((short) p1 == FALSE)
         /* ---- page left ----- */
         wnd->wleft -= ClientWidth(wnd);
     else    {
@@ -347,7 +347,7 @@ static void HorizScrollPageMsg(WINDOW wnd, PARAM p1)
 static void ScrollDocMsg(WINDOW wnd, PARAM p1)
 {
     /* --- scroll to beginning or end of document --- */
-    if ((int) p1)
+    if ((short) p1)
         wnd->wtop = wnd->wleft = 0;
     else if (wnd->wtop+ClientHeight(wnd) < wnd->wlines){
         wnd->wtop = wnd->wlines-ClientHeight(wnd);
@@ -361,7 +361,7 @@ static void PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     /* ------ paint the client area ----- */
     RECT rc, rcc;
-    int y;
+    short y;
     char blankline[201];
 
     /* ----- build the rectangle to paint ----- */
@@ -386,7 +386,7 @@ static void PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
 
     /* ------- each line within rectangle ------ */
     for (y = RectTop(rc); y <= RectBottom(rc); y++){
-        int yy;
+        short yy;
         /* ---- test outside of Client area ---- */
         if (TestAttribute(wnd,
                     HASBORDER | HASTITLEBAR))    {
@@ -409,8 +409,8 @@ static void PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
     }
     /* ------- position the scroll box ------- */
     if (TestAttribute(wnd, VSCROLLBAR|HSCROLLBAR)) {
-        int hscrollbox = ComputeHScrollBox(wnd);
-        int vscrollbox = ComputeVScrollBox(wnd);
+        short hscrollbox = ComputeHScrollBox(wnd);
+        short vscrollbox = ComputeVScrollBox(wnd);
         if (hscrollbox != wnd->HScrollBox ||
                 vscrollbox != wnd->VScrollBox)    {
             wnd->HScrollBox = hscrollbox;
@@ -433,7 +433,7 @@ static void CloseWindowMsg(WINDOW wnd)
 }
 
 /* ----------- TEXTBOX Message-processing Module ----------- */
-int TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -443,10 +443,10 @@ int TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case ADDTEXT:
             return AddTextMsg(wnd, (char *) p1);
 		case DELETETEXT:
-            DeleteTextMsg(wnd, (int) p1);
+            DeleteTextMsg(wnd, (short) p1);
             return TRUE;
 		case INSERTTEXT:
-            InsertTextMsg(wnd, (char *) p1, (int) p2);
+            InsertTextMsg(wnd, (char *) p1, (short) p2);
             return TRUE;
         case SETTEXT:
             SetTextMsg(wnd, (char *) p1);
@@ -503,12 +503,12 @@ int TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 
 /* ------ compute the vertical scroll box position from
                    the text pointers --------- */
-static int ComputeVScrollBox(WINDOW wnd)
+static short ComputeVScrollBox(WINDOW wnd)
 {
-    int pagelen = wnd->wlines - ClientHeight(wnd);
-    int barlen = ClientHeight(wnd)-2;
-    int lines_tick;
-    int vscrollbox;
+    short pagelen = wnd->wlines - ClientHeight(wnd);
+    short barlen = ClientHeight(wnd)-2;
+    short lines_tick;
+    short vscrollbox;
 
     if (pagelen < 1 || barlen < 1)
         vscrollbox = 1;
@@ -528,14 +528,14 @@ static int ComputeVScrollBox(WINDOW wnd)
 /* ---- compute top text line from scroll box position ---- */
 static void ComputeWindowTop(WINDOW wnd)
 {
-    int pagelen = wnd->wlines - ClientHeight(wnd);
+    short pagelen = wnd->wlines - ClientHeight(wnd);
     if (wnd->VScrollBox == 0)
         wnd->wtop = 0;
     else if (wnd->VScrollBox == ClientHeight(wnd)-2)
         wnd->wtop = pagelen;
     else    {
-        int barlen = ClientHeight(wnd)-2;
-        int lines_tick;
+        short barlen = ClientHeight(wnd)-2;
+        short lines_tick;
 
         if (pagelen > barlen)
             lines_tick = pagelen / barlen;
@@ -551,12 +551,12 @@ static void ComputeWindowTop(WINDOW wnd)
 
 /* ------ compute the horizontal scroll box position from
                    the text pointers --------- */
-static int ComputeHScrollBox(WINDOW wnd)
+static short ComputeHScrollBox(WINDOW wnd)
 {
-    int pagewidth = wnd->textwidth - ClientWidth(wnd);
-    int barlen = ClientWidth(wnd)-2;
-    int chars_tick;
-    int hscrollbox;
+    short pagewidth = wnd->textwidth - ClientWidth(wnd);
+    short barlen = ClientWidth(wnd)-2;
+    short chars_tick;
+    short hscrollbox;
 
     if (pagewidth < 1 || barlen < 1)
         hscrollbox = 1;
@@ -576,15 +576,15 @@ static int ComputeHScrollBox(WINDOW wnd)
 /* ---- compute left column from scroll box position ---- */
 static void ComputeWindowLeft(WINDOW wnd)
 {
-    int pagewidth = wnd->textwidth - ClientWidth(wnd);
+    short pagewidth = wnd->textwidth - ClientWidth(wnd);
 
     if (wnd->HScrollBox == 0)
         wnd->wleft = 0;
     else if (wnd->HScrollBox == ClientWidth(wnd)-2)
         wnd->wleft = pagewidth;
     else    {
-        int barlen = ClientWidth(wnd)-2;
-        int chars_tick;
+        short barlen = ClientWidth(wnd)-2;
+        short chars_tick;
 
         if (pagewidth > barlen)
             chars_tick = pagewidth / barlen;
@@ -599,10 +599,10 @@ static void ComputeWindowLeft(WINDOW wnd)
 }
 
 /* ----- get the text to a specified line ----- */
-static char *GetTextLine(WINDOW wnd, int selection)
+static char *GetTextLine(WINDOW wnd, short selection)
 {
     char *line;
-    int len = 0;
+    short len = 0;
     char *cp, *cp1;
     cp = cp1 = TextLine(wnd, selection);
     while (*cp && *cp != '\n')    {
@@ -616,15 +616,15 @@ static char *GetTextLine(WINDOW wnd, int selection)
 }
 
 /* ------- write a line of text to a textbox window ------- */
-void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
+void WriteTextLine(WINDOW wnd, RECT *rcc, short y, BOOL reverse)
 {
-    int len = 0;
-    int dif = 0;
+    short len = 0;
+    short dif = 0;
     unsigned char line[200];
     RECT rc;
     unsigned char *lp, *svlp;
-    int lnlen;
-    int i;
+    short lnlen;
+    short i;
     BOOL trunc = FALSE;
 
     /* ------ make sure y is inside the window ----- */
@@ -658,11 +658,11 @@ void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
 
     /* -------- insert block color change controls ------- */
     if (TextBlockMarked(wnd))    {
-        int bbl = wnd->BlkBegLine;
-        int bel = wnd->BlkEndLine;
-        int bbc = wnd->BlkBegCol;
-        int bec = wnd->BlkEndCol;
-        int by = y;
+        short bbl = wnd->BlkBegLine;
+        short bel = wnd->BlkEndLine;
+        short bbc = wnd->BlkBegCol;
+        short bec = wnd->BlkEndCol;
+        short by = y;
 
         /* ----- put lowest marker first ----- */
         if (bbl > bel)    {
@@ -674,8 +674,8 @@ void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
 
         if (by >= bbl && by <= bel)    {
             /* ------ the block includes this line ----- */
-            int blkbeg = 0;
-            int blkend = lnlen;
+            short blkbeg = 0;
+            short blkend = lnlen;
             if (!(by > bbl && by < bel))    {
                 /* --- the entire line is not in the block -- */
                 if (by == bbl)
@@ -732,7 +732,7 @@ void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
             lp += wnd->wleft;
         if (lnlen > RectLeft(rc))    {
             /* ---- the line exceeds the rectangle ---- */
-            int ct = RectLeft(rc);
+            short ct = RectLeft(rc);
             char *initlp = lp;
             /* --- point to end of clipped line --- */
             while (ct)    {
@@ -797,8 +797,8 @@ void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
     free(svlp);
 }
 
-void MarkTextBlock(WINDOW wnd, int BegLine, int BegCol,
-                               int EndLine, int EndCol)
+void MarkTextBlock(WINDOW wnd, short BegLine, short BegCol,
+                               short EndLine, short EndCol)
 {
     wnd->BlkBegLine = BegLine;
     wnd->BlkEndLine = EndLine;
@@ -809,7 +809,7 @@ void MarkTextBlock(WINDOW wnd, int BegLine, int BegCol,
 /* ----- clear and initialize text line pointer array ----- */
 void ClearTextPointers(WINDOW wnd)
 {
-    wnd->TextPointers = DFrealloc(wnd->TextPointers, sizeof(int));
+    wnd->TextPointers = DFrealloc(wnd->TextPointers, sizeof(short));
     *(wnd->TextPointers) = 0;
 }
 
@@ -819,16 +819,16 @@ void ClearTextPointers(WINDOW wnd)
 void BuildTextPointers(WINDOW wnd)
 {
     char *cp = wnd->text, *cp1;
-    int incrs = INITLINES;
-    unsigned int off;
+    short incrs = INITLINES;
+    unsigned short off;
     wnd->textwidth = wnd->wlines = 0;
     while (*cp)    {
         if (incrs == INITLINES)    {
             incrs = 0;
             wnd->TextPointers = DFrealloc(wnd->TextPointers,
-                    (wnd->wlines + INITLINES) * sizeof(int));
+                    (wnd->wlines + INITLINES) * sizeof(short));
         }
-        off = (unsigned int) (cp - wnd->text);
+        off = (unsigned short) (cp - wnd->text);
         *((wnd->TextPointers) + wnd->wlines) = off;
         wnd->wlines++;
         incrs++;
@@ -836,13 +836,13 @@ void BuildTextPointers(WINDOW wnd)
         while (*cp && *cp != '\n')
             cp++;
         wnd->textwidth = max(wnd->textwidth,
-                        (unsigned int) (cp - cp1));
+                        (unsigned short) (cp - cp1));
         if (*cp)
             cp++;
     }
 }
 
-static void MoveScrollBox(WINDOW wnd, int vscrollbox)
+static void MoveScrollBox(WINDOW wnd, short vscrollbox)
 {
     foreground = FrameForeground(wnd);
     background = FrameBackground(wnd);
@@ -853,9 +853,9 @@ static void MoveScrollBox(WINDOW wnd, int vscrollbox)
     wnd->VScrollBox = vscrollbox;
 }
 
-int TextLineNumber(WINDOW wnd, char *lp)
+short TextLineNumber(WINDOW wnd, char *lp)
 {
-    int lineno;
+    short lineno;
     char *cp;
     for (lineno = 0; lineno < wnd->wlines; lineno++)    {
         cp = wnd->text + *((wnd->TextPointers) + lineno);

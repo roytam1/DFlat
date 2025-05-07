@@ -2,13 +2,13 @@
 
 #include "dflat.h"
 
-static int SelectionWidth(struct PopDown *);
-static int py = -1;
+static short SelectionWidth(struct PopDown *);
+static short py = -1;
 
 /* ------------ CREATE_WINDOW Message ------------- */
-static int CreateWindowMsg(WINDOW wnd)
+static short CreateWindowMsg(WINDOW wnd)
 {
-    int rtn, adj;
+    short rtn, adj;
     ClearAttribute(wnd, HASTITLEBAR     |
                         VSCROLLBAR     |
                         MOVEABLE     |
@@ -38,7 +38,7 @@ static int CreateWindowMsg(WINDOW wnd)
 /* --------- LEFT_BUTTON Message --------- */
 static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int my = (int) p2 - GetTop(wnd);
+    short my = (short) p2 - GetTop(wnd);
     if (InsideRect(p1, p2, ClientRect(wnd)))    {
         if (my != py)    {
             SendMessage(wnd, LB_SELECTION,
@@ -46,7 +46,7 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
             py = my;
         }
     }
-    else if ((int)p2 == GetTop(GetParent(wnd)))
+    else if ((short)p2 == GetTop(GetParent(wnd)))
         if (GetClass(GetParent(wnd)) == MENUBAR)
             PostMessage(GetParent(wnd), LEFT_BUTTON, p1, p2);
 }
@@ -55,16 +55,16 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 static BOOL ButtonReleasedMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     py = -1;
-    if (InsideRect((int)p1, (int)p2, ClientRect(wnd)))    {
-        int sel = (int)p2 - GetClientTop(wnd);
+    if (InsideRect((short)p1, (short)p2, ClientRect(wnd)))    {
+        short sel = (short)p2 - GetClientTop(wnd);
         if (*TextLine(wnd, sel) != LINE)
             SendMessage(wnd, LB_CHOOSE, wnd->selection, 0);
     }
     else    {
         WINDOW pwnd = GetParent(wnd);
-        if (GetClass(pwnd) == MENUBAR && (int)p2==GetTop(pwnd))
+        if (GetClass(pwnd) == MENUBAR && (short)p2==GetTop(pwnd))
             return FALSE;
-        if ((int)p1 == GetLeft(pwnd)+2)
+        if ((short)p1 == GetLeft(pwnd)+2)
             return FALSE;
         SendMessage(wnd, CLOSE_WINDOW, 0, 0);
         return TRUE;
@@ -75,7 +75,7 @@ static BOOL ButtonReleasedMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* --------- PAINT Message -------- */
 static void PaintMsg(WINDOW wnd)
 {
-    int wd;
+    short wd;
     unsigned char sep[80], *cp = sep;
     unsigned char sel[80];
     struct PopDown *ActivePopDown;
@@ -92,7 +92,7 @@ static void PaintMsg(WINDOW wnd)
         if (*pd1->SelectionTitle == LINE)
             SendMessage(wnd, ADDTEXT, (PARAM) sep, 0);
         else    {
-            int len;
+            short len;
             memset(sel, '\0', sizeof sel);
             if (pd1->Attrib & INACTIVE)
                 /* ------ inactive menu selection ----- */
@@ -109,8 +109,8 @@ static void PaintMsg(WINDOW wnd)
                     wnd->WindowColors [STD_COLOR] [BG]);
             if (pd1->Accelerator)    {
                 /* ---- paint accelerator key ---- */
-                int i;
-                int wd1 = 2+SelectionWidth(ActivePopDown) -
+                short i;
+                short wd1 = 2+SelectionWidth(ActivePopDown) -
                                     strlen(pd1->SelectionTitle);
                 for (i = 0; keys[i].keylabel; i++)    {
                     if (keys[i].keycode == pd1->Accelerator)   {
@@ -142,9 +142,9 @@ static void PaintMsg(WINDOW wnd)
 }
 
 /* ---------- BORDER Message ----------- */
-static int BorderMsg(WINDOW wnd)
+static short BorderMsg(WINDOW wnd)
 {
-    int i, rtn = TRUE;
+    short i, rtn = TRUE;
     WINDOW currFocus;
     if (wnd->mnu != NULL)    {
         currFocus = inFocus;
@@ -166,13 +166,13 @@ static void LBChooseMsg(WINDOW wnd, PARAM p1)
 {
     struct PopDown *ActivePopDown = wnd->mnu->Selections;
     if (ActivePopDown != NULL)    {
-        int *attr = &(ActivePopDown+(int)p1)->Attrib;
-        wnd->mnu->Selection = (int)p1;
+        short *attr = &(ActivePopDown+(short)p1)->Attrib;
+        wnd->mnu->Selection = (short)p1;
         if (!(*attr & INACTIVE))    {
             if (*attr & TOGGLE)
                 *attr ^= CHECKED;
             PostMessage(GetParent(wnd), COMMAND,
-                (ActivePopDown+(int)p1)->ActionId, p1);
+                (ActivePopDown+(short)p1)->ActionId, p1);
         }
         else
             beep();
@@ -185,9 +185,9 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
     struct PopDown *ActivePopDown = wnd->mnu->Selections;
     if (wnd->mnu != NULL)    {
         if (ActivePopDown != NULL)    {
-            int c = (int)p1;
-            int sel = 0;
-            int a;
+            short c = (short)p1;
+            short sel = 0;
+            short a;
             struct PopDown *pd = ActivePopDown;
 
             if ((c & OFFSET) == 0)
@@ -197,7 +197,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
             while (pd->SelectionTitle != NULL)    {
                 char *cp = strchr(pd->SelectionTitle,
                                 SHORTCUTCHAR);
-                int sc = tolower(*(cp+1));
+                short sc = tolower(*(cp+1));
                 if ((cp && sc == c) ||
                         (a && sc == a) ||
                             pd->Accelerator == c)    {
@@ -209,7 +209,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
             }
         }
     }
-    switch ((int)p1)    {
+    switch ((short)p1)    {
         case F1:
             if (ActivePopDown == NULL)
                 SendMessage(GetParent(wnd), KEYBOARD, p1, p2);
@@ -253,9 +253,9 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* ----------- CLOSE_WINDOW Message ---------- */
-static int CloseWindowMsg(WINDOW wnd)
+static short CloseWindowMsg(WINDOW wnd)
 {
-    int rtn;
+    short rtn;
 	WINDOW pwnd = GetParent(wnd);
     SendMessage(wnd, RELEASE_MOUSE, 0, 0);
     SendMessage(wnd, RELEASE_KEYBOARD, 0, 0);
@@ -267,7 +267,7 @@ static int CloseWindowMsg(WINDOW wnd)
 }
 
 /* - Window processing module for POPDOWNMENU window class - */
-int PopDownProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short PopDownProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -278,9 +278,9 @@ int PopDownProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case DOUBLE_CLICK:
             return TRUE;
         case LB_SELECTION:
-            if (*TextLine(wnd, (int)p1) == LINE)
+            if (*TextLine(wnd, (short)p1) == LINE)
                 return TRUE;
-            wnd->mnu->Selection = (int)p1;
+            wnd->mnu->Selection = (short)p1;
             break;
         case BUTTON_RELEASED:
             if (ButtonReleasedMsg(wnd, p1, p2))
@@ -313,19 +313,19 @@ int PopDownProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 }
 
 /* --------- compute menu height -------- */
-int MenuHeight(struct PopDown *pd)
+short MenuHeight(struct PopDown *pd)
 {
-    int ht = 0;
+    short ht = 0;
     while (pd[ht].SelectionTitle != NULL)
         ht++;
     return ht+2;
 }
 
 /* --------- compute menu width -------- */
-int MenuWidth(struct PopDown *pd)
+short MenuWidth(struct PopDown *pd)
 {
-    int wd = 0, i;
-    int len = 0;
+    short wd = 0, i;
+    short len = 0;
 
     wd = SelectionWidth(pd);
     while (pd->SelectionTitle != NULL)    {
@@ -344,11 +344,11 @@ int MenuWidth(struct PopDown *pd)
 }
 
 /* ---- compute the maximum selection width in a menu ---- */
-static int SelectionWidth(struct PopDown *pd)
+static short SelectionWidth(struct PopDown *pd)
 {
-    int wd = 0;
+    short wd = 0;
     while (pd->SelectionTitle != NULL)    {
-        int len = strlen(pd->SelectionTitle)-1;
+        short len = strlen(pd->SelectionTitle)-1;
         wd = max(wd, len);
         pd++;
     }
@@ -356,8 +356,8 @@ static int SelectionWidth(struct PopDown *pd)
 }
 
 /* ----- copy a menu command to a display buffer ---- */
-int CopyCommand(unsigned char *dest, unsigned char *src,
-                                        int skipcolor, int bg)
+short CopyCommand(unsigned char *dest, unsigned char *src,
+                                        short skipcolor, short bg)
 {
     unsigned char *d = dest;
     while (*src && *src != '\n')    {
@@ -375,7 +375,7 @@ int CopyCommand(unsigned char *dest, unsigned char *src,
         else
             *dest++ = *src++;
     }
-    return (int) (dest - d);
+    return (short) (dest - d);
 }
 
 

@@ -5,8 +5,8 @@
 
 typedef struct classdefs {
     CLASS base;                         /* base window class */
-    int (*wndproc)(struct window *,enum messages,PARAM,PARAM);
-    int attrib;
+    short (*wndproc)(struct window *,enum messages,PARAM,PARAM);
+    short attrib;
 } CLASSDEFS;
 
 extern CLASSDEFS classdefs[];

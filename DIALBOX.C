@@ -2,9 +2,9 @@
 
 #include "dflat.h"
 
-static int inFocusCommand(DBOX *);
-static void dbShortcutKeys(DBOX *, int);
-static int ControlProc(WINDOW, MESSAGE, PARAM, PARAM);
+static short inFocusCommand(DBOX *);
+static void dbShortcutKeys(DBOX *, short);
+static short ControlProc(WINDOW, MESSAGE, PARAM, PARAM);
 static void FirstFocus(DBOX *db);
 static void NextFocus(DBOX *db);
 static void PrevFocus(DBOX *db);
@@ -13,12 +13,12 @@ static CTLWINDOW *AssociatedControl(DBOX *, enum commands);
 static BOOL SysMenuOpen;
 
 static DBOX **dbs = NULL;
-static int dbct = 0;
+static short dbct = 0;
 
 /* --- clear all heap allocations to control text fields --- */
 void ClearDialogBoxes(void)
 {
-    int i;
+    short i;
     for (i = 0; i < dbct; i++)    {
         CTLWINDOW *ct = (*(dbs+i))->ctl;
         while (ct->class)    {
@@ -37,12 +37,12 @@ void ClearDialogBoxes(void)
 }
 
 /* -------- CREATE_WINDOW Message --------- */
-static int CreateWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static short CreateWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     DBOX *db = wnd->extension;
     CTLWINDOW *ct = db->ctl;
     WINDOW cwnd;
-    int rtn, i;
+    short rtn, i;
     /* ---- build a table of processed dialog boxes ---- */
     for (i = 0; i < dbct; i++)
         if (db == dbs[i])
@@ -54,7 +54,7 @@ static int CreateWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
     rtn = BaseWndProc(DIALOG, wnd, CREATE_WINDOW, p1, p2);
     ct = db->ctl;
     while (ct->class)    {
-        int attrib = 0;
+        short attrib = 0;
         if (TestAttribute(wnd, NOCLIP))
             attrib |= NOCLIP;
         if (wnd->Modal)
@@ -129,7 +129,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 
     if (WindowMoving || WindowSizing)
         return FALSE;
-    switch ((int)p1)    {
+    switch ((short)p1)    {
         case F1:
             ct = GetControl(inFocus);
             if (ct != NULL)
@@ -148,7 +148,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
             NextFocus(db);
             break;
         case ' ':
-            if (((int)p2 & ALTKEY) &&
+            if (((short)p2 & ALTKEY) &&
                     TestAttribute(wnd, CONTROLBOX))    {
                 SysMenuOpen = TRUE;
                 BuildSystemMenu(wnd);
@@ -160,7 +160,7 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
             break;
         default:
             /* ------ search all the shortcut keys ----- */
-            dbShortcutKeys(db, (int) p1);
+            dbShortcutKeys(db, (short) p1);
             break;
     }
     return wnd->Modal;
@@ -170,19 +170,19 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 static BOOL CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     DBOX *db = wnd->extension;
-    switch ((int) p1)    {
+    switch ((short) p1)    {
         case ID_OK:
         case ID_CANCEL:
-            if ((int)p2 != 0)
+            if ((short)p2 != 0)
                 return TRUE;
-            wnd->ReturnCode = (int) p1;
+            wnd->ReturnCode = (short) p1;
             if (wnd->Modal)
                 PostMessage(wnd, ENDDIALOG, 0, 0);
             else
                 SendMessage(wnd, CLOSE_WINDOW, TRUE, 0);
             return TRUE;
         case ID_HELP:
-            if ((int)p2 != 0)
+            if ((short)p2 != 0)
                 return TRUE;
             return DisplayHelp(wnd, db->HelpName);
         default:
@@ -192,9 +192,9 @@ static BOOL CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* ----- window-processing module, DIALOG window class ----- */
-int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-	int rtn;
+	short rtn;
     DBOX *db = wnd->extension;
 
     switch (msg)    {
@@ -248,10 +248,10 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 
 /* ------- create and execute a dialog box ---------- */
 BOOL DialogBox(WINDOW wnd, DBOX *db, BOOL Modal,
-  int (*wndproc)(struct window *, enum messages, PARAM, PARAM))
+  short (*wndproc)(struct window *, enum messages, PARAM, PARAM))
 {
     BOOL rtn;
-    int x = db->dwnd.x, y = db->dwnd.y;
+    short x = db->dwnd.x, y = db->dwnd.y;
     WINDOW DialogWnd;
 
     if (!Modal && wnd != NULL)    {
@@ -285,7 +285,7 @@ BOOL DialogBox(WINDOW wnd, DBOX *db, BOOL Modal,
 }
 
 /* ----- return command code of in-focus control window ---- */
-static int inFocusCommand(DBOX *db)
+static short inFocusCommand(DBOX *db)
 {
     CTLWINDOW *ct = db->ctl;
     while (ct->class)    {
@@ -297,7 +297,7 @@ static int inFocusCommand(DBOX *db)
 }
 
 /* -------- find a specified control structure ------- */
-CTLWINDOW *FindCommand(DBOX *db, enum commands cmd, int class)
+CTLWINDOW *FindCommand(DBOX *db, enum commands cmd, short class)
 {
     CTLWINDOW *ct = db->ctl;
     while (ct->class)    {
@@ -335,7 +335,7 @@ CTLWINDOW *WindowControl(DBOX *db, WINDOW wnd)
 
 /* ---- set a control ON or OFF ----- */
 void ControlSetting(DBOX *db, enum commands cmd,
-                                int class, int setting)
+                                short class, short setting)
 {
     CTLWINDOW *ct = FindCommand(db, cmd, class);
     if (ct != NULL)	{
@@ -410,7 +410,7 @@ void PutItemText(WINDOW wnd, enum commands cmd, char *text)
 
 /* ------- get the text of a control window ------ */
 void GetItemText(WINDOW wnd, enum commands cmd,
-                                char *text, int len)
+                                char *text, short len)
 {
     CTLWINDOW *ct = FindCommand(wnd->extension, cmd, EDITBOX);
     unsigned char *cp;
@@ -429,7 +429,7 @@ void GetItemText(WINDOW wnd, enum commands cmd,
                     if (GetText(cwnd) != NULL)    {
                         cp = strchr(GetText(cwnd), '\n');
                         if (cp != NULL)
-                            len = (int) (cp - GetText(cwnd));
+                            len = (short) (cp - GetText(cwnd));
                         strncpy(text, GetText(cwnd), len);
                         *(text+len) = '\0';
                     }
@@ -453,7 +453,7 @@ void GetItemText(WINDOW wnd, enum commands cmd,
 void GetDlgListText(WINDOW wnd, char *text, enum commands cmd)
 {
     CTLWINDOW *ct = FindCommand(wnd->extension, cmd, LISTBOX);
-    int sel = SendMessage(ct->wnd, LB_CURRENTSELECTION, 0, 0);
+    short sel = SendMessage(ct->wnd, LB_CURRENTSELECTION, 0, 0);
     SendMessage(ct->wnd, LB_GETTEXT, (PARAM) text, sel);
 }
 
@@ -471,10 +471,10 @@ static CTLWINDOW *AssociatedControl(DBOX *db,enum commands Tcmd)
 }
 
 /* --- process dialog box shortcut keys --- */
-static void dbShortcutKeys(DBOX *db, int ky)
+static void dbShortcutKeys(DBOX *db, short ky)
 {
     CTLWINDOW *ct;
-    int ch = AltConvert(ky);
+    short ch = AltConvert(ky);
 
     if (ch != 0)    {
         ct = db->ctl;
@@ -509,7 +509,7 @@ static void dbShortcutKeys(DBOX *db, int ky)
                             from a control window ---- */
 void SetScrollBars(WINDOW wnd)
 {
-    int oldattr = GetAttribute(wnd);
+    short oldattr = GetAttribute(wnd);
     if (wnd->wlines > ClientHeight(wnd))
         AddAttribute(wnd, VSCROLLBAR);
     else 
@@ -536,7 +536,7 @@ static void CtlCreateWindowMsg(WINDOW wnd)
 static BOOL CtlKeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     CTLWINDOW *ct = GetControl(wnd);
-    switch ((int) p1)    {
+    switch ((short) p1)    {
         case F1:
             if (WindowMoving || WindowSizing)
                 break;
@@ -544,7 +544,7 @@ static BOOL CtlKeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
                 SendMessage(GetParent(wnd),COMMAND,ID_HELP,0);
             return TRUE;
         case ' ':
-            if (!((int)p2 & ALTKEY))
+            if (!((short)p2 & ALTKEY))
                 break;
         case ALT_F6:
         case CTRL_F4:
@@ -557,7 +557,7 @@ static BOOL CtlKeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
     if (GetClass(wnd) == EDITBOX)
         if (isMultiLine(wnd))
             return FALSE;
-    switch ((int) p1)    {
+    switch ((short) p1)    {
         case UP:
             if (!isDerivedFrom(wnd, LISTBOX))    {
                 p1 = CTRL_FIVE;
@@ -637,7 +637,7 @@ static void FixColors(WINDOW wnd)
 }
 
 /* -- generic window processor used by dialog box controls -- */
-static int ControlProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
+static short ControlProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 {
     DBOX *db;
 
@@ -713,7 +713,7 @@ static void FirstFocus(DBOX *db)
 static void NextFocus(DBOX *db)
 {
     CTLWINDOW *ct = WindowControl(db, inFocus);
-	int looped = 0;
+	short looped = 0;
 	if (ct != NULL)	{
 		do	{
 			ct++;
@@ -732,7 +732,7 @@ static void NextFocus(DBOX *db)
 static void PrevFocus(DBOX *db)
 {
     CTLWINDOW *ct = WindowControl(db, inFocus);
-	int looped = 0;
+	short looped = 0;
 	if (ct != NULL)	{
 		do	{
 			if (ct == db->ctl)	{

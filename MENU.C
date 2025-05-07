@@ -2,7 +2,7 @@
 
 #include "dflat.h"
 
-static struct PopDown *FindCmd(MBAR *mn, int cmd)
+static struct PopDown *FindCmd(MBAR *mn, short cmd)
 {
     MENU *mnu = mn->PullDown;
     while (mnu->Title != (void *)-1)    {
@@ -17,7 +17,7 @@ static struct PopDown *FindCmd(MBAR *mn, int cmd)
     return NULL;
 }
 
-char *GetCommandText(MBAR *mn, int cmd)
+char *GetCommandText(MBAR *mn, short cmd)
 {
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)
@@ -25,7 +25,7 @@ char *GetCommandText(MBAR *mn, int cmd)
     return NULL;
 }
 
-BOOL isCascadedCommand(MBAR *mn, int cmd)
+BOOL isCascadedCommand(MBAR *mn, short cmd)
 {
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)
@@ -33,21 +33,21 @@ BOOL isCascadedCommand(MBAR *mn, int cmd)
     return FALSE;
 }
 
-void ActivateCommand(MBAR *mn, int cmd)
+void ActivateCommand(MBAR *mn, short cmd)
 {
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)
         pd->Attrib &= ~INACTIVE;
 }
 
-void DeactivateCommand(MBAR *mn, int cmd)
+void DeactivateCommand(MBAR *mn, short cmd)
 {
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)
         pd->Attrib |= INACTIVE;
 }
 
-BOOL isActive(MBAR *mn, int cmd)
+BOOL isActive(MBAR *mn, short cmd)
 {
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)
@@ -55,7 +55,7 @@ BOOL isActive(MBAR *mn, int cmd)
     return FALSE;
 }
 
-BOOL GetCommandToggle(MBAR *mn, int cmd)
+BOOL GetCommandToggle(MBAR *mn, short cmd)
 {
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)
@@ -63,21 +63,21 @@ BOOL GetCommandToggle(MBAR *mn, int cmd)
     return FALSE;
 }
 
-void SetCommandToggle(MBAR *mn, int cmd)
+void SetCommandToggle(MBAR *mn, short cmd)
 {
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)
         pd->Attrib |= CHECKED;
 }
 
-void ClearCommandToggle(MBAR *mn, int cmd)
+void ClearCommandToggle(MBAR *mn, short cmd)
 {
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)
         pd->Attrib &= ~CHECKED;
 }
 
-void InvertCommandToggle(MBAR *mn, int cmd)
+void InvertCommandToggle(MBAR *mn, short cmd)
 {
     struct PopDown *pd = FindCmd(mn, cmd);
     if (pd != NULL)

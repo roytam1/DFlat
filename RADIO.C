@@ -4,15 +4,15 @@
 
 static CTLWINDOW *rct[MAXRADIOS];
 
-int RadioButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short RadioButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn;
+    short rtn;
     DBOX *db = GetParent(wnd)->extension;
     CTLWINDOW *ct = GetControl(wnd);
     if (ct != NULL)    {
         switch (msg)    {
             case SETFOCUS:
-                if (!(int)p1)
+                if (!(short)p1)
                     SendMessage(NULL, HIDE_CURSOR, 0, 0);
             case MOVE:
                 rtn = BaseWndProc(RADIOBUTTON,wnd,msg,p1,p2);
@@ -28,7 +28,7 @@ int RadioButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 break;
             }
             case KEYBOARD:
-                if ((int)p1 != ' ')
+                if ((short)p1 != ' ')
                     break;
             case LEFT_BUTTON:
                 SetRadioButton(db, ct);
@@ -53,7 +53,7 @@ void PushRadioButton(DBOX *db, enum commands cmd)
 {
     CTLWINDOW *ctt = db->ctl;
     CTLWINDOW *ct = FindCommand(db, cmd, RADIOBUTTON);
-    int i;
+    short i;
 
 	if (ct == NULL)
 		return;
@@ -90,7 +90,7 @@ void PushRadioButton(DBOX *db, enum commands cmd)
 
     for (i = 0; i < MAXRADIOS; i++)    {
         if (rct[i] != NULL)    {
-            int wason = rct[i]->setting;
+            short wason = rct[i]->setting;
             rct[i]->setting = OFF;
 			if (Setting)
 	            rct[i]->isetting = OFF;

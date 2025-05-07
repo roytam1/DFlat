@@ -3,20 +3,20 @@
 #include "dflat.h"
 
 #ifdef INCLUDE_EXTENDEDSELECTIONS
-static int ExtendSelections(WINDOW, int, int);
+static short ExtendSelections(WINDOW, short, short);
 static void TestExtended(WINDOW, PARAM);
 static void ClearAllSelections(WINDOW);
-static void SetSelection(WINDOW, int);
-static void FlipSelection(WINDOW, int);
-static void ClearSelection(WINDOW, int);
+static void SetSelection(WINDOW, short);
+static void FlipSelection(WINDOW, short);
+static void ClearSelection(WINDOW, short);
 #else
 #define TestExtended(w,p) /**/
 #endif
-static void near ChangeSelection(WINDOW, int, int);
-static void near WriteSelection(WINDOW, int, int, RECT *);
-static BOOL SelectionInWindow(WINDOW, int);
+static void near ChangeSelection(WINDOW, short, short);
+static void near WriteSelection(WINDOW, short, short, RECT *);
+static BOOL SelectionInWindow(WINDOW, short);
 
-static int py = -1;    /* the previous y mouse coordinate */
+static short py = -1;    /* the previous y mouse coordinate */
 
 #ifdef INCLUDE_EXTENDEDSELECTIONS
 /* --------- SHIFT_F8 Key ------------ */
@@ -40,7 +40,7 @@ static void UpKey(WINDOW wnd, PARAM p2)
                 isMultiLine(wnd) ? p2 : FALSE);
         }
         else    {
-            int newsel = wnd->selection-1;
+            short newsel = wnd->selection-1;
             if (wnd->wlines == ClientHeight(wnd))
                 while (*TextLine(wnd, newsel) == LINE)
                     --newsel;
@@ -63,7 +63,7 @@ static void DnKey(WINDOW wnd, PARAM p2)
                 isMultiLine(wnd) ? p2 : FALSE);
         }
         else    {
-            int newsel = wnd->selection+1;
+            short newsel = wnd->selection+1;
             if (wnd->wlines == ClientHeight(wnd))
                 while (*TextLine(wnd, newsel) == LINE)
                     newsel++;
@@ -90,7 +90,7 @@ static void HomePgUpKey(WINDOW wnd, PARAM p1, PARAM p2)
 /* --------- END and PGDN Keys ------------ */
 static void EndPgDnKey(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int bot;
+    short bot;
     BaseWndProc(LISTBOX, wnd, KEYBOARD, p1, p2);
     bot = wnd->wtop+ClientHeight(wnd)-1;
     if (bot > wnd->wlines-1)
@@ -107,14 +107,14 @@ static void EndPgDnKey(WINDOW wnd, PARAM p1, PARAM p2)
 static void SpacebarKey(WINDOW wnd, PARAM p2)
 {
     if (isMultiLine(wnd))    {
-        int sel = SendMessage(wnd, LB_CURRENTSELECTION, 0, 0);
+        short sel = SendMessage(wnd, LB_CURRENTSELECTION, 0, 0);
         if (sel != -1)    {
             if (wnd->AddMode)
                 FlipSelection(wnd, sel);
             if (ItemSelected(wnd, sel))    {
-                if (!((int) p2 & (LEFTSHIFT | RIGHTSHIFT)))
+                if (!((short) p2 & (LEFTSHIFT | RIGHTSHIFT)))
                     wnd->AnchorPoint = sel;
-                ExtendSelections(wnd, sel, (int) p2);
+                ExtendSelections(wnd, sel, (short) p2);
             }
             else
                 wnd->AnchorPoint = -1;
@@ -136,7 +136,7 @@ static void EnterKey(WINDOW wnd)
 /* --------- All Other Key Presses ------------ */
 static void KeyPress(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int sel = wnd->selection+1;
+    short sel = wnd->selection+1;
     while (sel < wnd->wlines)    {
         char *cp = TextLine(wnd, sel);
         if (cp == NULL)
@@ -148,7 +148,7 @@ static void KeyPress(WINDOW wnd, PARAM p1, PARAM p2)
         /* --- special for directory list box --- */
         if (*cp == '[')
             cp++;
-        if (tolower(*cp) == (int)p1)    {
+        if (tolower(*cp) == (short)p1)    {
             SendMessage(wnd, LB_SELECTION, sel,
                 isMultiLine(wnd) ? p2 : FALSE);
             if (!SelectionInWindow(wnd, sel))    {
@@ -162,9 +162,9 @@ static void KeyPress(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* --------- KEYBOARD Message ------------ */
-static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static short KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    switch ((int) p1)    {
+    switch ((short) p1)    {
 #ifdef INCLUDE_EXTENDEDSELECTIONS
         case SHIFT_F8:
             AddModeKey(wnd);
@@ -204,18 +204,18 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* ------- LEFT_BUTTON Message -------- */
-static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static short LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int my = (int) p2 - GetTop(wnd);
+    short my = (short) p2 - GetTop(wnd);
     if (my >= wnd->wlines-wnd->wtop)
         my = wnd->wlines - wnd->wtop;
 
     if (!InsideRect(p1, p2, ClientRect(wnd)))
         return FALSE;
     if (wnd->wlines && my != py)    {
-        int sel = wnd->wtop+my-1;
+        short sel = wnd->wtop+my-1;
 #ifdef INCLUDE_EXTENDEDSELECTIONS
-        int sh = getshift();
+        short sh = getshift();
         if (!(sh & (LEFTSHIFT | RIGHTSHIFT)))    {
             if (!(sh & CTRLKEY))
                 ClearAllSelections(wnd);
@@ -230,7 +230,7 @@ static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* ------------- DOUBLE_CLICK Message ------------ */
-static int DoubleClickMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static short DoubleClickMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     if (WindowMoving || WindowSizing)
         return FALSE;
@@ -244,9 +244,9 @@ static int DoubleClickMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* ------------ ADDTEXT Message -------------- */
-static int AddTextMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static short AddTextMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int rtn = BaseWndProc(LISTBOX, wnd, ADDTEXT, p1, p2);
+    short rtn = BaseWndProc(LISTBOX, wnd, ADDTEXT, p1, p2);
     if (wnd->selection == -1)
         SendMessage(wnd, LB_SETSELECTION, 0, 0);
 #ifdef INCLUDE_EXTENDEDSELECTIONS
@@ -259,9 +259,9 @@ static int AddTextMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* --------- GETTEXT Message ------------ */
 static void GetTextMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    if ((int)p2 != -1)    {
+    if ((short)p2 != -1)    {
         char *cp1 = (char *)p1;
-        char *cp2 = TextLine(wnd, (int)p2);
+        char *cp2 = TextLine(wnd, (short)p2);
         while (cp2 && *cp2 && *cp2 != '\n')
             *cp1++ = *cp2++;
         *cp1 = '\0';
@@ -269,7 +269,7 @@ static void GetTextMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* --------- LISTBOX Window Processing Module ------------ */
-int ListBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short ListBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -326,14 +326,14 @@ int ListBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             SendMessage(GetParent(wnd), LB_CHOOSE, p1, p2);
             return TRUE;
         case LB_SELECTION:
-            ChangeSelection(wnd, (int) p1, (int) p2);
+            ChangeSelection(wnd, (short) p1, (short) p2);
             SendMessage(GetParent(wnd), LB_SELECTION,
                 wnd->selection, 0);
             return TRUE;
         case LB_CURRENTSELECTION:
             return wnd->selection;
         case LB_SETSELECTION:
-            ChangeSelection(wnd, (int) p1, 0);
+            ChangeSelection(wnd, (short) p1, 0);
             return TRUE;
 #ifdef INCLUDE_EXTENDEDSELECTIONS
         case CLOSE_WINDOW:
@@ -349,14 +349,14 @@ int ListBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(LISTBOX, wnd, msg, p1, p2);
 }
 
-static BOOL SelectionInWindow(WINDOW wnd, int sel)
+static BOOL SelectionInWindow(WINDOW wnd, short sel)
 {
     return (wnd->wlines && sel >= wnd->wtop &&
             sel < wnd->wtop+ClientHeight(wnd));
 }
 
-static void near WriteSelection(WINDOW wnd, int sel,
-                                    int reverse, RECT *rc)
+static void near WriteSelection(WINDOW wnd, short sel,
+                                    short reverse, RECT *rc)
 {
     if (isVisible(wnd))
         if (SelectionInWindow(wnd, sel))
@@ -368,7 +368,7 @@ static void near WriteSelection(WINDOW wnd, int sel,
 static void TestExtended(WINDOW wnd, PARAM p2)
 {
     if (isMultiLine(wnd) && !wnd->AddMode &&
-            !((int) p2 & (LEFTSHIFT | RIGHTSHIFT)))    {
+            !((short) p2 & (LEFTSHIFT | RIGHTSHIFT)))    {
         if (wnd->SelectCount > 1)    {
             ClearAllSelections(wnd);
             SendMessage(wnd, PAINT, 0, 0);
@@ -380,14 +380,14 @@ static void TestExtended(WINDOW wnd, PARAM p2)
 static void ClearAllSelections(WINDOW wnd)
 {
     if (isMultiLine(wnd) && wnd->SelectCount > 0)    {
-        int sel;
+        short sel;
         for (sel = 0; sel < wnd->wlines; sel++)
             ClearSelection(wnd, sel);
     }
 }
 
 /* ----- Invert a selection in the listbox ----- */
-static void FlipSelection(WINDOW wnd, int sel)
+static void FlipSelection(WINDOW wnd, short sel)
 {
     if (isMultiLine(wnd))    {
         if (ItemSelected(wnd, sel))
@@ -397,13 +397,13 @@ static void FlipSelection(WINDOW wnd, int sel)
     }
 }
 
-static int ExtendSelections(WINDOW wnd, int sel, int shift)
+static short ExtendSelections(WINDOW wnd, short sel, short shift)
 {    
     if (shift & (LEFTSHIFT | RIGHTSHIFT) &&
                         wnd->AnchorPoint != -1)    {
-        int i = sel;
-        int j = wnd->AnchorPoint;
-        int rtn;
+        short i = sel;
+        short j = wnd->AnchorPoint;
+        short rtn;
         if (j > i)
             swap(i,j);
         rtn = i - j;
@@ -414,7 +414,7 @@ static int ExtendSelections(WINDOW wnd, int sel, int shift)
     return 0;
 }
 
-static void SetSelection(WINDOW wnd, int sel)
+static void SetSelection(WINDOW wnd, short sel)
 {
     if (isMultiLine(wnd) && !ItemSelected(wnd, sel))    {
         char *lp = TextLine(wnd, sel);
@@ -423,7 +423,7 @@ static void SetSelection(WINDOW wnd, int sel)
     }
 }
 
-static void ClearSelection(WINDOW wnd, int sel)
+static void ClearSelection(WINDOW wnd, short sel)
 {
     if (isMultiLine(wnd) && ItemSelected(wnd, sel))    {
         char *lp = TextLine(wnd, sel);
@@ -432,22 +432,22 @@ static void ClearSelection(WINDOW wnd, int sel)
     }
 }
 
-BOOL ItemSelected(WINDOW wnd, int sel)
+BOOL ItemSelected(WINDOW wnd, short sel)
 {
 	if (sel != -1 && isMultiLine(wnd) && sel < wnd->wlines)    {
         char *cp = TextLine(wnd, sel);
-        return (int)((*cp) & 255) == LISTSELECTOR;
+        return (short)((*cp) & 255) == LISTSELECTOR;
     }
     return FALSE;
 }
 #endif
 
-static void near ChangeSelection(WINDOW wnd,int sel,int shift)
+static void near ChangeSelection(WINDOW wnd,short sel,short shift)
 {
     if (sel != wnd->selection)    {
 #ifdef INCLUDE_EXTENDEDSELECTIONS
         if (isMultiLine(wnd))        {
-            int sels;
+            short sels;
             if (!wnd->AddMode)
                 ClearAllSelections(wnd);
             sels = ExtendSelections(wnd, sel, shift);

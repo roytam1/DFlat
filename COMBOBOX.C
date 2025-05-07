@@ -2,9 +2,9 @@
 
 #include "dflat.h"
 
-int ListProc(WINDOW, MESSAGE, PARAM, PARAM);
+short ListProc(WINDOW, MESSAGE, PARAM, PARAM);
 
-int ComboProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short ComboProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
@@ -28,13 +28,13 @@ int ComboProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             wputch(wnd, DOWNSCROLLBOX, WindowWidth(wnd), 0);
             break;
         case KEYBOARD:
-            if ((int)p1 == DN)    {
+            if ((short)p1 == DN)    {
                 SendMessage(wnd->extension, SETFOCUS, TRUE, 0);
                 return TRUE;
             }
             break;
         case LEFT_BUTTON:
-            if ((int)p1 == GetRight(wnd) + 1)
+            if ((short)p1 == GetRight(wnd) + 1)
                 SendMessage(wnd->extension, SETFOCUS, TRUE, 0);
             break;
         case CLOSE_WINDOW:
@@ -46,13 +46,13 @@ int ComboProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(COMBOBOX, wnd, msg, p1, p2);
 }
 
-int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
 	WINDOW pwnd = GetParent(GetParent(wnd));
     DBOX *db = pwnd->extension;
     WINDOW cwnd = ControlWindow(db, wnd->ct->command);
     char text[130];
-    int rtn;
+    short rtn;
     WINDOW currFocus;
     switch (msg)    {
         case CREATE_WINDOW:
@@ -65,7 +65,7 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             rtn = DefaultWndProc(wnd, msg, p1, p2);
             return rtn;
         case SETFOCUS:
-            if ((int)p1 == FALSE)    {
+            if ((short)p1 == FALSE)    {
 				if (!wnd->isHelping)	{
                 	SendMessage(wnd, HIDE_WINDOW, 0, 0);
                 	wnd->ct->setting = OFF;
@@ -93,7 +93,7 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             cwnd->TextChanged = TRUE;
             return rtn;
         case KEYBOARD:
-            switch ((int) p1)    {
+            switch ((short) p1)    {
                 case ESC:
                 case FWD:
                 case BS:

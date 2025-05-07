@@ -7,7 +7,7 @@ void PaintMsg(WINDOW wnd, CTLWINDOW *ct, RECT *rc)
     if (isVisible(wnd))    {
         if (TestAttribute(wnd, SHADOW) && cfg.mono == 0)    {
             /* -------- draw the button's shadow ------- */
-            int x;
+            short x;
             background = WndBackground(GetParent(wnd));
             foreground = BLACK;
             for (x = 1; x <= WindowWidth(wnd); x++)
@@ -39,7 +39,7 @@ void LeftButtonMsg(WINDOW wnd, MESSAGE msg, CTLWINDOW *ct)
 {
     if (cfg.mono == 0)    {
         /* --------- draw a pushed button -------- */
-        int x;
+        short x;
         background = WndBackground(GetParent(wnd));
         foreground = WndBackground(wnd);
         wputch(wnd, ' ', 0, 0);
@@ -59,7 +59,7 @@ void LeftButtonMsg(WINDOW wnd, MESSAGE msg, CTLWINDOW *ct)
         beep();
 }
 
-int ButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short ButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     CTLWINDOW *ct = GetControl(wnd);
     if (ct != NULL)    {

@@ -4,8 +4,8 @@
 
  /* --- Produce the vector end points produced by the overlap
         of two other vectors --- */
-static void subVector(int *v1, int *v2,
-                        int t1, int t2, int o1, int o2)
+static void subVector(short *v1, short *v2,
+                        short t1, short t2, short o1, short o2)
 {
     *v1 = *v2 = -1;
     if (within(o1, t1, t2))    {
@@ -43,10 +43,10 @@ static void subVector(int *v1, int *v2,
 RECT subRectangle(RECT r1, RECT r2)
 {
     RECT r = {0,0,0,0};
-    subVector((int *) &RectLeft(r), (int *) &RectRight(r),
+    subVector((short *) &RectLeft(r), (short *) &RectRight(r),
         RectLeft(r1), RectRight(r1),
         RectLeft(r2), RectRight(r2));
-    subVector((int *) &RectTop(r), (int *) &RectBottom(r),
+    subVector((short *) &RectTop(r), (short *) &RectBottom(r),
         RectTop(r1), RectBottom(r1),
         RectTop(r2), RectBottom(r2));
     if (RectRight(r) == -1 || RectTop(r) == -1)

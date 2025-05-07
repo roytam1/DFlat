@@ -2,9 +2,9 @@
 
 #include "dflat.h"
 
-int SystemMenuProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+short SystemMenuProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int mx, my;
+    short mx, my;
     WINDOW wnd1;
     switch (msg)    {
         case CREATE_WINDOW:
@@ -14,8 +14,8 @@ int SystemMenuProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             break;
         case LEFT_BUTTON:
             wnd1 = GetParent(wnd);
-            mx = (int) p1 - GetLeft(wnd1);
-            my = (int) p2 - GetTop(wnd1);
+            mx = (short) p1 - GetLeft(wnd1);
+            my = (short) p2 - GetTop(wnd1);
             if (HitControlBox(wnd1, mx, my))
                 return TRUE;
             break;
@@ -42,7 +42,7 @@ int SystemMenuProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 /* ------- Build a system menu -------- */
 void BuildSystemMenu(WINDOW wnd)
 {
-	int lf, tp, ht, wd;
+	short lf, tp, ht, wd;
     WINDOW SystemMenuWnd;
 
     SystemMenu.PullDown[0].Selections[6].Accelerator = 
