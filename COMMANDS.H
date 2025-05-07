@@ -112,7 +112,9 @@ enum commands {
 	ID_LEFTMARGIN,
 	ID_RIGHTMARGIN,
 	ID_TOPMARGIN,
-	ID_BOTTOMMARGIN
+	ID_BOTTOMMARGIN,
+	/* ----------- InputBox dialog box ------------ */
+	ID_INPUTTEXT
 };
 
 #endif

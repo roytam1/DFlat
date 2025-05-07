@@ -15,29 +15,19 @@ static int ct8 = 8;
 static FILE *fi;
 static BYTECOUNTER bytectr;
 
-static int LoadingASCII;
+static BOOL LoadingASCII;
 
 FILE *OpenHelpFile(void)
 {
     unsigned char c;
-    char *cp;
     int freqctr;
-	extern char **Argv;
-	char helpname[65];
+	char path[65];
 
-	strcpy(helpname, Argv[0]);
-	cp = strrchr(helpname, '\\');
-	if (cp == NULL)
-		cp = helpname;
-	else 
-		cp++;
-	strcpy(cp, DFlatApplication);
-	strcat(cp, ".HLP");
+	BuildFileName(path, ".hlp");
 
-    if ((fi = fopen(helpname, "rb")) == NULL)	{
-		strcpy(cp, DFlatApplication);
-		strcat(cp, ".TXT");
-	    if ((fi = fopen(helpname, "rt")) == NULL)
+    if ((fi = fopen(path, "rb")) == NULL)	{
+		BuildFileName(path, ".txt");
+	    if ((fi = fopen(path, "rt")) == NULL)
 			return NULL;
 		LoadingASCII = TRUE;
 	}

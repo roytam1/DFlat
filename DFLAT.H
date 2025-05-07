@@ -26,11 +26,20 @@
 #include <sys\types.h>
 #include <sys\stat.h>
 #include <time.h>
+#include <setjmp.h>
 
-#define VERSION "Version 10"
+#define VERSION "Version 11"
 
-#define TRUE 1
-#define FALSE 0
+#define malloc DFmalloc
+#define calloc DFcalloc
+#define realloc DFrealloc
+
+void *DFcalloc(size_t, size_t);
+void *DFmalloc(size_t);
+void *DFrealloc(void *, size_t);
+void free(void *);
+
+typedef enum {FALSE, TRUE} BOOL;
 
 #define MAXMESSAGES 50
 #define DELAYTICKS 1
@@ -53,6 +62,10 @@
 /* ------ integer type for message parameters ----- */
 typedef long PARAM;
 
+enum Condition     {
+    ISRESTORED, ISMINIMIZED, ISMAXIMIZED, ISCLOSING
+};
+
 typedef struct window {
     CLASS class;           /* window class                  */
     char *title;           /* window title                  */
@@ -69,16 +82,16 @@ typedef struct window {
     /* -------------- linked list pointers ---------------- */
     struct window *nextfocus;   /* next window on screen    */
     struct window *prevfocus;   /* previous window on screen*/
-    struct window *nextbuilt;   /* next window built        */
-    struct window *prevbuilt;   /* previous window built    */
 
     int attrib;                 /* Window attributes        */
     char *videosave;            /* video save buffer        */
-    int condition;              /* Restored, Maximized,
+    enum Condition condition;   /* Restored, Maximized,
                                    Minimized, Closing       */
-    int oldcondition;           /* previous condition       */
+    enum Condition oldcondition;/* previous condition       */
     int restored_attrib;        /* attributes when restored */
     void *extension;      /* menus, dialogs, documents, etc */
+	int ChildCt;
+	struct window **Children;
     struct window *PrevMouse;
     struct window *PrevKeyboard;
 	struct window *MenuBarWnd;/* menu bar                   */
@@ -99,23 +112,23 @@ typedef struct window {
 	unsigned int *TextPointers; /* -> list of line offsets	*/
     /* ----------------- list box fields ------------------ */
     int selection;  /* current selection                    */
-    int AddMode;    /* adding extended selections mode      */
+    BOOL AddMode;   /* adding extended selections mode      */
     int AnchorPoint;/* anchor point for extended selections */
     int SelectCount;/* count of selected items              */
     /* ----------------- edit box fields ------------------ */
-    int CurrCol;    /* Current column                       */
-    int CurrLine;   /* Current line                         */
-    int WndRow;     /* Current window row                   */
-    int TextChanged; /* TRUE if text has changed            */
+    int CurrCol;      /* Current column                     */
+    int CurrLine;     /* Current line                       */
+    int WndRow;       /* Current window row                 */
+    BOOL TextChanged; /* TRUE if text has changed           */
     unsigned char *DeletedText; /* for undo                 */
     unsigned DeletedLength; /* Length of deleted field      */
-	int InsertMode;    /* TRUE or FALSE for text insert     */
-	int WordWrapMode;  /* TRUE or FALSE for word wrap       */
+	BOOL InsertMode;   /* TRUE or FALSE for text insert     */
+	BOOL WordWrapMode; /* TRUE or FALSE for word wrap       */
 	unsigned int MaxTextLength; /* maximum text length      */
     /* ---------------- dialog box fields ----------------- */
     void *dFocus;          /* control that has the focus    */
     int ReturnCode;        /* return code from a dialog box */
-	int Modal;		       /* True if a modeless dialog box */
+	BOOL Modal;		       /* True if a modeless dialog box */
 	CTLWINDOW *ct;		   /* control structure             */
 	/* -------------- popdownmenu fields ------------------ */
 	MENU *mnu;		/* points to menu structure             */
@@ -125,7 +138,7 @@ typedef struct window {
 	void *lastword;  /* -> last in list of key words        */
 	void *thisword;  /* -> current in list of key words     */
 	/* -------------- status bar fields ------------------- */
-	int TimePosted;  /* True if time has been posted        */
+	BOOL TimePosted; /* True if time has been posted        */
 #ifdef INCLUDE_PICTUREBOX
 	/* ------------- picture box fields ------------------- */
 	int VectorCount;  /* number of vectors in vector list   */
@@ -135,10 +148,6 @@ typedef struct window {
 
 #include "classdef.h"
 #include "video.h"
-
-enum Condition     {
-    ISRESTORED, ISMINIMIZED, ISMAXIMIZED, ISCLOSING
-};
 
 void LogMessages (WINDOW, MESSAGE, PARAM, PARAM);
 void MessageLog(WINDOW);
@@ -169,18 +178,16 @@ void MessageLog(WINDOW);
 #define GetTitle(w)          ((w)->title)
 #define NextWindow(w)        ((w)->nextfocus)
 #define PrevWindow(w)        ((w)->prevfocus)
-#define NextWindowBuilt(w)   ((w)->nextbuilt)
-#define PrevWindowBuilt(w)   ((w)->prevbuilt)
 #define GetClass(w)          ((w)->class)
 #define GetAttribute(w)      ((w)->attrib)
 #define AddAttribute(w,a)    (GetAttribute(w) |= a)
 #define ClearAttribute(w,a)  (GetAttribute(w) &= ~(a))
 #define TestAttribute(w,a)   (GetAttribute(w) & (a))
-#define isWndVisible(w)      (GetAttribute(w) & VISIBLE)
+#define isHidden(w)          (!(GetAttribute(w) & VISIBLE))
 #define SetVisible(w)        (GetAttribute(w) |= VISIBLE)
 #define ClearVisible(w)      (GetAttribute(w) &= ~VISIBLE)
 #define gotoxy(w,x,y) cursor(w->rc.lf+(x)+1,w->rc.tp+(y)+1)
-int isVisible(WINDOW);
+BOOL isVisible(WINDOW);
 WINDOW CreateWindow(CLASS,char *,int,int,int,int,void*,WINDOW,
        int (*)(struct window *,enum messages,PARAM,PARAM),int);
 void AddTitle(WINDOW, char *);
@@ -188,7 +195,7 @@ void InsertTitle(WINDOW, char *);
 void DisplayTitle(WINDOW, RECT *);
 void RepaintBorder(WINDOW, RECT *);
 void ClearWindow(WINDOW, RECT *, int);
-void writeline(WINDOW, char *, int, int, int);
+void writeline(WINDOW, char *, int, int, BOOL);
 void InitWindowColors(WINDOW);
 
 void SetNextFocus(WINDOW);
@@ -197,8 +204,6 @@ void SkipSystemWindows(int);
 void RemoveFocusWindow(WINDOW);
 void AppendFocusWindow(WINDOW);
 void PrependFocusWindow(WINDOW);
-void RemoveBuiltWindow(WINDOW);
-void AppendBuiltWindow(WINDOW);
 WINDOW GetFirstChild(WINDOW);
 WINDOW GetNextChild(WINDOW, WINDOW);
 WINDOW GetLastChild(WINDOW);
@@ -206,13 +211,14 @@ WINDOW GetPrevChild(WINDOW, WINDOW);
 WINDOW GetFirstFocusChild(WINDOW);
 WINDOW GetNextFocusChild(WINDOW, WINDOW);
 
-int CharInView(WINDOW, int, int);
+BOOL CharInView(WINDOW, int, int);
 void GetVideoBuffer(WINDOW);
 void RestoreVideoBuffer(WINDOW);
 void CreatePath(char *, char *, int, int);
+#define SwapVideoBuffer(wnd) swapvideo(wnd, wnd->videosave)
 int LineLength(char *);
 RECT AdjustRectangle(WINDOW, RECT);
-int isDerivedFrom(WINDOW, CLASS);
+BOOL isDerivedFrom(WINDOW, CLASS);
 WINDOW GetAncestor(WINDOW);
 void PutWindowChar(WINDOW,int,int,int);
 void PutWindowLine(WINDOW, void *,int,int);
@@ -227,22 +233,18 @@ struct LinkedList    {
     WINDOW LastWindow;
 };
 extern struct LinkedList Focus;
-extern struct LinkedList Built;
 extern WINDOW inFocus;
 extern WINDOW CaptureMouse;
 extern WINDOW CaptureKeyboard;
 extern int foreground, background;
-extern int WindowMoving;
-extern int WindowSizing;
-extern int TextMarking;
-extern int VSliding;
-extern int HSliding;
+extern BOOL WindowMoving;
+extern BOOL WindowSizing;
+extern BOOL VSliding;
+extern BOOL HSliding;
+extern char DFlatApplication[];
 extern char *Clipboard;
 extern unsigned ClipboardLength;
-extern int VSliding;
-extern int HSliding;
-extern char DFlatApplication[];
-extern int ClipString;
+extern BOOL ClipString;
 /* --------- space between menubar labels --------- */
 #define MSPACE 2
 /* --------------- border characters ------------- */
@@ -282,10 +284,11 @@ extern int ClipString;
 #define RESETCOLOR   (unsigned char) 175 /* reset colors to default  */
 #define LISTSELECTOR   4    /* selected list box entry      */
 /* --------- message prototypes ----------- */
-void init_messages(void);
+BOOL init_messages(void);
 void PostMessage(WINDOW, MESSAGE, PARAM, PARAM);
 int SendMessage(WINDOW, MESSAGE, PARAM, PARAM);
-int dispatch_message(void);
+BOOL dispatch_message(void);
+void handshake(void);
 int TestCriticalError(void);
 /* ---- standard window message processing prototypes ----- */
 int ApplicationProc(WINDOW, MESSAGE, PARAM, PARAM);
@@ -311,8 +314,8 @@ int CancelBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int ErrorBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int YesNoBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int StatusBarProc(WINDOW, MESSAGE, PARAM, PARAM);
+int WatchIconProc(WINDOW, MESSAGE, PARAM, PARAM);
 /* ------------- normal box prototypes ------------- */
-int isWindow(WINDOW);
 WINDOW inWindow(int, int);
 void SetStandardColor(WINDOW);
 void SetReverseColor(WINDOW);
@@ -346,7 +349,7 @@ void SetReverseColor(WINDOW);
 /* -------- text box prototypes ---------- */
 #define TextLine(wnd, sel) \
       (wnd->text + *((wnd->TextPointers) + sel))
-void WriteTextLine(WINDOW, RECT *, int, int);
+void WriteTextLine(WINDOW, RECT *, int, BOOL);
 void SetAnchor(WINDOW, int, int);
 #define TextBlockMarked(wnd) (  wnd->BlkBegLine ||    \
                                 wnd->BlkEndLine ||    \
@@ -361,9 +364,11 @@ void ClearTextPointers(WINDOW);
 void BuildTextPointers(WINDOW);
 int TextLineNumber(WINDOW, char *);
 /* ------------ Clipboard prototypes ------------- */
+void CopyTextToClipboard(char *);
 void CopyToClipboard(WINDOW);
 #define PasteFromClipboard(wnd) PasteText(wnd,Clipboard,ClipboardLength)
-int PasteText(WINDOW, char *, unsigned);
+BOOL PasteText(WINDOW, char *, unsigned);
+void ClearClipboard(void);
 /* --------- menu prototypes ---------- */
 int CopyCommand(unsigned char *, unsigned char *, int, int);
 void PrepFileMenu(void *, struct Menu *);
@@ -371,28 +376,29 @@ void PrepEditMenu(void *, struct Menu *);
 void PrepSearchMenu(void *, struct Menu *);
 void PrepWindowMenu(void *, struct Menu *);
 void BuildSystemMenu(WINDOW);
-int isActive(MBAR *, int);
+BOOL isActive(MBAR *, int);
 char *GetCommandText(MBAR *, int);
-int isCascadedCommand(MBAR *,int);
+BOOL isCascadedCommand(MBAR *,int);
 void ActivateCommand(MBAR *,int);
 void DeactivateCommand(MBAR *,int);
-int GetCommandToggle(MBAR *,int);
+BOOL GetCommandToggle(MBAR *,int);
 void SetCommandToggle(MBAR *,int);
 void ClearCommandToggle(MBAR *,int);
 void InvertCommandToggle(MBAR *,int);
 int BarSelection(int);
 /* ------------- list box prototypes -------------- */
-int ItemSelected(WINDOW, int);
+BOOL ItemSelected(WINDOW, int);
 /* ------------- edit box prototypes ----------- */
 #define CurrChar (TextLine(wnd, wnd->CurrLine)+wnd->CurrCol)
 #define WndCol   (wnd->CurrCol-wnd->wleft)
-#define isMultiLine(wnd)     TestAttribute(wnd, MULTILINE)
+#define isMultiLine(wnd) TestAttribute(wnd, MULTILINE)
 void SearchText(WINDOW);
 void ReplaceText(WINDOW);
 void SearchNext(WINDOW);
-void ResetEditBox(WINDOW);
 /* --------- message box prototypes -------- */
-int GenericMessage(WINDOW, char *, char *, int,
+WINDOW SliderBox(int, char *, char *);
+BOOL InputBox(WINDOW, char *, char *, char *, int);
+BOOL GenericMessage(WINDOW, char *, char *, int,
 	int (*)(struct window *, enum messages, PARAM, PARAM),
 	char *, char *, int, int, int);
 #define TestErrorMessage(msg)	\
@@ -416,14 +422,15 @@ int MsgHeight(char *);
 int MsgWidth(char *);
 
 /* ------------- dialog box prototypes -------------- */
-int DialogBox(WINDOW, DBOX *, int,
+BOOL DialogBox(WINDOW, DBOX *, BOOL,
        int (*)(struct window *, enum messages, PARAM, PARAM));
-int OpenFileDialogBox(char *, char *);
-int SaveAsDialogBox(char *);
+void ClearDialogBoxes(void);
+BOOL OpenFileDialogBox(char *, char *);
+BOOL SaveAsDialogBox(char *);
 void GetDlgListText(WINDOW, char *, enum commands);
-int DlgDirList(WINDOW, char *, enum commands,
+BOOL DlgDirList(WINDOW, char *, enum commands,
                             enum commands, unsigned);
-int RadioButtonSetting(DBOX *, enum commands);
+BOOL RadioButtonSetting(DBOX *, enum commands);
 void PushRadioButton(DBOX *, enum commands);
 void PutItemText(WINDOW, enum commands, char *);
 void PutComboListText(WINDOW, enum commands, char *);
@@ -432,21 +439,23 @@ char *GetDlgTextString(DBOX *, enum commands, CLASS);
 void SetDlgTextString(DBOX *, enum commands, char *, CLASS);
 void SetCheckBox(DBOX *, enum commands);
 void ClearCheckBox(DBOX *, enum commands);
-int CheckBoxSetting(DBOX *, enum commands);
+BOOL CheckBoxSetting(DBOX *, enum commands);
 CTLWINDOW *FindCommand(DBOX *, enum commands, int);
 WINDOW ControlWindow(DBOX *, enum commands);
 void EnableButton(DBOX *, enum commands);
 void DisableButton(DBOX *, enum commands);
-#define GetControl(wnd) (wnd->ct)
+void SetScrollBars(WINDOW);
 
-#define GetDlgText(db, cmd) GetDlgTextString(db, cmd, TEXT)
-#define GetDlgTextBox(db, cmd) GetDlgTextString(db, cmd, TEXTBOX)
-#define GetEditBoxText(db, cmd) GetDlgTextString(db, cmd, EDITBOX)
-#define GetComboBoxText(db, cmd) GetDlgTextString(db, cmd, COMBOBOX)
-#define SetDlgText(db, cmd, s) SetDlgTextString(db, cmd, s, TEXT)
-#define SetDlgTextBox(db, cmd, s) SetDlgTextString(db, cmd, s, TEXTBOX)
-#define SetEditBoxText(db, cmd, s) SetDlgTextString(db, cmd, s, EDITBOX)
+#define GetControl(wnd)             (wnd->ct)
+#define GetDlgText(db, cmd)         GetDlgTextString(db, cmd, TEXT)
+#define GetDlgTextBox(db, cmd)      GetDlgTextString(db, cmd, TEXTBOX)
+#define GetEditBoxText(db, cmd)     GetDlgTextString(db, cmd, EDITBOX)
+#define GetComboBoxText(db, cmd)    GetDlgTextString(db, cmd, COMBOBOX)
+#define SetDlgText(db, cmd, s)      SetDlgTextString(db, cmd, s, TEXT)
+#define SetDlgTextBox(db, cmd, s)   SetDlgTextString(db, cmd, s, TEXTBOX)
+#define SetEditBoxText(db, cmd, s)  SetDlgTextString(db, cmd, s, EDITBOX)
 #define SetComboBoxText(db, cmd, s) SetDlgTextString(db, cmd, s, COMBOBOX)
+#define SetDlgTitle(db, ttl)        ((db)->dwnd.title = ttl)
 
 /* ---- types of vectors that can be in a picture box ------- */
 enum VectTypes {VECTOR, SOLIDBAR, HEAVYBAR, CROSSBAR, LIGHTBAR};
@@ -455,13 +464,16 @@ enum VectTypes {VECTOR, SOLIDBAR, HEAVYBAR, CROSSBAR, LIGHTBAR};
 void DrawVector(WINDOW, int, int, int, int);
 void DrawBox(WINDOW, int, int, int, int);
 void DrawBar(WINDOW, enum VectTypes, int, int, int, int);
+WINDOW WatchIcon(void);
 
 /* ------------- help box prototypes ------------- */
 void LoadHelpFile(void);
 void UnLoadHelpFile(void);
-int DisplayHelp(WINDOW, char *);
+BOOL DisplayHelp(WINDOW, char *);
 
 extern char *ClassNames[];
+
+void BuildFileName(char *, char *);
 
 #endif
 

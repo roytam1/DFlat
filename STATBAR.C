@@ -32,22 +32,18 @@ int StatusBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 			if (wnd->TimePosted)
 				*(statusbar+WindowWidth(wnd)-8) = '\0';
 			SetStandardColor(wnd);
-    	    wputs(wnd, statusbar, 0, 0);
+    	    PutWindowLine(wnd, statusbar, 0, 0);
 			free(statusbar);
 			return TRUE;
 		case BORDER:
 			return TRUE;
 		case CLOCKTICK:
 			SetStandardColor(wnd);
-			wputs(wnd, (char *)p1, WindowWidth(wnd)-8, 0);
+			PutWindowLine(wnd, (char *)p1, WindowWidth(wnd)-8, 0);
 			wnd->TimePosted = TRUE;
 			return TRUE;
 		case CLOSE_WINDOW:
 			SendMessage(NULL, RELEASE_CLOCK, 0, 0);
-			if (GetText(wnd) != NULL)	{
-				free(GetText(wnd));
-				GetText(wnd) = NULL;
-			}
 			break;
 		default:
 			break;

@@ -17,8 +17,8 @@ static void NextWord(WINDOW);
 static void PrevWord(WINDOW);
 static void ModTextPointers(WINDOW, int, int);
 /* -------- local variables -------- */
-static int KeyBoardMarking, ButtonDown;
-static int TextMarking;
+static BOOL KeyBoardMarking, ButtonDown;
+static BOOL TextMarking;
 static int ButtonX, ButtonY;
 static int PrevY = -1;
 
@@ -29,17 +29,32 @@ static int CreateWindowMsg(WINDOW wnd)
     wnd->MaxTextLength = MAXTEXTLEN+1;
     wnd->textlen = EditBufLen(wnd);
     wnd->InsertMode = TRUE;
-    ResetEditBox(wnd);
+	SendMessage(wnd, CLEARTEXT, 0, 0);
     return rtn;
 }
 /* ----------- SETTEXT Message ---------- */
 static int SetTextMsg(WINDOW wnd, PARAM p1)
 {
     int rtn = FALSE;
-    if (strlen((char *)p1) <= wnd->MaxTextLength)    {
+    if (strlen((char *)p1) <= wnd->MaxTextLength)
         rtn = BaseWndProc(EDITBOX, wnd, SETTEXT, p1, 0);
-        wnd->CurrLine = 0;
-    }
+    return rtn;
+}
+/* ----------- CLEARTEXT Message ------------ */
+static int ClearTextMsg(WINDOW wnd)
+{
+    int rtn = BaseWndProc(EDITBOX, wnd, CLEARTEXT, 0, 0);
+    unsigned blen = EditBufLen(wnd)+2;
+    wnd->text = realloc(wnd->text, blen);
+    memset(wnd->text, 0, blen);
+    wnd->wlines = 0;
+    wnd->CurrLine = 0;
+    wnd->CurrCol = 0;
+    wnd->WndRow = 0;
+    wnd->wleft = 0;
+    wnd->wtop = 0;
+    wnd->textwidth = 0;
+    wnd->TextChanged = FALSE;
     return rtn;
 }
 /* ----------- ADDTEXT Message ---------- */
@@ -95,17 +110,17 @@ static int SetTextLengthMsg(WINDOW wnd, unsigned int len)
     return FALSE;
 }
 /* ----------- KEYBOARD_CURSOR Message ---------- */
-static int KeyboardCursorMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static void KeyboardCursorMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int rtn;
     wnd->CurrCol = (int)p1 + wnd->wleft;
     wnd->WndRow = (int)p2;
     wnd->CurrLine = (int)p2 + wnd->wtop;
-    rtn = BaseWndProc(EDITBOX, wnd, KEYBOARD_CURSOR, p1, p2);
-    if (wnd == inFocus && CharInView(wnd, (int)p1, (int)p2))
-        SendMessage(NULL, SHOW_CURSOR, wnd->InsertMode, 0);
-    else SendMessage(NULL, HIDE_CURSOR, 0, 0);
-    return rtn;
+    if (wnd == inFocus)	{
+		if (CharInView(wnd, (int)p1, (int)p2))
+	        SendMessage(NULL, SHOW_CURSOR, wnd->InsertMode, 0);
+    	else
+			SendMessage(NULL, HIDE_CURSOR, 0, 0);
+	}
 }
 /* ----------- SIZE Message ---------- */
 int SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
@@ -442,17 +457,17 @@ static int DoScrolling(WINDOW wnd, int c, PARAM p2)
     return TRUE;
 }
 /* -------------- Del key ---------------- */
-static int DelKey(WINDOW wnd)
+static void DelKey(WINDOW wnd)
 {
     char *currchar = CurrChar;
     int repaint = *currchar == '\n';
     if (TextBlockMarked(wnd))    {
         SendMessage(wnd, COMMAND, ID_DELETETEXT, 0);
         SendMessage(wnd, PAINT, 0, 0);
-        return TRUE;
+        return;
     }
-    if (*(currchar+1) == '\0')
-        return TRUE;
+    if (isMultiLine(wnd) && *(currchar+1) == '\0')
+        return;
     strcpy(currchar, currchar+1);
     if (repaint)    {
         BuildTextPointers(wnd);
@@ -463,10 +478,9 @@ static int DelKey(WINDOW wnd)
         WriteTextLine(wnd, NULL, wnd->WndRow+wnd->wtop, FALSE);
     }
     wnd->TextChanged = TRUE;
-    return FALSE;
 }
 /* ------------ Tab key ------------ */
-static int TabKey(WINDOW wnd, PARAM p2)
+static void TabKey(WINDOW wnd, PARAM p2)
 {
     if (isMultiLine(wnd))    {
         int insmd = wnd->InsertMode;
@@ -478,13 +492,12 @@ static int TabKey(WINDOW wnd, PARAM p2)
                 break;
             SendMessage(wnd,KEYBOARD,insmd ? ' ' : FWD,0);
         } while (wnd->CurrCol % cfg.Tabs);
-        return TRUE;
     }
-    PostMessage(GetParent(wnd), KEYBOARD, '\t', p2);
-    return FALSE;
+	else
+	    PostMessage(GetParent(wnd), KEYBOARD, '\t', p2);
 }
 /* ------------ Shift+Tab key ------------ */
-static int ShiftTabKey(WINDOW wnd, PARAM p2)
+static void ShiftTabKey(WINDOW wnd, PARAM p2)
 {
     if (isMultiLine(wnd))    {
         do  {
@@ -492,10 +505,9 @@ static int ShiftTabKey(WINDOW wnd, PARAM p2)
                 break;
             SendMessage(wnd,KEYBOARD,BS,0);
         } while (wnd->CurrCol % cfg.Tabs);
-        return TRUE;
     }
-    PostMessage(GetParent(wnd), KEYBOARD, SHIFT_HT, p2);
-    return FALSE;
+	else
+	    PostMessage(GetParent(wnd), KEYBOARD, SHIFT_HT, p2);
 }
 /* --------- All displayable typed keys ------------- */
 static void KeyTyped(WINDOW wnd, int c)
@@ -505,16 +517,16 @@ static void KeyTyped(WINDOW wnd, int c)
         /* ---- not recognized by editor --- */
         return;
     if (!isMultiLine(wnd) && TextBlockMarked(wnd))    {
-        ResetEditBox(wnd);
+		SendMessage(wnd, CLEARTEXT, 0, 0);
         currchar = CurrChar;
     }
+    /* ---- test typing at end of text ---- */
+    if (currchar == wnd->text+wnd->MaxTextLength)    {
+        /* ---- typing at the end of maximum buffer ---- */
+        beep();
+        return;
+    }
     if (*currchar == '\0')    {
-        /* ---- typing at end of text ---- */
-        if (currchar == wnd->text+wnd->MaxTextLength)    {
-            /* ---- typing at the end of maximum buffer ---- */
-            beep();
-            return;
-        }
         /* --- insert a newline at end of text --- */
         *currchar = '\n';
         *(currchar+1) = '\0';
@@ -564,29 +576,33 @@ static void KeyTyped(WINDOW wnd, int c)
     }
     /* ---------- test end of window --------- */
     if (WndCol == ClientWidth(wnd)-1)    {
-        int dif;
-        char *cp = currchar;
-        while (*cp != ' ' && cp != TextLine(wnd, wnd->CurrLine))
-            --cp;
-        if (!isMultiLine(wnd) ||
-            cp == TextLine(wnd, wnd->CurrLine) ||
-                !wnd->WordWrapMode)
-            SendMessage(wnd, HORIZSCROLL, TRUE, 0);
-        else    {
-            dif = 0;
-            if (c != ' ')    {
-                dif = (int) (currchar - cp);
-                wnd->CurrCol -= dif;
-                SendMessage(wnd, KEYBOARD, DEL, 0);
-                --dif;
-            }
-            SendMessage(wnd, KEYBOARD, '\r', 0);
-            currchar = CurrChar;
-            wnd->CurrCol = dif;
-            if (c == ' ')
-                return;
-        }
-    }
+        if (!isMultiLine(wnd))	{
+				if (!(currchar == wnd->text+wnd->MaxTextLength-2))
+	            SendMessage(wnd, HORIZSCROLL, TRUE, 0);
+		}
+		else	{
+			char *cp = currchar;
+	        while (*cp != ' ' && cp != TextLine(wnd, wnd->CurrLine))
+	            --cp;
+	        if (cp == TextLine(wnd, wnd->CurrLine) ||
+	                !wnd->WordWrapMode)
+	            SendMessage(wnd, HORIZSCROLL, TRUE, 0);
+	        else    {
+	            int dif = 0;
+	            if (c != ' ')    {
+	                dif = (int) (currchar - cp);
+	                wnd->CurrCol -= dif;
+	                SendMessage(wnd, KEYBOARD, DEL, 0);
+	                --dif;
+	            }
+	            SendMessage(wnd, KEYBOARD, '\r', 0);
+	            currchar = CurrChar;
+	            wnd->CurrCol = dif;
+	            if (c == ' ')
+	                return;
+	        }
+	    }
+	}
     /* ------ display the character ------ */
     SetStandardColor(wnd);
     PutWindowChar(wnd, c, WndCol, wnd->WndRow);
@@ -594,22 +610,21 @@ static void KeyTyped(WINDOW wnd, int c)
     wnd->CurrCol++;
 }
 /* ------------ screen changing key strokes ------------- */
-static int DoKeyStroke(WINDOW wnd, int c, PARAM p2)
+static void DoKeyStroke(WINDOW wnd, int c, PARAM p2)
 {
     switch (c)    {
         case RUBOUT:
+			if (wnd->CurrCol == 0 && wnd->CurrLine == 0)
+				break;
             Backward(wnd);
         case DEL:
-            if (DelKey(wnd))
-                return TRUE;
+            DelKey(wnd);
             break;
         case SHIFT_HT:
-            if (ShiftTabKey(wnd, p2))
-                return TRUE;
+            ShiftTabKey(wnd, p2);
             break;
         case '\t':
-            if (TabKey(wnd, p2))
-                return TRUE;
+            TabKey(wnd, p2);
             break;
         case '\r':
             if (!isMultiLine(wnd))    {
@@ -625,7 +640,6 @@ static int DoKeyStroke(WINDOW wnd, int c, PARAM p2)
             KeyTyped(wnd, c);
             break;
     }
-    return FALSE;
 }
 /* ----------- KEYBOARD Message ---------- */
 static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
@@ -755,8 +769,6 @@ static void ParagraphCmd(WINDOW wnd)
     int bc, ec, fl, el, Blocked;
     char *bl, *bbl, *bel, *bb;
 
-    el = wnd->BlkEndLine;
-    ec = wnd->BlkEndCol;
     if (!TextBlockMarked(wnd))    {
         Blocked = FALSE;
         /* ---- forming paragraph from cursor position --- */
@@ -794,11 +806,12 @@ static void ParagraphCmd(WINDOW wnd)
     else    {
         /* ---- forming paragraph from marked block --- */
         Blocked = TRUE;
+	    el = wnd->BlkEndLine;
+    	ec = wnd->BlkEndCol;
         bbl = TextLine(wnd, wnd->BlkBegLine) + wnd->BlkBegCol;
         bel = TextLine(wnd, wnd->BlkEndLine) + wnd->BlkEndCol;
-        fl = wnd->BlkBegLine;
+        fl = wnd->CurrLine = wnd->BlkBegLine;
         bc = wnd->CurrCol = wnd->BlkBegCol;
-        wnd->CurrLine = fl;
         if (fl < wnd->wtop)
             wnd->wtop = fl;
         wnd->WndRow = fl - wnd->wtop;
@@ -908,16 +921,17 @@ int EditBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case SETTEXT:
             return SetTextMsg(wnd, p1);
         case CLEARTEXT:
-            rtn = BaseWndProc(EDITBOX, wnd, msg, p1, p2);
-            ResetEditBox(wnd);
-            return rtn;
+			return ClearTextMsg(wnd);
         case GETTEXT:
             return GetTextMsg(wnd, p1, p2);
         case SETTEXTLENGTH:
             return SetTextLengthMsg(wnd, (unsigned) p1);
         case KEYBOARD_CURSOR:
-            return KeyboardCursorMsg(wnd, p1, p2);
+            KeyboardCursorMsg(wnd, p1, p2);
+			return TRUE;
         case SETFOCUS:
+			if (!(int)p1)
+				SendMessage(NULL, HIDE_CURSOR, 0, 0);
         case PAINT:
         case MOVE:
             rtn = BaseWndProc(EDITBOX, wnd, msg, p1, p2);
@@ -1010,8 +1024,9 @@ static void Downward(WINDOW wnd)
             wnd->WndRow+wnd->wtop+1 < wnd->wlines)  {
         wnd->CurrLine++;
         if (wnd->WndRow == ClientHeight(wnd)-1)
-            SendMessage(wnd, SCROLL, TRUE, 0);
-        wnd->WndRow++;
+            BaseWndProc(EDITBOX, wnd, SCROLL, TRUE, 0);
+        else
+            wnd->WndRow++;
         StickEnd(wnd);
     }
 }
@@ -1019,11 +1034,11 @@ static void Downward(WINDOW wnd)
 static void Upward(WINDOW wnd)
 {
     if (isMultiLine(wnd) && wnd->CurrLine != 0)    {
-        if (wnd->CurrLine > 0)
-            --wnd->CurrLine;
+        --wnd->CurrLine;
         if (wnd->WndRow == 0)
-            SendMessage(wnd, SCROLL, FALSE, 0);
-        --wnd->WndRow;
+            BaseWndProc(EDITBOX, wnd, SCROLL, FALSE, 0);
+        else
+            --wnd->WndRow;
         StickEnd(wnd);
     }
 }
@@ -1031,9 +1046,9 @@ static void Upward(WINDOW wnd)
 static void Backward(WINDOW wnd)
 {
     if (wnd->CurrCol)    {
-        if (wnd->CurrCol-- <= wnd->wleft)
-            if (wnd->wleft != 0)
-                SendMessage(wnd, HORIZSCROLL, FALSE, 0);
+        --wnd->CurrCol;
+        if (wnd->CurrCol < wnd->wleft)
+            SendMessage(wnd, HORIZSCROLL, FALSE, 0);
     }
     else if (isMultiLine(wnd) && wnd->CurrLine != 0)    {
         Upward(wnd);
@@ -1094,11 +1109,8 @@ static void PrevWord(WINDOW wnd)
             break;
         Backward(wnd);
     }
-    while (!isWhite(*CurrChar))    {
-        if (wnd->CurrLine == 0 && wnd->CurrCol == 0)
-            break;
+    while (wnd->CurrCol != 0 && !isWhite(*CurrChar))
         Backward(wnd);
-    }
     if (isWhite(*CurrChar))
         Forward(wnd);
     SetVisible(wnd);
@@ -1109,23 +1121,6 @@ static void PrevWord(WINDOW wnd)
     SendMessage(wnd, KEYBOARD_CURSOR, WndCol, wnd->WndRow);
     if (wnd->wtop != savetop || wnd->wleft != saveleft)
         SendMessage(wnd, PAINT, 0, 0);
-}
-/* ----- reset the text attributes of an EDITBOX ------- */
-void ResetEditBox(WINDOW wnd)
-{
-    unsigned blen = EditBufLen(wnd)+2;
-    wnd->text = realloc(wnd->text, blen);
-    memset(wnd->text, 0, blen);
-    wnd->wlines = 0;
-    wnd->CurrLine = 0;
-    wnd->CurrCol = 0;
-    wnd->WndRow = 0;
-    wnd->wleft = 0;
-    wnd->wtop = 0;
-    wnd->textwidth = 0;
-    wnd->TextChanged = FALSE;
-    ClearTextPointers(wnd);
-    ClearTextBlock(wnd);
 }
 /* ----- modify text pointers from a specified position
                 by a specified plus or minus amount ----- */

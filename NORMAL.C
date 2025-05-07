@@ -7,7 +7,7 @@ static void near PaintOverLappers(WINDOW wnd);
 static void near PaintUnderLappers(WINDOW wnd);
 #endif
 
-static int InsideWindow(WINDOW, int, int);
+static BOOL InsideWindow(WINDOW, int, int);
 static void TerminateMoveSize(void);
 static void SaveBorder(RECT);
 static void RestoreBorder(RECT);
@@ -18,13 +18,13 @@ static void near dragborder(WINDOW, int, int);
 static void near sizeborder(WINDOW, int, int);
 static int px = -1, py = -1;
 static int diff;
-static int conditioning;
+static BOOL conditioning;
 static struct window dwnd = {DUMMY, NULL, NULL, NormalProc,
                                 {-1,-1,-1,-1}};
 static int *Bsave;
 static int Bht, Bwd;
-int WindowMoving;
-int WindowSizing;
+BOOL WindowMoving;
+BOOL WindowSizing;
 /* -------- array of class definitions -------- */
 CLASSDEFS classdefs[] = {
     #undef ClassDef
@@ -33,46 +33,62 @@ CLASSDEFS classdefs[] = {
 };
 WINDOW HiddenWindow;
 
+/* --------- CREATE_WINDOW Message ---------- */
 static void CreateWindowMsg(WINDOW wnd)
 {
-    AppendBuiltWindow(wnd);  /* add to the lists */
+    WINDOW pwnd = GetParent(wnd);
     AppendFocusWindow(wnd);
     if (!SendMessage(NULL, MOUSE_INSTALLED, 0, 0))
         ClearAttribute(wnd, VSCROLLBAR | HSCROLLBAR);
     if (TestAttribute(wnd, SAVESELF) && isVisible(wnd))
         GetVideoBuffer(wnd);
+    if (pwnd != NULL)    {
+        pwnd->Children = realloc(pwnd->Children,
+            sizeof(WINDOW) * (pwnd->ChildCt+1));
+        *(pwnd->Children+pwnd->ChildCt++) = wnd;
+    }
 }
 
+/* --------- SHOW_WINDOW Message ---------- */
 static void ShowWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    if ((GetParent(wnd) == NULL ||
-                isVisible(GetParent(wnd)))
-                    && !conditioning)    {
-        WINDOW cwnd = Focus.FirstWindow;
-        if (TestAttribute(wnd, SAVESELF) &&
-                        wnd->videosave == NULL)
-            GetVideoBuffer(wnd);
+    if ((GetParent(wnd) == NULL || isVisible(GetParent(wnd))) &&
+            !conditioning)    {
+	    BOOL wasVisible = isVisible(wnd);
+        WINDOW cwnd;
+        int i;
         SetVisible(wnd);
+        if (TestAttribute(wnd, SAVESELF) && !wasVisible)	{
+			if (wnd->videosave != NULL)	{
+	            SwapVideoBuffer(wnd);
+				return;
+			}
+			else 
+	            GetVideoBuffer(wnd);
+		}
         SendMessage(wnd, PAINT, 0, TRUE);
         SendMessage(wnd, BORDER, 0, 0);
         /* --- show the children of this window --- */
-        while (cwnd != NULL)    {
-            if (GetParent(cwnd) == wnd &&
-                    cwnd->condition != ISCLOSING &&
-						isVisible(cwnd))
+        for (i = 0; i < wnd->ChildCt; i++)    {
+            cwnd = *(wnd->Children + i);
+            if (cwnd->condition != ISCLOSING)
                 SendMessage(cwnd, SHOW_WINDOW, p1, p2);
-            cwnd = NextWindow(cwnd);
         }
     }
 }
 
-static void HideWindowMsg(WINDOW wnd)
+/* --------- HIDE_WINDOW Message ---------- */
+static void HideWindowMsg(WINDOW wnd, BOOL FullHide)
 {
     if (isVisible(wnd) && !conditioning)    {
         ClearVisible(wnd);
         /* --- paint what this window covered --- */
-        if (wnd->videosave != NULL)
-            RestoreVideoBuffer(wnd);
+        if (wnd->videosave != NULL)	{
+			if (FullHide)
+	            RestoreVideoBuffer(wnd);
+			else
+	            SwapVideoBuffer(wnd);
+		}
 #ifdef INCLUDE_MULTI_WINDOWS
         else
             PaintOverLappers(wnd);
@@ -80,7 +96,8 @@ static void HideWindowMsg(WINDOW wnd)
     }
 }
 
-static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
+/* --------- KEYBOARD Message ---------- */
+static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     if (WindowMoving || WindowSizing)    {
         /* -- move or size a window with keyboard -- */
@@ -134,9 +151,10 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         default:
             break;
     }
-	return FALSE;
+    return FALSE;
 }
 
+/* --------- COMMAND Message ---------- */
 static void CommandMsg(WINDOW wnd, PARAM p1)
 {
     switch ((int)p1)    {
@@ -188,61 +206,56 @@ static void CommandMsg(WINDOW wnd, PARAM p1)
 
 static void ReFocus(WINDOW wnd, WINDOW Self)
 {
-	WINDOW pwnd = GetParent(wnd);
-    WINDOW cwnd = Built.FirstWindow;
-	/* refocus all ancestors down to but not including APPLICATION */
-	if (Self != (WINDOW)-1 && pwnd != NULL)
-		if (GetClass(pwnd) != APPLICATION)
-			ReFocus(pwnd, wnd);
-	/* refocus all children of this window */
-   	while (cwnd != NULL)    {
-		if (cwnd != Self && GetParent(cwnd) == wnd)
-			ReFocus(cwnd, (WINDOW) -1);
-    	cwnd = NextWindowBuilt(cwnd);
-	}
+    WINDOW pwnd = GetParent(wnd);
+    WINDOW cwnd;
+    int i;
+    if (GetClass(wnd) != POPDOWNMENU)    {
+        /* refocus all ancestors down to but not including APPLICATION */
+        if (Self != (WINDOW)-1 && pwnd != NULL)
+            if (GetClass(pwnd) != APPLICATION)
+                ReFocus(pwnd, wnd);
+        /* refocus all children of this window */
+           for (i = 0; i < wnd->ChildCt; i++)    {
+               cwnd = *(wnd->Children+i);
+               if (cwnd != Self)
+                   ReFocus(cwnd, (WINDOW) -1);
+        }
+    }
     /* remove window from Focus list */
-   	RemoveFocusWindow(wnd);
+    RemoveFocusWindow(wnd);
     /* move window to end of Focus list */
     AppendFocusWindow(wnd);
 }
 
+/* --------- SETFOCUS Message ---------- */
 static void SetFocusMsg(WINDOW wnd, PARAM p1)
 {
     if (p1 && inFocus != wnd)    {
         /* ---- setting focus ------ */
         WINDOW pwnd = GetParent(wnd);
         int Redraw = !TestAttribute(wnd, SAVESELF) && isVisible(wnd);
-		AddAttribute(wnd, VISIBLE);
+        AddAttribute(wnd, VISIBLE);
 #ifdef INCLUDE_MULTI_WINDOWS
-        if (GetClass(pwnd) == APPLICATION)    {
-            WINDOW cwnd = Focus.FirstWindow;
-            /* -- if no children, do not need selective
-                redraw --- */
-            while (cwnd != NULL)    {
-                if (GetParent(cwnd) == wnd)
-                    break;
-                cwnd = NextWindow(cwnd);
-            }
-            if (cwnd == NULL)
+        if (GetClass(pwnd) == APPLICATION)
+            /* -- if no children, do not need selective redraw --- */
+            if (wnd->ChildCt == 0)
                 Redraw = FALSE;
-        }
 #endif
         SendMessage(inFocus, SETFOCUS, FALSE, 0);
-
         inFocus = wnd;
-
-        if (Redraw)	{
+        if (Redraw)    {
 #ifdef INCLUDE_MULTI_WINDOWS
             PaintUnderLappers(GetAncestor(wnd));
 #endif
-			ReFocus(wnd, NULL);
+            ReFocus(wnd, NULL);
             SendMessage(wnd, BORDER, 0, 0);
-		}
+        }
         else    {
-			ReFocus(wnd, NULL);
-            if (pwnd == NULL ||
-                isDerivedFrom(pwnd, DIALOG) ||
-					isDerivedFrom(pwnd, APPLICATION))
+            ReFocus(wnd, NULL);
+            if (GetClass(wnd) == POPDOWNMENU ||
+                pwnd == NULL ||
+                    isDerivedFrom(pwnd, DIALOG) ||
+                        isDerivedFrom(pwnd, APPLICATION))
                 SendMessage(wnd, SHOW_WINDOW, 0, 0);
             else
                 SendMessage(pwnd, SHOW_WINDOW, 0, 0);
@@ -255,6 +268,7 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
     }
 }
 
+/* --------- DOUBLE_CLICK Message ---------- */
 static void DoubleClickMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     int mx = (int) p1 - GetLeft(wnd);
@@ -264,6 +278,7 @@ static void DoubleClickMsg(WINDOW wnd, PARAM p1, PARAM p2)
             PostMessage(wnd, CLOSE_WINDOW, 0, 0);
 }
 
+/* --------- LEFT_BUTTON Message ---------- */
 static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     int mx = (int) p1 - GetLeft(wnd);
@@ -300,7 +315,7 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
         }
 #ifdef INCLUDE_MAXIMIZE
         if (wnd->condition == ISMAXIMIZED)
-			return;
+            return;
 #endif
         if (TestAttribute(wnd, MOVEABLE))    {
             WindowMoving = TRUE;
@@ -318,14 +333,14 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
         /* ------- hit the resize corner ------- */
 #ifdef INCLUDE_MINIMIZE
         if (wnd->condition == ISMINIMIZED)
-			return;
+            return;
 #endif
         if (!TestAttribute(wnd, SIZEABLE))
             return;
 #ifdef INCLUDE_MAXIMIZE
         if (wnd->condition == ISMAXIMIZED)    {
-			if (GetParent(wnd) == NULL)
-				return;
+            if (GetParent(wnd) == NULL)
+                return;
             if (TestAttribute(GetParent(wnd),HASBORDER))
                 return;
             /* ----- resizing a maximized window over a
@@ -340,7 +355,8 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
     }
 }
 
-static int MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
+/* --------- MOUSE_MOVED Message ---------- */
+static BOOL MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     if (WindowMoving)    {
         int leftmost = 0, topmost = 0,
@@ -379,6 +395,7 @@ static int MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 #ifdef INCLUDE_MAXIMIZE
+/* --------- MAXIMIZE Message ---------- */
 static void MaximizeMsg(WINDOW wnd)
 {
     RECT rc = {0, 0, 0, 0};
@@ -388,9 +405,9 @@ static void MaximizeMsg(WINDOW wnd)
     rc.bt = SCREENHEIGHT-1;
     if (GetParent(wnd))
         rc = ClientRect(GetParent(wnd));
-	wnd->oldcondition = wnd->condition;
+    wnd->oldcondition = wnd->condition;
     wnd->condition = ISMAXIMIZED;
-    SendMessage(wnd, HIDE_WINDOW, 0, 0);
+    SendMessage(wnd, HIDE_WINDOW, TRUE, 0);
     conditioning = TRUE;
     SendMessage(wnd, MOVE,
         RectLeft(rc), RectTop(rc));
@@ -406,6 +423,7 @@ static void MaximizeMsg(WINDOW wnd)
 #endif
 
 #ifdef INCLUDE_MINIMIZE
+/* --------- MINIMIZE Message ---------- */
 static void MinimizeMsg(WINDOW wnd)
 {
     RECT rc;
@@ -413,9 +431,9 @@ static void MinimizeMsg(WINDOW wnd)
 
     holdrc = wnd->RestoredRC;
     rc = PositionIcon(wnd);
-	wnd->oldcondition = wnd->condition;
+    wnd->oldcondition = wnd->condition;
     wnd->condition = ISMINIMIZED;
-    SendMessage(wnd, HIDE_WINDOW, 0, 0);
+    SendMessage(wnd, HIDE_WINDOW, TRUE, 0);
     conditioning = TRUE;
     SendMessage(wnd, MOVE,
         RectLeft(rc), RectTop(rc));
@@ -434,13 +452,14 @@ static void MinimizeMsg(WINDOW wnd)
 #endif
 
 #ifdef INCLUDE_RESTORE
+/* --------- RESTORE Message ---------- */
 static void RestoreMsg(WINDOW wnd)
 {
     RECT holdrc;
     holdrc = wnd->RestoredRC;
-	wnd->oldcondition = wnd->condition;
+    wnd->oldcondition = wnd->condition;
     wnd->condition = ISRESTORED;
-    SendMessage(wnd, HIDE_WINDOW, 0, 0);
+    SendMessage(wnd, HIDE_WINDOW, TRUE, 0);
     wnd->attrib = wnd->restored_attrib;
     wnd->restored_attrib = 0;
     conditioning = TRUE;
@@ -455,12 +474,14 @@ static void RestoreMsg(WINDOW wnd)
 }
 #endif
 
+/* --------- MOVE Message ---------- */
 static void MoveMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    WINDOW wnd1 = Focus.FirstWindow;
-    int wasVisible = isVisible(wnd);
+    WINDOW cwnd;
+    BOOL wasVisible = isVisible(wnd);
     int xdif = (int) p1 - wnd->rc.lf;
     int ydif = (int) p2 - wnd->rc.tp;
+    int i;
 
     if (xdif == 0 && ydif == 0)
         return;
@@ -472,20 +493,20 @@ static void MoveMsg(WINDOW wnd, PARAM p1, PARAM p2)
     wnd->rc.bt = GetTop(wnd)+WindowHeight(wnd)-1;
     if (wnd->condition == ISRESTORED)
         wnd->RestoredRC = wnd->rc;
-    while (wnd1 != NULL)    {
-        if (GetParent(wnd1) == wnd)
-            SendMessage(wnd1, MOVE,
-                wnd1->rc.lf+xdif, wnd1->rc.tp+ydif);
-        wnd1 = NextWindow(wnd1);
+    for (i = 0; i < wnd->ChildCt; i++)    {
+        cwnd = *(wnd->Children + i);
+        SendMessage(cwnd, MOVE, cwnd->rc.lf+xdif, cwnd->rc.tp+ydif);
     }
     if (wasVisible)
         SendMessage(wnd, SHOW_WINDOW, 0, 0);
 }
 
+/* --------- SIZE Message ---------- */
 static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    int wasVisible = isVisible(wnd);
-    WINDOW wnd1 = Focus.FirstWindow;
+    BOOL wasVisible = isVisible(wnd);
+    WINDOW cwnd;
+    int i;
     RECT rc;
     int xdif = (int) p1 - wnd->rc.rt;
     int ydif = (int) p2 - wnd->rc.bt;
@@ -493,7 +514,7 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
     if (xdif == 0 && ydif == 0)
         return;
     if (wasVisible)
-        SendMessage(wnd, HIDE_WINDOW, 0, 0);
+        SendMessage(wnd, HIDE_WINDOW, TRUE, 0);
     wnd->rc.rt = (int) p1;
     wnd->rc.bt = (int) p2;
     wnd->ht = GetBottom(wnd)-GetTop(wnd)+1;
@@ -504,52 +525,39 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
 
     rc = ClientRect(wnd);
 #ifdef INCLUDE_MAXIMIZE
-    while (wnd1 != NULL)    {
-        if (GetParent(wnd1) == wnd &&
-                wnd1->condition == ISMAXIMIZED)
-            SendMessage(wnd1, SIZE, RectRight(rc),
-                                    RectBottom(rc));
-        wnd1 = NextWindow(wnd1);
+    for (i = 0; i < wnd->ChildCt; i++)    {
+        cwnd = *(wnd->Children + i);
+        if (cwnd->condition == ISMAXIMIZED)
+            SendMessage(cwnd, SIZE, RectRight(rc), RectBottom(rc));
     }
 #endif
     if (wasVisible)
         SendMessage(wnd, SHOW_WINDOW, 0, 0);
 }
 
+/* --------- CLOSE_WINDOW Message ---------- */
 static void CloseWindowMsg(WINDOW wnd)
 {
-    int DoneClosing = FALSE;
+    WINDOW pwnd = GetParent(wnd);
     wnd->condition = ISCLOSING;
     if (wnd->PrevMouse != NULL)
         SendMessage(wnd, RELEASE_MOUSE, 0, 0);
     if (wnd->PrevKeyboard != NULL)
         SendMessage(wnd, RELEASE_KEYBOARD, 0, 0);
     /* ----------- hide this window ------------ */
-    SendMessage(wnd, HIDE_WINDOW, 0, 0);
+    SendMessage(wnd, HIDE_WINDOW, TRUE, 0);
     /* --- close the children of this window --- */
-    while (!DoneClosing)    {
-        WINDOW wnd1 = Focus.LastWindow;
-        DoneClosing = TRUE;
-        while (wnd1 != NULL)    {
-            WINDOW prwnd = PrevWindow(wnd1);
-            if (GetParent(wnd1) == wnd)    {
-                if (inFocus == wnd1)    {
-                    RemoveFocusWindow(wnd);
-                    AppendFocusWindow(wnd);
-                    inFocus = wnd;
-                }
-                SendMessage(wnd1,CLOSE_WINDOW,0,0);
-                DoneClosing = FALSE;
-                break;
-            }
-            wnd1 = prwnd;
+    while (wnd->ChildCt)    {
+        WINDOW wnd1 = *(wnd->Children+wnd->ChildCt-1);
+        if (inFocus == wnd1)    {
+            RemoveFocusWindow(wnd);
+            AppendFocusWindow(wnd);
+            inFocus = wnd;
         }
+        SendMessage(wnd1,CLOSE_WINDOW,0,0);
     }
     /* --- change focus if this window had it -- */
     SetPrevFocus(wnd);
-    /* ------- remove this window from the
-            list of open windows ------------- */
-    RemoveBuiltWindow(wnd);
     /* ------- remove this window from the
             list of in-focus windows ---------- */
     RemoveFocusWindow(wnd);
@@ -558,20 +566,39 @@ static void CloseWindowMsg(WINDOW wnd)
         free(wnd->title);
     if (wnd->videosave != NULL)
         free(wnd->videosave);
+    if (wnd->ChildCt)
+        free(wnd->Children);
+    /* -- remove window from parent's list of children -- */
+    if (pwnd != NULL && pwnd->ChildCt)    {
+        int i;
+        for (i = pwnd->ChildCt; i > 0; --i)
+            if (*(pwnd->Children+i-1) == wnd)    {
+                --i;
+                break;
+            }
+        for (; i < pwnd->ChildCt; i++)    
+            *(pwnd->Children+i) = *(pwnd->Children+i+1);
+        pwnd->ChildCt--;
+        pwnd->Children = realloc(pwnd->Children,
+            sizeof(WINDOW) * pwnd->ChildCt);
+    }
+    if (wnd == inFocus)
+        inFocus = NULL;
     free(wnd);
 }
 
+/* ---- Window-processing module for NORMAL window class ---- */
 int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     switch (msg)    {
         case CREATE_WINDOW:
-			CreateWindowMsg(wnd);
+            CreateWindowMsg(wnd);
             break;
         case SHOW_WINDOW:
-			ShowWindowMsg(wnd, p1, p2);
+            ShowWindowMsg(wnd, p1, p2);
             break;
         case HIDE_WINDOW:
-			HideWindowMsg(wnd);
+            HideWindowMsg(wnd, (BOOL) p1);
             break;
         case DISPLAY_HELP:
             DisplayHelp(wnd, (char *)p1);
@@ -579,8 +606,8 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case INSIDE_WINDOW:
             return InsideWindow(wnd, (int) p1, (int) p2);
         case KEYBOARD:
-			if (KeyboardMsg(wnd, p1, p2))
-				return TRUE;
+            if (KeyboardMsg(wnd, p1, p2))
+                return TRUE;
             /* ------- fall through ------- */
         case ADDSTATUS:
         case SHIFT_CHANGED:
@@ -597,25 +624,23 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                     RepaintBorder(wnd, (RECT *)p1);
                 else if (TestAttribute(wnd, HASTITLEBAR))
                     DisplayTitle(wnd, (RECT *)p1);
-                if (wnd->StatusBar != NULL)
-                    SendMessage(wnd->StatusBar, PAINT, p1, 0);
             }
             break;
         case COMMAND:
-			CommandMsg(wnd, p1);
+            CommandMsg(wnd, p1);
             break;
         case SETFOCUS:
-			SetFocusMsg(wnd, p1);
+            SetFocusMsg(wnd, p1);
             break;
         case DOUBLE_CLICK:
-			DoubleClickMsg(wnd, p1, p2);
+            DoubleClickMsg(wnd, p1, p2);
             break;
         case LEFT_BUTTON:
-			LeftButtonMsg(wnd, p1, p2);
+            LeftButtonMsg(wnd, p1, p2);
             break;
         case MOUSE_MOVED:
-			if (MouseMovedMsg(wnd, p1, p2))
-				return TRUE;
+            if (MouseMovedMsg(wnd, p1, p2))
+                return TRUE;
             break;
         case BUTTON_RELEASED:
             if (WindowMoving || WindowSizing)    {
@@ -628,37 +653,37 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             break;
 #ifdef INCLUDE_MAXIMIZE
         case MAXIMIZE:
-		    if (wnd->condition != ISMAXIMIZED)
-				MaximizeMsg(wnd);
+            if (wnd->condition != ISMAXIMIZED)
+                MaximizeMsg(wnd);
             break;
 #endif
 #ifdef INCLUDE_MINIMIZE
         case MINIMIZE:
             if (wnd->condition != ISMINIMIZED)
-				MinimizeMsg(wnd);
+                MinimizeMsg(wnd);
             break;
 #endif
 #ifdef INCLUDE_RESTORE
         case RESTORE:
             if (wnd->condition != ISRESTORED)    {
 #ifdef INCLUDE_MAXIMIZE
-				if (wnd->oldcondition == ISMAXIMIZED)
-					SendMessage(wnd, MAXIMIZE, 0, 0);
-				else
+                if (wnd->oldcondition == ISMAXIMIZED)
+                    SendMessage(wnd, MAXIMIZE, 0, 0);
+                else
 #endif
-					RestoreMsg(wnd);
+                    RestoreMsg(wnd);
             }
             break;
 #endif
         case MOVE:
-			MoveMsg(wnd, p1, p2);
+            MoveMsg(wnd, p1, p2);
             break;
         case SIZE:    {
-			SizeMsg(wnd, p1, p2);
+            SizeMsg(wnd, p1, p2);
             break;
         }
         case CLOSE_WINDOW:
-			CloseWindowMsg(wnd);
+            CloseWindowMsg(wnd);
             break;
         default:
             break;
@@ -685,35 +710,33 @@ static RECT PositionIcon(WINDOW wnd)
     RectRight(rc) = SCREENWIDTH-1;
     RectBottom(rc) = SCREENHEIGHT-1;
     if (GetParent(wnd))    {
-        WINDOW wnd1 = (WINDOW) -1;
+        WINDOW cwnd = (WINDOW) -1;
         RECT prc;
+        int i;
         prc = WindowRect(GetParent(wnd));
         rc = LowerRight(prc);
         /* - search for icon available location - */
-        while (wnd1 != NULL)    {
-            wnd1 = GetFirstChild(GetParent(wnd));
-            while (wnd1 != NULL)    {
-                if (wnd1->condition == ISMINIMIZED)    {
-                    RECT rc1;
-                    rc1 = WindowRect(wnd1);
-                    if (RectLeft(rc1) == RectLeft(rc) &&
-                            RectTop(rc1) == RectTop(rc))    {
-                        RectLeft(rc) -= ICONWIDTH;
-                        RectRight(rc) -= ICONWIDTH;
-                        if (RectLeft(rc) < RectLeft(prc)+1)   {
-                            RectLeft(rc) =
-                                RectRight(prc)-ICONWIDTH;
-                            RectRight(rc) =
-                                RectLeft(rc)+ICONWIDTH-1;
-                            RectTop(rc) -= ICONHEIGHT;
-                            RectBottom(rc) -= ICONHEIGHT;
-                            if (RectTop(rc) < RectTop(prc)+1)
-                                return LowerRight(prc);
-                        }
-                        break;
+        for (i = 0; i < wnd->ChildCt; i++)    {
+            cwnd = *(wnd->Children + i);
+            if (cwnd->condition == ISMINIMIZED)    {
+                RECT rc1;
+                rc1 = WindowRect(cwnd);
+                if (RectLeft(rc1) == RectLeft(rc) &&
+                        RectTop(rc1) == RectTop(rc))    {
+                    RectLeft(rc) -= ICONWIDTH;
+                    RectRight(rc) -= ICONWIDTH;
+                    if (RectLeft(rc) < RectLeft(prc)+1)   {
+                        RectLeft(rc) =
+                            RectRight(prc)-ICONWIDTH;
+                        RectRight(rc) =
+                            RectLeft(rc)+ICONWIDTH-1;
+                        RectTop(rc) -= ICONHEIGHT;
+                        RectBottom(rc) -= ICONHEIGHT;
+                        if (RectTop(rc) < RectTop(prc)+1)
+                            return LowerRight(prc);
                     }
+                    break;
                 }
-                wnd1 = GetNextChild(GetParent(wnd), wnd1);
             }
         }
     }
@@ -798,47 +821,47 @@ static RECT adjShadow(WINDOW wnd)
 /* --- repaint a rectangular subsection of a window --- */
 static void near PaintOverLap(WINDOW wnd, RECT rc)
 {
-	if (isVisible(wnd))	{
-    	int isBorder, isTitle, isData;
-    	isBorder = isTitle = FALSE;
-    	isData = TRUE;
-    	if (TestAttribute(wnd, HASBORDER))    {
-        	isBorder =  RectLeft(rc) == 0 &&
-                    	RectTop(rc) < WindowHeight(wnd);
-        	isBorder |= RectLeft(rc) < WindowWidth(wnd) &&
-                    	RectRight(rc) >= WindowWidth(wnd)-1 &&
-                    	RectTop(rc) < WindowHeight(wnd);
-        	isBorder |= RectTop(rc) == 0 &&
-                    	RectLeft(rc) < WindowWidth(wnd);
-        	isBorder |= RectTop(rc) < WindowHeight(wnd) &&
-                    	RectBottom(rc) >= WindowHeight(wnd)-1 &&
-                    	RectLeft(rc) < WindowWidth(wnd);
-    	}
-    	else if (TestAttribute(wnd, HASTITLEBAR))
-        	isTitle = RectTop(rc) == 0 &&
-                  	RectLeft(rc) > 0 &&
-                  	RectLeft(rc)<WindowWidth(wnd)-BorderAdj(wnd);
+    if (isVisible(wnd))    {
+        int isBorder, isTitle, isData;
+        isBorder = isTitle = FALSE;
+        isData = TRUE;
+        if (TestAttribute(wnd, HASBORDER))    {
+            isBorder =  RectLeft(rc) == 0 &&
+                        RectTop(rc) < WindowHeight(wnd);
+            isBorder |= RectLeft(rc) < WindowWidth(wnd) &&
+                        RectRight(rc) >= WindowWidth(wnd)-1 &&
+                        RectTop(rc) < WindowHeight(wnd);
+            isBorder |= RectTop(rc) == 0 &&
+                        RectLeft(rc) < WindowWidth(wnd);
+            isBorder |= RectTop(rc) < WindowHeight(wnd) &&
+                        RectBottom(rc) >= WindowHeight(wnd)-1 &&
+                        RectLeft(rc) < WindowWidth(wnd);
+        }
+        else if (TestAttribute(wnd, HASTITLEBAR))
+            isTitle = RectTop(rc) == 0 &&
+                      RectLeft(rc) > 0 &&
+                      RectLeft(rc)<WindowWidth(wnd)-BorderAdj(wnd);
 
-    	if (RectLeft(rc) >= WindowWidth(wnd)-BorderAdj(wnd))
-        	isData = FALSE;
-    	if (RectTop(rc) >= WindowHeight(wnd)-BottomBorderAdj(wnd))
-        	isData = FALSE;
-    	if (TestAttribute(wnd, HASBORDER))    {
-        	if (RectRight(rc) == 0)
-            	isData = FALSE;
-        	if (RectBottom(rc) == 0)
-            	isData = FALSE;
-    	}
-    	if (TestAttribute(wnd, SHADOW))
-        	isBorder |= RectRight(rc) == WindowWidth(wnd) ||
-                    	RectBottom(rc) == WindowHeight(wnd);
-    	if (isData)
-        	SendMessage(wnd, PAINT, (PARAM) &rc, TRUE);
-    	if (isBorder)
-        	SendMessage(wnd, BORDER, (PARAM) &rc, 0);
-    	else if (isTitle)
-        	DisplayTitle(wnd, &rc);
-	}
+        if (RectLeft(rc) >= WindowWidth(wnd)-BorderAdj(wnd))
+            isData = FALSE;
+        if (RectTop(rc) >= WindowHeight(wnd)-BottomBorderAdj(wnd))
+            isData = FALSE;
+        if (TestAttribute(wnd, HASBORDER))    {
+            if (RectRight(rc) == 0)
+                isData = FALSE;
+            if (RectBottom(rc) == 0)
+                isData = FALSE;
+        }
+        if (TestAttribute(wnd, SHADOW))
+            isBorder |= RectRight(rc) == WindowWidth(wnd) ||
+                        RectBottom(rc) == WindowHeight(wnd);
+        if (isData)
+            SendMessage(wnd, PAINT, (PARAM) &rc, TRUE);
+        if (isBorder)
+            SendMessage(wnd, BORDER, (PARAM) &rc, 0);
+        else if (isTitle)
+            DisplayTitle(wnd, &rc);
+    }
 }
 /* ------ paint the part of a window that is overlapped
             by another window that is being hidden ------- */
@@ -876,7 +899,7 @@ static void PaintOverParents(WINDOW wnd)
 /* - paint the parts of all windows that a window is over - */
 static void near PaintOverLappers(WINDOW wnd)
 {
-	HiddenWindow = wnd;
+    HiddenWindow = wnd;
     PaintOverParents(wnd);
 }
 /* --- paint those parts of a window that are overlapped --- */
@@ -884,36 +907,36 @@ static void near PaintUnderLappers(WINDOW wnd)
 {
     WINDOW hwnd = NextWindow(wnd);
     while (hwnd != NULL)    {
-		/* ------- test only at document window level ------ */
+        /* ------- test only at document window level ------ */
         WINDOW pwnd = GetParent(hwnd);
-		if (pwnd == NULL || GetClass(pwnd) == APPLICATION)	{
-        	/* ---- don't bother testing self ----- */
-        	if (isVisible(hwnd) && hwnd != wnd)    {
-            	/* --- see if other window is descendent --- */
-            	while (pwnd != NULL)    {
-                	if (pwnd == wnd)
-                    	break;
-                	pwnd = GetParent(pwnd);
-            	}
-            	/* ----- don't test descendent overlaps ----- */
-            	if (pwnd == NULL)    {
-                	/* -- see if other window is ancestor --- */
-                	pwnd = GetParent(wnd);
-                	while (pwnd != NULL)    {
-                    	if (pwnd == hwnd)
-                        	break;
-                    	pwnd = GetParent(pwnd);
-                	}
-                	/* --- don't test ancestor overlaps --- */
-                	if (pwnd == NULL)    {
-                    	HiddenWindow = GetAncestor(hwnd);
-						ClearVisible(HiddenWindow);
-                    	PaintOver(wnd);
-						SetVisible(HiddenWindow);
-                	}
-            	}
-        	}
-		}
+        if (pwnd == NULL || GetClass(pwnd) == APPLICATION)    {
+            /* ---- don't bother testing self ----- */
+            if (isVisible(hwnd) && hwnd != wnd)    {
+                /* --- see if other window is descendent --- */
+                while (pwnd != NULL)    {
+                    if (pwnd == wnd)
+                        break;
+                    pwnd = GetParent(pwnd);
+                }
+                /* ----- don't test descendent overlaps ----- */
+                if (pwnd == NULL)    {
+                    /* -- see if other window is ancestor --- */
+                    pwnd = GetParent(wnd);
+                    while (pwnd != NULL)    {
+                        if (pwnd == hwnd)
+                            break;
+                        pwnd = GetParent(pwnd);
+                    }
+                    /* --- don't test ancestor overlaps --- */
+                    if (pwnd == NULL)    {
+                        HiddenWindow = GetAncestor(hwnd);
+                        ClearVisible(HiddenWindow);
+                        PaintOver(wnd);
+                        SetVisible(HiddenWindow);
+                    }
+                }
+            }
+        }
         hwnd = NextWindow(hwnd);
     }
     /* --------- repaint all children of this window
@@ -971,7 +994,7 @@ static void RestoreBorder(RECT rc)
     }
 }
 /* ----- test if screen coordinates are in a window ---- */
-static int InsideWindow(WINDOW wnd, int x, int y)
+static BOOL InsideWindow(WINDOW wnd, int x, int y)
 {
     RECT rc;
     rc = WindowRect(wnd);
@@ -989,58 +1012,60 @@ WINDOW inWindow(int x, int y)
 {
     WINDOW wnd = Focus.LastWindow;
     while (wnd != NULL)    {
-		if (isVisible(wnd))	{
-        	if (SendMessage(wnd, INSIDE_WINDOW, x, y))    {
-            	WINDOW wnd1 = GetLastChild(wnd);
-            	while (wnd1 != NULL)    {
-                	if (SendMessage(wnd1, INSIDE_WINDOW, x, y)) {
-                    	if (isVisible(wnd1))  {
-                        	wnd = wnd1;
-                        	break;
-                    	}
-                	}
-                	wnd1 = GetPrevChild(wnd, wnd1);
-            	}
-            	break;
-        	}
-		}
+        if (isVisible(wnd))    {
+            if (SendMessage(wnd, INSIDE_WINDOW, x, y))    {
+                WINDOW wnd1;
+                int i;
+                for (i = wnd->ChildCt; i > 0; --i)    {
+                    wnd1 = *(wnd->Children+i-1);
+                    if (SendMessage(wnd1, INSIDE_WINDOW, x, y)) {
+                        if (isVisible(wnd1))  {
+                            wnd = wnd1;
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
         wnd = PrevWindow(wnd);
     }
     return wnd;
 }
 
-int isVisible(WINDOW wnd)
+BOOL isDerivedFrom(WINDOW wnd, CLASS class)
 {
-	while (wnd != NULL)	{
-		if (!isWndVisible(wnd))
-			return FALSE;
-		wnd = GetParent(wnd);
-	}
-	return TRUE;
-}
-
-int isDerivedFrom(WINDOW wnd, CLASS class)
-{
-	CLASS tclass = GetClass(wnd);
-	while (tclass != -1)	{
-		if (tclass == class)
-			return TRUE;
-		tclass = (classdefs[tclass].base);
-	}
-	return FALSE;
+    CLASS tclass = GetClass(wnd);
+    while (tclass != -1)    {
+        if (tclass == class)
+            return TRUE;
+        tclass = (classdefs[tclass].base);
+    }
+    return FALSE;
 }
 
 /* -- find the oldest document window ancestor of a window -- */
 WINDOW GetAncestor(WINDOW wnd)
 {
-	if (wnd != NULL)	{
-		while (GetParent(wnd) != NULL)	{
-			if (GetClass(GetParent(wnd)) == APPLICATION)
-				break;
-			wnd = GetParent(wnd);
-		}
-	}
-	return wnd;
+    if (wnd != NULL)    {
+        while (GetParent(wnd) != NULL)    {
+            if (GetClass(GetParent(wnd)) == APPLICATION)
+                break;
+            wnd = GetParent(wnd);
+        }
+    }
+    return wnd;
 }
+
+BOOL isVisible(WINDOW wnd)
+{
+    while (wnd != NULL)    {
+        if (isHidden(wnd))
+            return FALSE;
+        wnd = GetParent(wnd);
+    }
+    return TRUE;
+}
+
 
 

@@ -6,7 +6,7 @@ extern DBOX ReplaceTextDB;
 static int CheckCase = TRUE;
 
 /* - case-insensitive, white-space-normalized char compare - */
-static int SearchCmp(int a, int b)
+static BOOL SearchCmp(int a, int b)
 {
     if (b == '\n')
         b = ' ';
@@ -48,10 +48,10 @@ static void replacetext(WINDOW wnd, char *cp1, DBOX *db)
 /* ------- search for the occurrance of a string ------- */
 static void SearchTextBox(WINDOW wnd, int Replacing, int incr)
 {
-    char *s1, *s2, *cp1;
+    char *s1 = NULL, *s2, *cp1;
     DBOX *db = Replacing ? &ReplaceTextDB : &SearchTextDB;
     char *cp = GetEditBoxText(db, ID_SEARCHFOR);
-    int rpl = TRUE, FoundOne = FALSE;
+    BOOL rpl = TRUE, FoundOne = FALSE;
 
     while (rpl == TRUE && cp != NULL)    {
         rpl = Replacing ?
@@ -78,7 +78,7 @@ static void SearchTextBox(WINDOW wnd, int Replacing, int incr)
                 break;
             cp1++;
         }
-        if (*s1 == 0 || *s1 == '\n')    {
+        if (s1 != NULL && (*s1 == 0 || *s1 == '\n'))    {
             /* ----- match at *cp1 ------- */
             FoundOne = TRUE;
 

@@ -3,8 +3,8 @@
 #ifndef MENU_H
 #define MENU_H
 
-#define MAXPULLDOWNS 10
-#define MAXSELECTIONS 15
+#define MAXPULLDOWNS 15
+#define MAXSELECTIONS 20
 #define MAXCASCADES 3  /* nesting level of cascaded menus */
 
 /* ----------- popdown menu selection structure

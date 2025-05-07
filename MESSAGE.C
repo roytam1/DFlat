@@ -5,8 +5,10 @@
 static int px = -1, py = -1;
 static int pmx = -1, pmy = -1;
 static int mx, my;
-
-static int CriticalError;
+static int handshaking = 0;
+static BOOL CriticalError;
+BOOL AllocTesting = FALSE;
+jmp_buf AllocError;
 
 /* ---------- event queue ---------- */
 static struct events    {
@@ -40,8 +42,8 @@ static int keyportvalue;	/* for watching for key release */
 
 WINDOW CaptureMouse;
 WINDOW CaptureKeyboard;
-static int NoChildCaptureMouse;
-static int NoChildCaptureKeyboard;
+static BOOL NoChildCaptureMouse;
+static BOOL NoChildCaptureKeyboard;
 
 static int doubletimer = -1;
 static int delaytimer  = -1;
@@ -92,9 +94,32 @@ static void interrupt far newcrit(IREGS ir)
     ir.ax = 0;
 }
 
-/* ------------ initialize the message system --------- */
-void init_messages(void)
+static void StopMsg(void)
 {
+    if (oldtimer != NULL)    {
+        setvect(TIMER, oldtimer);
+        oldtimer = NULL;
+    }
+    if (oldkeyboard != NULL)    {
+        setvect(KEYBOARDVECT, oldkeyboard);
+        oldkeyboard = NULL;
+    }
+	restorevideo();
+	ClearClipboard();
+	ClearDialogBoxes();
+	restorecursor();	
+	unhidecursor();
+    hide_mousecursor();
+}
+
+/* ------------ initialize the message system --------- */
+BOOL init_messages(void)
+{
+	AllocTesting = TRUE;
+	if (setjmp(AllocError) != 0)	{
+		StopMsg();
+		return FALSE;
+	}
 	initvideo();
     resetmouse();
 	set_mousetravel(0, SCREENWIDTH-1, 0, SCREENHEIGHT-1);
@@ -119,6 +144,7 @@ void init_messages(void)
     setvect(CRIT, newcrit);
     PostMessage(NULL,START,0,0);
     lagdelay = FIRSTDELAY;
+	return TRUE;
 }
 
 /* ----- post an event and parameters to event queue ---- */
@@ -140,7 +166,7 @@ static void near collect_events(void)
     static int ShiftKeys = 0;
 	int sk;
     struct tm *now;
-    static int flipflop = FALSE;
+    static BOOL flipflop = FALSE;
     static char timestr[9];
     int hr;
 
@@ -175,18 +201,23 @@ static void near collect_events(void)
 
     /* ---- build keyboard events for key combinations that
         BIOS doesn't report --------- */
-    if (sk & ALTKEY)
+    if (sk & ALTKEY)	{
         if (keyportvalue == 14)    {
 			waitforkeyboard();
             PostEvent(KEYBOARD, ALT_BS, sk);
         }
-    if (sk & CTRLKEY)
+        if (keyportvalue == 83)    {
+			waitforkeyboard();
+            PostEvent(KEYBOARD, ALT_DEL, sk);
+        }
+	}
+    if (sk & CTRLKEY)	{
         if (keyportvalue == 82)    {
             while (!(inp(0x60) & 0x80))
 			waitforkeyboard();
             PostEvent(KEYBOARD, CTRL_INS, sk);
         }
-
+	}
     /* ----------- test for keystroke ------- */
     if (keyhit())    {
         static int cvt[] = {SHIFT_INS,END,DN,PGDN,BS,'5',
@@ -301,9 +332,8 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             case SHIFT_CHANGED:
                 /* ------- don't send these messages unless the
                     window is visible or has captured the keyboard -- */
-                if (isVisible(wnd) || wnd == CaptureKeyboard)
-	                rtn = (*wnd->wndproc)(wnd, msg, p1, p2);
-                break;
+                if (!(isVisible(wnd) || wnd == CaptureKeyboard))
+	                break;
             default:
                 rtn = (*wnd->wndproc)(wnd, msg, p1, p2);
                 break;
@@ -315,15 +345,7 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             system itself ---------- */
         switch (msg)    {
             case STOP:
-                if (oldtimer != NULL)    {
-                    setvect(TIMER, oldtimer);
-                    oldtimer = NULL;
-                }
-                if (oldkeyboard != NULL)    {
-                    setvect(KEYBOARDVECT, oldkeyboard);
-                    oldkeyboard = NULL;
-                }
-				restorevideo();
+				StopMsg();
                 break;
             /* ------- clock messages --------- */
             case CAPTURE_CLOCK:
@@ -460,8 +482,30 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return rtn;
 }
 
+static WINDOW MouseWindow(int x, int y)
+{
+    /* ------ get the window in which a
+                    mouse event occurred ------ */
+    WINDOW Mwnd = inWindow(x, y);
+
+    /* ---- process mouse captures ----- */
+    if (CaptureMouse != NULL)
+        if (Mwnd == NULL ||
+                NoChildCaptureMouse ||
+                    GetParent(Mwnd) != CaptureMouse)
+            Mwnd = CaptureMouse;
+	return Mwnd;
+}
+
+void handshake(void)
+{
+	handshaking++;
+	dispatch_message();
+	--handshaking;
+}
+
 /* ---- dispatch messages to the message proc function ---- */
-int dispatch_message(void)
+BOOL dispatch_message(void)
 {
     WINDOW Mwnd, Kwnd;
     /* -------- collect mouse and keyboard events ------- */
@@ -474,17 +518,6 @@ int dispatch_message(void)
         if (++EventQueueOffCtr == MAXMESSAGES)
             EventQueueOffCtr = 0;
         --EventQueueCtr;
-
-        /* ------ get the window in which a
-                        mouse event occurred ------ */
-        Mwnd = inWindow(ev.mx, ev.my);
-
-        /* ---- process mouse captures ----- */
-        if (CaptureMouse != NULL)
-            if (Mwnd == NULL ||
-                    NoChildCaptureMouse ||
-                        GetParent(Mwnd) != CaptureMouse)
-                Mwnd = CaptureMouse;
 
         /* ------ get the window in which a
                         keyboard event occurred ------ */
@@ -502,18 +535,27 @@ int dispatch_message(void)
         switch (ev.event)    {
             case SHIFT_CHANGED:
             case KEYBOARD:
-                SendMessage(Kwnd, ev.event, ev.mx, ev.my);
+				if (!handshaking)
+	                SendMessage(Kwnd, ev.event, ev.mx, ev.my);
                 break;
             case LEFT_BUTTON:
-                if (!CaptureMouse ||
-                        (!NoChildCaptureMouse &&
-                            GetParent(Mwnd) == CaptureMouse))
-                    if (Mwnd != inFocus)
-                        SendMessage(Mwnd, SETFOCUS, TRUE, 0);
+				if (!handshaking)	{
+		        	Mwnd = MouseWindow(ev.mx, ev.my);
+                	if (!CaptureMouse ||
+                        	(!NoChildCaptureMouse &&
+                            	GetParent(Mwnd) == CaptureMouse))
+                    	if (Mwnd != inFocus)
+                        	SendMessage(Mwnd, SETFOCUS, TRUE, 0);
+                	SendMessage(Mwnd, LEFT_BUTTON, ev.mx, ev.my);
+				}
+                break;
             case BUTTON_RELEASED:
             case DOUBLE_CLICK:
             case RIGHT_BUTTON:
+				if (handshaking)
+					break;
             case MOUSE_MOVED:
+		        Mwnd = MouseWindow(ev.mx, ev.my);
                 SendMessage(Mwnd, ev.event, ev.mx, ev.my);
                 break;
             case CLOCKTICK:
@@ -535,11 +577,8 @@ int dispatch_message(void)
         SendMessage(mq.wnd, mq.msg, mq.p1, mq.p2);
         if (mq.msg == ENDDIALOG)
 			return FALSE;
-        if (mq.msg == STOP)	{
-			restorecursor();	
-			unhidecursor();
+        if (mq.msg == STOP)
 			return FALSE;
-		}
     }
     return TRUE;
 }

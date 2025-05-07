@@ -13,7 +13,7 @@ int ButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				/* ------- fall through ------- */
 			case PAINT:
 				if (isVisible(wnd))	{
-					if (TestAttribute(wnd, SHADOW))	{
+					if (TestAttribute(wnd, SHADOW) && cfg.mono == 0)	{
 						/* -------- draw the button's shadow ------- */
 						background = WndBackground(GetParent(wnd));
 						foreground = BLACK;
@@ -45,13 +45,15 @@ int ButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					break;
 				/* ---- fall through ---- */
 			case LEFT_BUTTON:
-				/* --------- draw a pushed button -------- */
-				background = WndBackground(GetParent(wnd));
-				foreground = WndBackground(wnd);
-				wputch(wnd, ' ', 0, 0);
-				for (x = 0; x < WindowWidth(wnd); x++)	{
-					wputch(wnd, 220, x+1, 0);
-					wputch(wnd, 223, x+1, 1);
+				if (cfg.mono == 0)	{
+					/* --------- draw a pushed button -------- */
+					background = WndBackground(GetParent(wnd));
+					foreground = WndBackground(wnd);
+					wputch(wnd, ' ', 0, 0);
+					for (x = 0; x < WindowWidth(wnd); x++)	{
+						wputch(wnd, 220, x+1, 0);
+						wputch(wnd, 223, x+1, 1);
+					}
 				}
 				if (msg == LEFT_BUTTON)
 					SendMessage(NULL, WAITMOUSE, 0, 0);
@@ -78,7 +80,7 @@ int TextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 	switch (msg)	{
 		case PAINT:
 			ct = GetControl(wnd);
-			if (ct != NULL && GetText(wnd) == NULL)	{
+			if (ct != NULL && ct->itext != NULL && GetText(wnd) == NULL)	{
 				int i, len;
 				char *cp, *cp2 = ct->itext;
 
@@ -121,8 +123,6 @@ static void SetFocusCursor(WINDOW wnd)
 		SendMessage(NULL, SHOW_CURSOR, 0, 0);
 		SendMessage(wnd, KEYBOARD_CURSOR, 1, 0);
 	}
-	else
-		SendMessage(NULL, HIDE_CURSOR, 0, 0);
 }
 
 int RadioButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
@@ -133,6 +133,8 @@ int RadioButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 	if (ct != NULL)	{
 		switch (msg)	{
 			case SETFOCUS:
+				if (!(int)p1)
+					SendMessage(NULL, HIDE_CURSOR, 0, 0);
 			case MOVE:
 				rtn = BaseWndProc(RADIOBUTTON, wnd, msg, p1, p2);
 				SetFocusCursor(wnd);
@@ -166,6 +168,8 @@ int CheckBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 	if (ct != NULL)	{
 		switch (msg)	{
 			case SETFOCUS:
+				if (!(int)p1)
+					SendMessage(NULL, HIDE_CURSOR, 0, 0);
 			case MOVE:
 				rtn = BaseWndProc(CHECKBOX, wnd, msg, p1, p2);
 				SetFocusCursor(wnd);
@@ -185,7 +189,7 @@ int CheckBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 			case LEFT_BUTTON:
 				ct->setting ^= ON;
 				SendMessage(wnd, PAINT, 0, 0);
-				break;
+				return TRUE;
 			default:
 				break;
 		}
@@ -230,6 +234,8 @@ int SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				break;
 			case SETFOCUS:
 				rtn = BaseWndProc(SPINBUTTON, wnd, msg, p1, p2);
+				if (!(int)p1)
+					SendMessage(NULL, HIDE_CURSOR, 0, 0);
 				SetFocusCursor(wnd);
 				return rtn;
 			case PAINT:
@@ -257,6 +263,158 @@ int SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 		}
 	}
 	return BaseWndProc(SPINBUTTON, wnd, msg, p1, p2);
+}
+
+static int WatchIconProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+{
+	int rtn;
+	switch (msg)	{
+		case CREATE_WINDOW:
+			rtn = DefaultWndProc(wnd, msg, p1, p2);
+			SendMessage(wnd, CAPTURE_MOUSE, 0, 0);
+			SendMessage(wnd, HIDE_MOUSE, 0, 0);
+			SendMessage(wnd, CAPTURE_KEYBOARD, 0, 0);
+			return rtn;
+		case PAINT:
+			SetStandardColor(wnd);
+			writeline(wnd, " À ", 1, 1, FALSE);
+			return TRUE;
+		case BORDER:
+			rtn = DefaultWndProc(wnd, msg, p1, p2);
+			writeline(wnd, "Í", 2, 0, FALSE);
+			return rtn;
+		case MOUSE_MOVED:
+			SendMessage(wnd, MOVE, p1, p2);
+			return TRUE;
+		case CLOSE_WINDOW:
+			SendMessage(wnd, RELEASE_MOUSE, 0, 0);
+			SendMessage(wnd, RELEASE_KEYBOARD, 0, 0);
+			SendMessage(wnd, SHOW_MOUSE, 0, 0);
+			break;
+		default:
+			break;
+	}
+	return DefaultWndProc(wnd, msg, p1, p2);
+}
+
+WINDOW WatchIcon(void)
+{
+	int mx, my;
+	WINDOW wnd;
+	SendMessage(NULL, CURRENT_MOUSE_CURSOR, (PARAM) &mx, (PARAM) &my);
+	wnd = CreateWindow(
+					BOX,
+					NULL,
+					mx, my, 3, 5,
+					NULL,NULL,
+					WatchIconProc,
+					VISIBLE | HASBORDER | SHADOW | SAVESELF);
+	return wnd;
+}
+
+static int (*GenericProc)(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2);
+static BOOL KeepRunning;
+static int SliderLen;
+static int Percent;
+extern DBOX SliderBoxDB;
+
+static void InsertPercent(char *s)
+{
+	int offset;
+	char pcc[5];
+
+	sprintf(s, "%c%c%c",
+			CHANGECOLOR,
+			color[DIALOG][SELECT_COLOR][FG]+0x80,
+			color[DIALOG][SELECT_COLOR][BG]+0x80);
+	s += 3;
+	memset(s, ' ', SliderLen);
+	*(s+SliderLen) = '\0';
+	sprintf(pcc, "%d%%", Percent);
+	strncpy(s+SliderLen/2-1, pcc, strlen(pcc));
+	offset = (SliderLen * Percent) / 100;
+	memmove(s+offset+4, s+offset, strlen(s+offset)+1);
+	sprintf(pcc, "%c%c%c%c",
+			RESETCOLOR,
+			CHANGECOLOR,
+			color[DIALOG][SELECT_COLOR][BG]+0x80,
+			color[DIALOG][SELECT_COLOR][FG]+0x80);
+	strncpy(s+offset, pcc, 4);
+	*(s + strlen(s) - 1) = RESETCOLOR;
+}
+
+static int SliderTextProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
+{
+	switch (msg)	{
+		case PAINT:
+			Percent = (int)p2;
+			InsertPercent(GetText(wnd) ?
+				GetText(wnd) : SliderBoxDB.ctl[1].itext);
+			GenericProc(wnd, PAINT, 0, 0);
+			if (Percent >= 100)
+				SendMessage(GetParent(wnd),COMMAND,ID_CANCEL,0);
+			if (!dispatch_message())
+				PostMessage(GetParent(wnd), ENDDIALOG, 0, 0);
+			return KeepRunning;
+		default:
+			break;
+	}
+	return GenericProc(wnd, msg, p1, p2);
+}
+
+static int SliderBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+{
+	int rtn;
+	WINDOW twnd;
+	switch (msg)	{
+		case CREATE_WINDOW:
+			AddAttribute(wnd, SAVESELF);
+			rtn = DefaultWndProc(wnd, msg, p1, p2);
+			twnd = SliderBoxDB.ctl[1].wnd;
+			GenericProc = twnd->wndproc;
+			twnd->wndproc = SliderTextProc;
+			KeepRunning = TRUE;
+			SendMessage(wnd, CAPTURE_MOUSE, 0, 0);
+			SendMessage(wnd, CAPTURE_KEYBOARD, 0, 0);
+			return rtn;
+		case COMMAND:
+			if ((int)p2 == 0 && (int)p1 == ID_CANCEL)	{
+				if (Percent >= 100 ||
+						YesNoBox("Terminate process?"))
+					KeepRunning = FALSE;
+				else
+					return TRUE;
+			}
+			break;
+		case CLOSE_WINDOW:
+			SendMessage(wnd, RELEASE_MOUSE, 0, 0);
+			SendMessage(wnd, RELEASE_KEYBOARD, 0, 0);
+			break;
+		default:
+			break;
+	}
+	return DefaultWndProc(wnd, msg, p1, p2);
+}
+
+WINDOW SliderBox(int len, char *ttl, char *msg)
+{
+	SliderLen = len;
+	SliderBoxDB.dwnd.title = ttl;
+	SliderBoxDB.dwnd.w =
+		max(strlen(ttl),max(len, strlen(msg)))+4;
+	SliderBoxDB.ctl[0].itext = msg;
+	SliderBoxDB.ctl[0].dwnd.w = strlen(msg);
+	SliderBoxDB.ctl[0].dwnd.x =
+		(SliderBoxDB.dwnd.w - strlen(msg)-1) / 2;
+	SliderBoxDB.ctl[1].itext =
+		realloc(SliderBoxDB.ctl[1].itext, len+10);
+	Percent = 0;
+	InsertPercent(SliderBoxDB.ctl[1].itext);
+	SliderBoxDB.ctl[1].dwnd.w = len;
+	SliderBoxDB.ctl[1].dwnd.x = (SliderBoxDB.dwnd.w-len-1)/2;
+	SliderBoxDB.ctl[2].dwnd.x = (SliderBoxDB.dwnd.w-10)/2;
+	DialogBox(NULL, &SliderBoxDB, FALSE, SliderBoxProc);
+	return SliderBoxDB.ctl[1].wnd;
 }
 
 

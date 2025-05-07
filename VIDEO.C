@@ -2,9 +2,49 @@
 
 #include "dflat.h"
 
-int ClipString;
+BOOL ClipString;
 
 static unsigned video_address;
+
+/* -- swap a rectangle of video memory with a save buffer -- */
+void swapvideo(WINDOW wnd, void far *bf)
+{
+	char *hd;
+    int ht, bytes_row, bufferwidth;
+	RECT rc = WindowRect(wnd);
+    unsigned vadr = vad(RectLeft(rc), RectTop(rc));
+
+    if (TestAttribute(wnd, SHADOW))    {
+        RectBottom(rc)++;
+        RectRight(rc)++;
+    }
+    ht = RectBottom(rc)-RectTop(rc)+1;
+
+	if (RectTop(rc) + ht > SCREENHEIGHT)
+		ht = SCREENHEIGHT - RectTop(rc);
+
+    bufferwidth = bytes_row = (RectRight(rc)-RectLeft(rc)+1) * 2;
+
+	if (RectLeft(rc) + bytes_row/2 > SCREENWIDTH)
+		bytes_row = (SCREENWIDTH - RectLeft(rc)) * 2;
+
+	hd = malloc(bytes_row);
+
+    hide_mousecursor();
+    while (ht--)    {
+        movedata(video_address, vadr, FP_SEG(hd),
+                FP_OFF(hd), bytes_row);
+        movedata(FP_SEG(bf), FP_OFF(bf), video_address,
+                vadr, bytes_row);
+        movedata(FP_SEG(hd), FP_OFF(hd), FP_SEG(bf),
+                FP_OFF(bf), bytes_row);
+        vadr += SCREENWIDTH*2;
+        bf = (char far *)bf + bufferwidth;
+    }
+	free(hd);
+    show_mousecursor();
+}
+
 /* -- read a rectangle of video memory into a save buffer -- */
 void getvideo(RECT rc, void far *bf)
 {
@@ -57,7 +97,7 @@ void PutVideoChar(int x, int y, int c)
     }
 }
 
-static int isAncestor(WINDOW wnd, WINDOW awnd)
+static BOOL isAncestor(WINDOW wnd, WINDOW awnd)
 {
 	while (wnd != NULL)	{
 		if (wnd == awnd)
@@ -67,7 +107,7 @@ static int isAncestor(WINDOW wnd, WINDOW awnd)
 	return FALSE;
 }
 
-int CharInView(WINDOW wnd, int x, int y)
+BOOL CharInView(WINDOW wnd, int x, int y)
 {
 	WINDOW nwnd = NextWindow(wnd);
 	WINDOW pwnd;
@@ -89,8 +129,12 @@ int CharInView(WINDOW wnd, int x, int y)
         }
     }
 	while (nwnd != NULL)	{
-		if (isVisible(nwnd) && !isAncestor(wnd, nwnd))	{
+		if (!isHidden(nwnd) && !isAncestor(wnd, nwnd))	{
 			rc = WindowRect(nwnd);
+    		if (TestAttribute(nwnd, SHADOW))    {
+        		RectBottom(rc)++;
+        		RectRight(rc)++;
+    		}
 			if (!TestAttribute(nwnd, NOCLIP))	{
 				pwnd = nwnd;
 				while (GetParent(pwnd))	{
@@ -125,73 +169,70 @@ void wputs(WINDOW wnd, void *s, int x, int y)
 	int x2 = x1;
 	int y1 = GetTop(wnd)+y;
     if (x1 < SCREENWIDTH && y1 < SCREENHEIGHT && isVisible(wnd))	{
-		int *ln;
-		if ((ln = malloc(400)) != NULL)	{
-			int *cp1 = ln;
-	        unsigned char *str = s;
-	        int fg = foreground;
-    	    int bg = background;
-	        int len;
-			int off = 0;
-        	while (*str)    {
-            	if (*str == CHANGECOLOR)    {
-                	str++;
-                	foreground = (*str++) & 0x7f;
-                	background = (*str++) & 0x7f;
-                	continue;
-            	}
-            	if (*str == RESETCOLOR)    {
-                	foreground = fg & 0x7f;
-                	background = bg & 0x7f;
-                	str++;
-                	continue;
-            	}
-   	        	*cp1 = (*str & 255) | (clr(foreground, background) << 8);
-				if (ClipString)
-					if (!CharInView(wnd, x, y))
-						*cp1 = peek(video_address, vad(x2,y1));
-				cp1++;
-				str++;
-				x++;
-				x2++;
-        	}
-        	foreground = fg;
-        	background = bg;
-   			len = (int)(cp1-ln);
-   			if (x1+len > SCREENWIDTH)
-       			len = SCREENWIDTH-x1;
+		int ln[200];
+		int *cp1 = ln;
+	    unsigned char *str = s;
+	    int fg = foreground;
+    	int bg = background;
+	    int len;
+		int off = 0;
+        while (*str)    {
+            if (*str == CHANGECOLOR)    {
+                str++;
+                foreground = (*str++) & 0x7f;
+                background = (*str++) & 0x7f;
+                continue;
+            }
+            if (*str == RESETCOLOR)    {
+                foreground = fg & 0x7f;
+                background = bg & 0x7f;
+                str++;
+                continue;
+            }
+   	        *cp1 = (*str & 255) | (clr(foreground, background) << 8);
+			if (ClipString)
+				if (!CharInView(wnd, x, y))
+					*cp1 = peek(video_address, vad(x2,y1));
+			cp1++;
+			str++;
+			x++;
+			x2++;
+        }
+        foreground = fg;
+        background = bg;
+   		len = (int)(cp1-ln);
+   		if (x1+len > SCREENWIDTH)
+       		len = SCREENWIDTH-x1;
 
-			if (!ClipString && !TestAttribute(wnd, NOCLIP))	{
-				/* -- clip the line to within ancestor windows -- */
-				RECT rc = WindowRect(wnd);
-				WINDOW nwnd = GetParent(wnd);
-				while (len > 0 && nwnd != NULL)	{
-					if (!isVisible(nwnd))	{
-						len = 0;
-						break;
-					}
-					rc = subRectangle(rc, ClientRect(nwnd));
-					nwnd = GetParent(nwnd);
+		if (!ClipString && !TestAttribute(wnd, NOCLIP))	{
+			/* -- clip the line to within ancestor windows -- */
+			RECT rc = WindowRect(wnd);
+			WINDOW nwnd = GetParent(wnd);
+			while (len > 0 && nwnd != NULL)	{
+				if (!isVisible(nwnd))	{
+					len = 0;
+					break;
 				}
-				while (len > 0 && !InsideRect(x1+off,y1,rc))	{
-					off++;
-					--len;
-				}
-				if (len > 0)	{
-					x2 = x1+len-1;
-					while (len && !InsideRect(x2,y1,rc))	{
-						--x2;
-						--len;
-					}
-				}
+				rc = subRectangle(rc, ClientRect(nwnd));
+				nwnd = GetParent(nwnd);
+			}
+			while (len > 0 && !InsideRect(x1+off,y1,rc))	{
+				off++;
+				--len;
 			}
 			if (len > 0)	{
-        		hide_mousecursor();
-				movedata(FP_SEG(ln), FP_OFF(ln+off),
-					video_address, vad(x1+off,y1), len*2);
-        		show_mousecursor();
+				x2 = x1+len-1;
+				while (len && !InsideRect(x2,y1,rc))	{
+					--x2;
+					--len;
+				}
 			}
-			free(ln);
+		}
+		if (len > 0)	{
+        	hide_mousecursor();
+			movedata(FP_SEG(ln), FP_OFF(ln+off),
+				video_address, vad(x1+off,y1), len*2);
+        	show_mousecursor();
 		}
     }
 }

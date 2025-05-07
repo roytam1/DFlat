@@ -50,7 +50,7 @@ void SwapCursorStack(void)
 #ifndef WATCOM
 #define ZEROFLAG 0x40
 /* ---- Test for keystroke ---- */
-int keyhit(void)
+BOOL keyhit(void)
 {
     _AH = 1;
     geninterrupt(KEYBRD);
@@ -63,7 +63,7 @@ int keyhit(void)
 int getkey(void)
 {
     int c;
-    while (keyhit() == 0)
+    while (keyhit() == FALSE)
         ;
     if (((c = bioskey(0)) & 0xff) == 0)
         c = (c >> 8) | 0x1080;
@@ -199,7 +199,7 @@ void set_cursor_type(unsigned t)
 }
 
 /* ---- test for EGA -------- */
-int isEGA(void)
+BOOL isEGA(void)
 {
     if (isVGA())
         return 0;
@@ -210,7 +210,7 @@ int isEGA(void)
 }
 
 /* ---- test for VGA -------- */
-int isVGA(void)
+BOOL isVGA(void)
 {
     regs.x.ax = 0x1a00;
     int86(VIDEO, &regs, &regs);

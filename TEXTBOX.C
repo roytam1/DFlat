@@ -9,14 +9,14 @@ static int ComputeHScrollBox(WINDOW);
 static void MoveScrollBox(WINDOW, int);
 static char *GetTextLine(WINDOW, int);
 
-int VSliding;
-int HSliding;
+BOOL VSliding;
+BOOL HSliding;
 
 /* ------------ ADDTEXT Message -------------- */
-static int AddTextMsg(WINDOW wnd, PARAM p1)
+static BOOL AddTextMsg(WINDOW wnd, char *txt)
 {
     /* --- append text to the textbox's buffer --- */
-    unsigned adln = strlen((char *)p1);
+    unsigned adln = strlen(txt);
     if (adln > (unsigned)0xfff0)
         return FALSE;
     if (wnd->text != NULL)    {
@@ -36,7 +36,7 @@ static int AddTextMsg(WINDOW wnd, PARAM p1)
     }
     if (wnd->text != NULL)    {
         /* ---- append the text ---- */
-        strcat(wnd->text, (char*) p1);
+        strcat(wnd->text, txt);
         strcat(wnd->text, "\n");
         BuildTextPointers(wnd);
 		return TRUE;
@@ -44,21 +44,43 @@ static int AddTextMsg(WINDOW wnd, PARAM p1)
 	return FALSE;
 }
 
+/* ------------ DELETETEXT Message -------------- */
+static void DeleteTextMsg(WINDOW wnd, int lno)
+{
+	char *cp1 = TextLine(wnd, lno);
+	--wnd->wlines;
+	if (lno == wnd->wlines)
+		*cp1 = '\0';
+	else 	{
+		char *cp2 = TextLine(wnd, lno+1);
+		memmove(cp1, cp2, strlen(cp2)+1);
+	}
+    BuildTextPointers(wnd);
+}
+
+/* ------------ INSERTTEXT Message -------------- */
+static void InsertTextMsg(WINDOW wnd, char *txt, int lno)
+{
+	if (AddTextMsg(wnd, txt))	{
+		char *cp1 = TextLine(wnd, lno+1);
+		char *cp2 = TextLine(wnd, lno);
+		memmove(cp1, cp2, strlen(cp2)+1);
+		strcpy(cp2, txt);
+	    BuildTextPointers(wnd);
+	}
+}
+
 /* ------------ SETTEXT Message -------------- */
-static int SetTextMsg(WINDOW wnd, PARAM p1)
+static BOOL SetTextMsg(WINDOW wnd, char *txt)
 {
     /* -- assign new text value to textbox buffer -- */
-    char *cp;
-    unsigned int len;
-    cp = (void *) p1;
-    len = strlen(cp)+1;
-    if (wnd->text == NULL || wnd->textlen < len)    {
-        wnd->textlen = len;
-        if ((wnd->text=realloc(wnd->text, len+1)) == NULL)
-            return FALSE;
-        wnd->text[len] = '\0';
-    }
-    strcpy(wnd->text, cp);
+    unsigned int len = strlen(txt)+1;
+	SendMessage(wnd, CLEARTEXT, 0, 0);
+    wnd->textlen = len;
+    if ((wnd->text=realloc(wnd->text, len+1)) == NULL)
+        return FALSE;
+    wnd->text[len] = '\0';
+    strcpy(wnd->text, txt);
     BuildTextPointers(wnd);
     wnd->wtop = wnd->wleft = 0;
 	return TRUE;
@@ -171,7 +193,7 @@ static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 }
 
 /* ------------ MOUSE_MOVED Message -------------- */
-static int MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static BOOL MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     int mx = (int) p1 - GetLeft(wnd);
     int my = (int) p2 - GetTop(wnd);
@@ -217,7 +239,7 @@ static void ButtonReleasedMsg(WINDOW wnd)
 }
 
 /* ------------ SCROLL Message -------------- */
-static int ScrollMsg(WINDOW wnd, PARAM p1)
+static BOOL ScrollMsg(WINDOW wnd, PARAM p1)
 {
     /* ---- vertical scroll one line ---- */
     if (p1)    {
@@ -258,13 +280,12 @@ static int ScrollMsg(WINDOW wnd, PARAM p1)
             if (vscrollbox != wnd->VScrollBox)
                 MoveScrollBox(wnd, vscrollbox);
         }
-        return TRUE;
     }
-    return FALSE;
+    return TRUE;
 }
 
 /* ------------ HORIZSCROLL Message -------------- */
-static int HorizScrollMsg(WINDOW wnd, PARAM p1)
+static BOOL HorizScrollMsg(WINDOW wnd, PARAM p1)
 {
     /* --- horizontal scroll one column --- */
     if (p1)    {
@@ -337,7 +358,7 @@ static void ScrollDocMsg(WINDOW wnd, PARAM p1)
 }
 
 /* ------------ PAINT Message -------------- */
-static int PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
+static void PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     /* ------ paint the client area ----- */
     RECT rc, rcc;
@@ -352,7 +373,7 @@ static int PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
     if (TestAttribute(wnd, HASBORDER) &&
             RectRight(rc) >= WindowWidth(wnd)-1) {
         if (RectLeft(rc) >= WindowWidth(wnd)-1)
-            return FALSE;
+            return;
         RectRight(rc) = WindowWidth(wnd)-2;
     }
     rcc = AdjustRectangle(wnd, rc);
@@ -400,7 +421,6 @@ static int PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
     }
 	if (!p2 && wnd != inFocus)
 		--ClipString;
-    return TRUE;
 }
 
 /* ------------ CLOSE_WINDOW Message -------------- */
@@ -422,9 +442,15 @@ int TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             ClearTextPointers(wnd);
             break;
         case ADDTEXT:
-            return AddTextMsg(wnd, p1);
+            return AddTextMsg(wnd, (char *) p1);
+		case DELETETEXT:
+            DeleteTextMsg(wnd, (int) p1);
+            return TRUE;
+		case INSERTTEXT:
+            InsertTextMsg(wnd, (char *) p1, (int) p2);
+            return TRUE;
         case SETTEXT:
-            return SetTextMsg(wnd, p1);
+            return SetTextMsg(wnd, (char *) p1);
         case CLEARTEXT:
             ClearTextMsg(wnd);
             break;
@@ -592,16 +618,16 @@ static char *GetTextLine(WINDOW wnd, int selection)
 }
 
 /* ------- write a line of text to a textbox window ------- */
-void WriteTextLine(WINDOW wnd, RECT *rcc, int y, int reverse)
+void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
 {
     int len = 0;
     int dif = 0;
-    unsigned char *line;
+    unsigned char line[200];
     RECT rc;
     unsigned char *lp, *svlp;
     int lnlen;
     int i;
-    int trunc = FALSE;
+    BOOL trunc = FALSE;
 
     /* ------ make sure y is inside the window ----- */
     if (y < wnd->wtop || y >= wnd->wtop+ClientHeight(wnd))
@@ -701,78 +727,75 @@ void WriteTextLine(WINDOW wnd, RECT *rcc, int y, int reverse)
         }
     }
     /* ------ build the line to display -------- */
-    if ((line = malloc(200)) != NULL)    {
-        if (!trunc)    {
-            if (lnlen < wnd->wleft)
-                lnlen = 0;
-            else
-                lp += wnd->wleft;
-            if (lnlen > RectLeft(rc))    {
-                /* ---- the line exceeds the rectangle ---- */
-                int ct = RectLeft(rc);
-                char *initlp = lp;
-                /* --- point to end of clipped line --- */
-                while (ct)    {
-                    if (*(unsigned char *)lp == CHANGECOLOR)
-                        lp += 3;
-                    else if (*(unsigned char *)lp == RESETCOLOR)
-                        lp++;
-                    else
-                        lp++, --ct;
-                }
-                if (RectLeft(rc))    {
-                    char *lpp = lp;
-                    while (*lpp)    {
-                        if (*(unsigned char*)lpp==CHANGECOLOR)
-                            break;
-                        if (*(unsigned char*)lpp==RESETCOLOR) {
-                            lpp = lp;
-                            while (lpp >= initlp)    {
-                                if (*(unsigned char *)lpp ==
-                                                CHANGECOLOR) {
-                                    lp -= 3;
-                                    memmove(lp,lpp,3);
-                                    break;
-                                }
-                                --lpp;
-                            }
-                            break;
-                        }
-                        lpp++;
-                    }
-                }
-                lnlen = LineLength(lp);
-                len = min(lnlen, RectWidth(rc));
-                dif = strlen(lp) - lnlen;
-                len += dif;
-                if (len > 0)
-                    strncpy(line, lp, len);
-            }
-        }
-        /* -------- pad the line --------- */
-        while (len < RectWidth(rc)+dif)
-            line[len++] = ' ';
-        line[len] = '\0';
-        dif = 0;
-        /* ------ establish the line's main color ----- */
-        if (reverse)    {
-            char *cp = line;
-            SetReverseColor(wnd);
-            while ((cp = strchr(cp, CHANGECOLOR)) != NULL)    {
-                cp += 2;
-                *cp++ = background | 0x80;
-            }
-            if (*(unsigned char *)line == CHANGECOLOR)
-                dif = 3;
-        }
+    if (!trunc)    {
+        if (lnlen < wnd->wleft)
+            lnlen = 0;
         else
-            SetStandardColor(wnd);
-        /* ------- display the line -------- */
-        writeline(wnd, line+dif,
-                    RectLeft(rc)+BorderAdj(wnd),
-                        y-wnd->wtop+TopBorderAdj(wnd), FALSE);
-        free(line);
+            lp += wnd->wleft;
+        if (lnlen > RectLeft(rc))    {
+            /* ---- the line exceeds the rectangle ---- */
+            int ct = RectLeft(rc);
+            char *initlp = lp;
+            /* --- point to end of clipped line --- */
+            while (ct)    {
+                if (*(unsigned char *)lp == CHANGECOLOR)
+                    lp += 3;
+                else if (*(unsigned char *)lp == RESETCOLOR)
+                    lp++;
+                else
+                    lp++, --ct;
+            }
+            if (RectLeft(rc))    {
+                char *lpp = lp;
+                while (*lpp)    {
+                    if (*(unsigned char*)lpp==CHANGECOLOR)
+                        break;
+                    if (*(unsigned char*)lpp==RESETCOLOR) {
+                        lpp = lp;
+                        while (lpp >= initlp)    {
+                            if (*(unsigned char *)lpp ==
+                                            CHANGECOLOR) {
+                                lp -= 3;
+                                memmove(lp,lpp,3);
+                                break;
+                            }
+                            --lpp;
+                        }
+                        break;
+                    }
+                    lpp++;
+                }
+            }
+            lnlen = LineLength(lp);
+            len = min(lnlen, RectWidth(rc));
+            dif = strlen(lp) - lnlen;
+            len += dif;
+            if (len > 0)
+                strncpy(line, lp, len);
+        }
     }
+    /* -------- pad the line --------- */
+    while (len < RectWidth(rc)+dif)
+        line[len++] = ' ';
+    line[len] = '\0';
+    dif = 0;
+    /* ------ establish the line's main color ----- */
+    if (reverse)    {
+        char *cp = line;
+        SetReverseColor(wnd);
+        while ((cp = strchr(cp, CHANGECOLOR)) != NULL)    {
+            cp += 2;
+            *cp++ = background | 0x80;
+        }
+        if (*(unsigned char *)line == CHANGECOLOR)
+            dif = 3;
+    }
+    else
+        SetStandardColor(wnd);
+    /* ------- display the line -------- */
+    writeline(wnd, line+dif,
+                RectLeft(rc)+BorderAdj(wnd),
+                    y-wnd->wtop+TopBorderAdj(wnd), FALSE);
     free(svlp);
 }
 

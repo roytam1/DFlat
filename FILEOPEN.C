@@ -2,24 +2,25 @@
 
 #include "dflat.h"
 
-static int DlgFileOpen(char *, char *, DBOX *);
+static BOOL DlgFileOpen(char *, char *, DBOX *);
 static int DlgFnOpen(WINDOW, MESSAGE, PARAM, PARAM);
 static void InitDlgBox(WINDOW);
 static void StripPath(char *);
-static int IncompleteFilename(char *);
+static BOOL IncompleteFilename(char *);
 
 static char *OrigSpec;
 static char *FileSpec;
 static char *FileName;
+static char *NewFileName;
 
-static int Saving;
+static BOOL Saving;
 extern DBOX FileOpen;
 extern DBOX SaveAs;
 
 /*
  * Dialog Box to select a file to open
  */
-int OpenFileDialogBox(char *Fpath, char *Fname)
+BOOL OpenFileDialogBox(char *Fpath, char *Fname)
 {
 	return DlgFileOpen(Fpath, Fname, &FileOpen);
 }
@@ -27,23 +28,25 @@ int OpenFileDialogBox(char *Fpath, char *Fname)
 /*
  * Dialog Box to select a file to save as
  */
-int SaveAsDialogBox(char *Fname)
+BOOL SaveAsDialogBox(char *Fname)
 {
 	return DlgFileOpen(NULL, Fname, &SaveAs);
 }
 
 /* --------- generic file open ---------- */
-static int DlgFileOpen(char *Fpath, char *Fname, DBOX *db)
+static BOOL DlgFileOpen(char *Fpath, char *Fname, DBOX *db)
 {
-	int  rtn;
+	BOOL rtn;
 	char savedir[80];
 	char OSpec[80];
 	char FSpec[80];
 	char FName[80];
+	char NewFName[80];
 
 	OrigSpec = OSpec;
 	FileSpec = FSpec;
 	FileName = FName;
+	NewFileName = NewFName;
 
 	getcwd(savedir, sizeof savedir);
 	if (Fpath != NULL)	{
@@ -58,7 +61,7 @@ static int DlgFileOpen(char *Fpath, char *Fname, DBOX *db)
 	strcpy(OrigSpec, FileSpec);
 
 	if ((rtn = DialogBox(NULL, db, TRUE, DlgFnOpen)) != FALSE)
-		strcpy(Fname, FileName);
+		strcpy(Fname, NewFileName);
 	else
 		*Fname = '\0';
 
@@ -114,6 +117,7 @@ static int DlgFnOpen(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					else	{
 						GetItemText(wnd, ID_PATH, FileName, 65);
 						strcat(FileName, FileSpec);
+						strcpy(NewFileName, FileName);
 					}
 					break;
 				case ID_FILES:
@@ -224,7 +228,7 @@ static void StripPath(char *filespec)
 }
 
 
-static int IncompleteFilename(char *s)
+static BOOL IncompleteFilename(char *s)
 {
 	int lc = strlen(s)-1;
 	if (strchr(s, '?') || strchr(s, '*') || !*s)

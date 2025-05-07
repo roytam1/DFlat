@@ -1,0 +1,76 @@
+/* ---------- dfalloc.c ---------- */
+
+#include "dflat.h"
+
+#undef malloc
+#undef calloc
+#undef realloc
+
+static void AllocationError(void)
+{
+	WINDOW wnd;
+	static BOOL OnceIn = FALSE;
+	extern jmp_buf AllocError;
+	extern BOOL AllocTesting;
+	static char *ErrMsg[] = {
+		"旼컴컴컴컴컴컴컴커",
+		"� Out of Memory! �",
+		"읕컴컴컴컴컴컴컴켸"
+	};
+	int x, y;
+	char savbuf[108];
+	RECT rc = {30,11,47,13};
+
+	if (!OnceIn)	{
+		OnceIn = TRUE;
+		/* ------ close all windows ------ */
+		wnd = Focus.FirstWindow;
+		while (wnd != NULL)	{
+			if (GetClass(wnd) == APPLICATION)	{
+				SendMessage(wnd, CLOSE_WINDOW, 0, 0);
+				break;
+			}
+			wnd = NextWindow(wnd);
+		}
+        getvideo(rc, savbuf);
+		for (x = 0; x < 18; x++)	{
+			for (y = 0; y < 3; y++)		{
+				int c = (255 & (*(*(ErrMsg+y)+x))) | 0x7000;
+				PutVideoChar(x+rc.lf, y+rc.tp, c);
+			}
+		}
+		getkey();
+        storevideo(rc, savbuf);
+		if (AllocTesting)
+			longjmp(AllocError, 1);
+	}
+}
+
+void *DFcalloc(size_t nitems, size_t size)
+{
+	void *rtn = calloc(nitems, size);
+	if (size && rtn == NULL)
+		AllocationError();
+	return rtn;
+}
+
+void *DFmalloc(size_t size)
+{
+	void far * rtn = malloc(size);
+	if (size && rtn == NULL)
+		AllocationError();
+	return rtn;
+}
+
+void *DFrealloc(void far *block, size_t size)
+{
+	void far * rtn = realloc(block, size);
+	if (size && rtn == NULL)
+		AllocationError();
+	return rtn;
+}
+
+
+
+
+

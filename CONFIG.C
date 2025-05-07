@@ -162,8 +162,8 @@ unsigned char bw[CLASSCOUNT] [4] [2] = {
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
     /* ------------ LISTBOX ----------- */
-   {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
-    {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
+   {{LIGHTGRAY, BLACK}, /* STD_COLOR    */
+    {BLACK, LIGHTGRAY}, /* SELECT_COLOR */
     {LIGHTGRAY, BLACK}, /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
@@ -181,9 +181,9 @@ unsigned char bw[CLASSCOUNT] [4] [2] = {
                            Inactive, Shortcut (both FG) */
 
     /* ---------- POPDOWNMENU --------- */
-   {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
-    {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
-    {BLACK, LIGHTGRAY}, /* FRAME_COLOR  */
+   {{LIGHTGRAY, BLACK}, /* STD_COLOR    */
+    {BLACK, LIGHTGRAY}, /* SELECT_COLOR */
+    {LIGHTGRAY, BLACK}, /* FRAME_COLOR  */
     {DARKGRAY, WHITE}}, /* HILITE_COLOR
                            Inactive ,Shortcut (both FG) */
 
@@ -271,7 +271,7 @@ unsigned char bw[CLASSCOUNT] [4] [2] = {
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
     {BLACK, LIGHTGRAY}, /* SELECT_COLOR */
     {BLACK, LIGHTGRAY}, /* FRAME_COLOR  */
-    {WHITE, LIGHTGRAY}},/* HILITE_COLOR */
+    {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
     /* ------------ DUMMY ------------- */
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
@@ -441,34 +441,53 @@ CONFIG cfg = {
 	55				 /* Bottom printer margin		*/
 };
 
-static FILE *OpenCfg(char *mode)
+void BuildFileName(char *path, char *ext)
+{
+	extern char **Argv;
+    char *cp;
+
+	strcpy(path, Argv[0]);
+	cp = strrchr(path, '\\');
+	if (cp == NULL)
+		cp = path;
+	else 
+		cp++;
+	strcpy(cp, DFlatApplication);
+	strcat(cp, ext);
+}
+
+FILE *OpenConfig(char *mode)
 {
 	char path[64];
-	sprintf(path, "%s.cfg", DFlatApplication);
+	BuildFileName(path, ".cfg");
 	return fopen(path, mode);
 }
 
 /* ------ load a configuration file from disk ------- */
-int LoadConfig(void)
+BOOL LoadConfig(void)
 {
-    FILE *fp = OpenCfg("rb");
-    if (fp != NULL)    {
-        fread(cfg.version, sizeof cfg.version+1, 1, fp);
-        if (strcmp(cfg.version, VERSION) == 0)    {
-            fseek(fp, 0L, SEEK_SET);
-            fread(&cfg, sizeof(CONFIG), 1, fp);
-        }
-        else
-            strcpy(cfg.version, VERSION);
-        fclose(fp);
-    }
-    return fp != NULL;
+	static BOOL ConfigLoaded = FALSE;
+	if (ConfigLoaded == FALSE)	{
+	    FILE *fp = OpenConfig("rb");
+    	if (fp != NULL)    {
+        	fread(cfg.version, sizeof cfg.version+1, 1, fp);
+        	if (strcmp(cfg.version, VERSION) == 0)    {
+            	fseek(fp, 0L, SEEK_SET);
+            	fread(&cfg, sizeof(CONFIG), 1, fp);
+        	}
+        	else
+            	strcpy(cfg.version, VERSION);
+        	fclose(fp);
+			ConfigLoaded = TRUE;
+    	}
+	}
+    return ConfigLoaded;
 }
 
 /* ------ save a configuration file to disk ------- */
 void SaveConfig(void)
 {
-    FILE *fp = OpenCfg("wb");
+    FILE *fp = OpenConfig("wb");
     if (fp != NULL)    {
         fwrite(&cfg, sizeof(CONFIG), 1, fp);
         fclose(fp);

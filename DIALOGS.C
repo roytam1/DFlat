@@ -87,6 +87,23 @@ DIALOGBOX( MsgBox )
     CONTROL(0,      NULL,   0, 0, 1, 8, ID_CANCEL)
 ENDDB
 
+/* ----------- InputBox Dialog Box ------------ */
+DIALOGBOX( InputBoxDB )
+    DB_TITLE(        NULL,      -1,-1, 9, 0)
+    CONTROL(TEXT,    NULL,       1, 1, 1, 0, 0)
+	CONTROL(EDITBOX, NULL,       1, 3, 1, 0, ID_INPUTTEXT)
+    CONTROL(BUTTON, "   ~OK   ", 0, 5, 1, 8, ID_OK)
+    CONTROL(BUTTON, " ~Cancel ", 0, 5, 1, 8, ID_CANCEL)
+ENDDB
+
+/* ----------- SliderBox Dialog Box ------------- */
+DIALOGBOX( SliderBoxDB )
+    DB_TITLE(       NULL,      -1,-1, 9, 0)
+    CONTROL(TEXT,   NULL,       0, 1, 1, 0, 0)
+    CONTROL(TEXT,   NULL,       0, 3, 1, 0, 0)
+    CONTROL(BUTTON, " Cancel ", 0, 5, 1, 8, ID_CANCEL)
+ENDDB
+
 #ifdef INCLUDE_WINDOWOPTIONS
 #define offset 7
 #else
@@ -160,4 +177,6 @@ DIALOGBOX( HelpBox )
     CONTROL(BUTTON,  "<< ~Prev ", 20,  0, 1,  8, ID_PREV)
     CONTROL(BUTTON,  " ~Next >>", 30,  0, 1,  8, ID_NEXT)
 ENDDB
+
+
 

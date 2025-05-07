@@ -33,5 +33,6 @@ htree+
 combobox+
 pictbox+
 clipbord+
-search
+search+
+dfalloc
 

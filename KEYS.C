@@ -50,6 +50,7 @@ struct keys keys[] = {
 	{CTRL_PGDN,	"Ctrl+PgDn"},
 	{SHIFT_HT,	"Shift+Tab"},
 	{ALT_BS,	"Alt+BS"},
+	{ALT_DEL,   "Alt+Del"},
 	{SHIFT_DEL,	"Shift+Del"},
 	{SHIFT_INS,	"Shift+Ins"},
 	{CTRL_INS,	"Ctrl+Ins"},

@@ -47,7 +47,7 @@ typedef struct {
 int AltConvert(int);
 int getkey(void);
 int getshift(void);
-int keyhit(void);
+BOOL keyhit(void);
 void beep(void);
 /* ---------- cursor prototypes -------- */
 void curr_cursor(int *x, int *y);
@@ -61,7 +61,7 @@ void set_cursor_type(unsigned t);
 void videomode(void);
 void SwapCursorStack(void);
 /* ---------- mouse prototypes ---------- */
-int mouse_installed(void);
+BOOL mouse_installed(void);
 int mousebuttons(void);
 void get_mouseposition(int *x, int *y);
 void set_mouseposition(int x, int y);
@@ -83,8 +83,8 @@ void set_mousetravel(int, int, int, int);
 /* ----------- video adaptor prototypes ----------- */
 void initvideo(void);
 void restorevideo(void);
-int isEGA(void);
-int isVGA(void);
+BOOL isEGA(void);
+BOOL isVGA(void);
 void Set25(void);
 void Set43(void);
 void Set50(void);

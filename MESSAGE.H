@@ -1,7 +1,7 @@
 /* ----------- message.h ------------ */
 
 #ifndef MESSAGES_H
-#define MESSGAES_H
+#define MESSAGES_H
 
 #define MAXMESSAGES 50
 #define DELAYTICKS 1
@@ -19,7 +19,7 @@ typedef enum messages {
 void init_messages(void);
 void PostMessage(WINDOW, MESSAGE, PARAM, PARAM);
 int SendMessage(WINDOW, MESSAGE, PARAM, PARAM);
-int dispatch_message(void);
+BOOL dispatch_message(void);
 int TestCriticalError(void);
 
 #endif

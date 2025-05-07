@@ -20,7 +20,7 @@ void resetmouse(void)
 }
 
 /* ----- test to see if the mouse driver is installed ----- */
-int mouse_installed(void)
+BOOL mouse_installed(void)
 {
     unsigned char far *ms;
     ms = MK_FP(peek(0, MOUSE*4+2), peek(0, MOUSE*4));

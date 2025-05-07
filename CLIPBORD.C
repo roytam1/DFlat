@@ -4,6 +4,13 @@
 char *Clipboard;
 unsigned ClipboardLength;
 
+void CopyTextToClipboard(char *text)
+{
+    ClipboardLength = strlen(text);
+    Clipboard = realloc(Clipboard, ClipboardLength);
+    memmove(Clipboard, text, ClipboardLength);
+}
+
 void CopyToClipboard(WINDOW wnd)
 {
     if (TextBlockMarked(wnd))    {
@@ -11,33 +18,34 @@ void CopyToClipboard(WINDOW wnd)
         char *bel=TextLine(wnd,wnd->BlkEndLine)+wnd->BlkEndCol;
         ClipboardLength = (int) (bel - bbl);
         Clipboard = realloc(Clipboard, ClipboardLength);
-        if (Clipboard != NULL)
-            memmove(Clipboard, bbl, ClipboardLength);
+        memmove(Clipboard, bbl, ClipboardLength);
     }
 }
 
-int PasteText(WINDOW wnd, char *SaveTo, unsigned len)
+void ClearClipboard(void)
+{
+    if (Clipboard != NULL)  {
+        free(Clipboard);
+        Clipboard = NULL;
+    }
+}
+
+
+BOOL PasteText(WINDOW wnd, char *SaveTo, unsigned len)
 {
     if (SaveTo != NULL && len > 0)    {
         unsigned plen = strlen(wnd->text) + len;
-        char *bl, *el;
 
 		if (plen <= wnd->MaxTextLength)	{
         	if (plen > wnd->textlen)    {
-            	wnd->text = realloc(wnd->text, plen+2);
-            	wnd->textlen = plen;
+            	wnd->text = realloc(wnd->text, plen+3);
+            	wnd->textlen = plen+1;
         	}
-        	if (wnd->text != NULL)    {
-            	bl = CurrChar;
-            	el = bl+len;
-            	memmove(el, bl, strlen(bl)+1);
-            	memmove(bl, SaveTo, len);
-            	BuildTextPointers(wnd);
-            	wnd->TextChanged = TRUE;
-				return TRUE;
-        	}
-			else
-				ResetEditBox(wnd);
+          	memmove(CurrChar+len, CurrChar, strlen(CurrChar)+1);
+           	memmove(CurrChar, SaveTo, len);
+           	BuildTextPointers(wnd);
+           	wnd->TextChanged = TRUE;
+			return TRUE;
 		}
     }
 	return FALSE;

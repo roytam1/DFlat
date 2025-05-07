@@ -25,8 +25,8 @@ typedef struct {
     char *itext;    /* initialized text     */
     int command;    /* command code         */
     char *help;     /* help mnemonic        */
-    int isetting;   /* initially ON or OFF  */
-    int setting;    /* ON or OFF            */
+    BOOL isetting;  /* initially ON or OFF  */
+    BOOL setting;   /* ON or OFF            */
     void *wnd;      /* window handle        */
 } CTLWINDOW;
 
@@ -40,8 +40,10 @@ typedef struct {
 /* -------- macros for dialog box resource compile -------- */
 #define DIALOGBOX(db) DBOX db={ #db,
 #define DB_TITLE(ttl,x,y,h,w) {ttl,x,y,h,w},{
-#define CONTROL(ty,tx,x,y,h,w,c) \
- {{NULL,x,y,h,w},ty,tx,c,#c,(ty==BUTTON?ON:OFF),OFF,NULL},
+#define CONTROL(ty,tx,x,y,h,w,c) 						\
+				{{NULL,x,y,h,w},ty,						\
+				(ty==EDITBOX||ty==COMBOBOX?NULL:tx),	\
+				c,#c,(ty==BUTTON?ON:OFF),OFF,NULL},
 
 #define ENDDB {{NULL}} }};
 

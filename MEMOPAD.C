@@ -28,15 +28,17 @@ void Calendar(WINDOW);
 void BarChart(WINDOW);
 char **Argv;
 
-static int CancelPrint;
 #define CHARSLINE 80
 #define LINESPAGE 66
 
 void main(int argc, char *argv[])
 {
     WINDOW wnd;
-    init_messages();
+    if (!init_messages())
+		return;
     Argv = argv;
+	if (!LoadConfig())
+		cfg.ScreenLines = SCREENHEIGHT;
     wnd = CreateWindow(APPLICATION,
                         "D-Flat MemoPad " VERSION,
                         0, 0, -1, -1,
@@ -116,6 +118,10 @@ static int MemoPadProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
                 case ID_PRINT:
                     PrintPad(inFocus);
                     return TRUE;
+				case ID_EXIT:	
+					if (!YesNoBox("Exit Memopad?"))
+						return FALSE;
+					break;
 				case ID_TAB2:
 					cfg.Tabs = 2;
 					FixTabMenu();
@@ -131,10 +137,6 @@ static int MemoPadProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 				case ID_TAB8:
 					cfg.Tabs = 8;
 					FixTabMenu();
-                    return TRUE;
-				case ID_CANCEL:
-					if ((int)p2 == 0)
-						CancelPrint = TRUE;
                     return TRUE;
 				case ID_CALENDAR:
 #ifndef TURBOC
@@ -247,69 +249,81 @@ static void LoadFile(WINDOW wnd)
     FILE *fp;
 
     if ((fp = fopen(wnd->extension, "rt")) != NULL)    {
+		WINDOW wwnd = WatchIcon();
 		while (!feof(fp))	{
+			handshake();
 			if ((Buf = realloc(Buf, recptr+150)) == NULL)
 				break;
         	fgets(Buf+recptr, 150, fp);
 			recptr += strlen(Buf+recptr);
 		}
         fclose(fp);
+		SendMessage(wwnd, CLOSE_WINDOW, 0, 0);
 		if (Buf != NULL)	{
 	        SendMessage(wnd, SETTEXT, (PARAM) Buf, 0);
 		    free(Buf);
 		}
     }
 }
+
+static int LineCtr;
+static int CharCtr;
+
+/* ------- print a character -------- */
+static void PrintChar(FILE *prn, int c)
+{
+	int i;
+    if (c == '\n' || CharCtr == cfg.RightMargin)	{
+		fputs("\r\n", prn);
+		LineCtr++;
+		if (LineCtr == cfg.BottomMargin)	{
+    		fputc('\f', prn);
+			for (i = 0; i < cfg.TopMargin; i++)
+	    		fputc('\n', prn);
+			LineCtr = cfg.TopMargin;
+		}
+		CharCtr = 0;
+		if (c == '\n')
+			return;
+	}
+	if (CharCtr == 0)	{
+		for (i = 0; i < cfg.LeftMargin; i++)	{
+			fputc(' ', prn);
+			CharCtr++;
+		}
+	}
+	CharCtr++;
+    fputc(c, prn);
+}
+
 /* --- print the current notepad --- */
 static void PrintPad(WINDOW wnd)
 {
-    unsigned char *text;
-	FILE *prn;
-	int LineCtr = 0, CharCtr = 0;
-
 	if (*cfg.PrinterPort)	{
+		FILE *prn;
 		if ((prn = fopen(cfg.PrinterPort, "wt")) != NULL)	{
-    		/* ---- get the address of the editor text ----- */
-    		text = GetText(wnd);
-			CancelPrint = FALSE;
-			CancelBox(GetParent(wnd), "Printing...");
+			long percent;
+			BOOL KeepPrinting = TRUE;
+		    unsigned char *text = GetText(wnd);
+			unsigned oldpct = 100, cct = 0, len = strlen(text);
+			WINDOW swnd = SliderBox(20, GetTitle(wnd), "Printing");
     		/* ------- print the notepad text --------- */
-    		while (*text)    {
-				int i;
-				dispatch_message();
-				if (CancelPrint)
-					if (YesNoBox("Cancel Printing?"))
-						break;
-				CancelPrint = FALSE;
-        		if (*text == '\n' || CharCtr == cfg.RightMargin)	{
-					fputs("\r\n", prn);
-					LineCtr++;
-					if (LineCtr == cfg.BottomMargin)	{
-    					fputc('\f', prn);
-						for (i = 0; i < cfg.TopMargin; i++)
-	    					fputc('\n', prn);
-						LineCtr = cfg.TopMargin;
-					}
-					CharCtr = 0;
-					if (*text == '\n')	{
-						text++;
-						continue;
-					}
+			LineCtr = CharCtr = 0;
+			while (KeepPrinting && *text)	{
+				PrintChar(prn, *text++);
+				percent = ((long) ++cct * 100) / len;
+				if ((int) percent != oldpct)	{
+					oldpct = (int) percent;
+					KeepPrinting = SendMessage(swnd, PAINT, 0, oldpct);
 				}
-				if (CharCtr == 0)	{
-					for (i = 0; i < cfg.LeftMargin; i++)	{
-						fputc(' ', prn);
-						CharCtr++;
-					}
-				}
-				CharCtr++;
-        		fputc(*text++, prn);
     		}
-			CloseCancelBox();
-
-    		/* ------- follow with a form feed? --------- */
-    		if (YesNoBox("Form Feed?"))
-        		fputc('\f', prn);
+			if (KeepPrinting)
+				/* ---- user did not cancel ---- */
+				if (oldpct < 100)
+					SendMessage(swnd, PAINT, 0, 100);
+   			/* ------- follow with a form feed? --------- */
+   			if (YesNoBox("Form Feed?"))
+       			fputc('\f', prn);
 			fclose(prn);
 		}
 		else
@@ -318,6 +332,7 @@ static void PrintPad(WINDOW wnd)
 	else
 		ErrorMessage("No printer selected");
 }
+
 /* ---------- save a file to disk ------------ */
 static void SaveFile(WINDOW wnd, int Saveas)
 {

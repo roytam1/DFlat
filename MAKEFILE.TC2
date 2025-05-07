@@ -7,7 +7,7 @@ all : memopad.exe huffc.exe
 #------------------------------------------------
 # NOTE: Set DRIVE to match where you installed your compiler
 #------------------------------------------------
-DRIVE = F:\COMPILER
+DRIVE = C:\COMPILER
 #-------------------------------------------------------------------
 #  Delete the TESTING macro to eliminate the D-Flat Log and the Reload
 #  Help file selection on the Help menu
@@ -31,7 +31,7 @@ MODEL = l
 #------------------------------------------------
 DEBUG = -v
 LINKDEBUG = /m /v
-COMPILE = tcc $(DEBUG) -DTURBOC -D$(TESTING) -D$(FULL) -c -d -m$(MODEL)
+COMPILE = $(DRIVE)\tc\tcc $(DEBUG) -DTURBOC -D$(TESTING) -D$(FULL) -c -d -m$(MODEL)
 LINK= tlink $(LINKDEBUG) $(DRIVE)\tc\lib\c0$(MODEL) 
 LIBS= $(DRIVE)\tc\lib\c$(MODEL)
 #------------------------------------------------
@@ -47,7 +47,7 @@ memopad.exe : memopad.obj window.obj video.obj message.obj             \
               fileopen.obj msgbox.obj helpbox.obj log.obj lists.obj    \
               statbar.obj decomp.obj htree.obj combobox.obj            \
               pictbox.obj calendar.obj barchart.obj clipbord.obj       \
-              search.obj
+              search.obj dfalloc.obj
     $(LINK) @memopad.lnk,$*.exe,$*,$(LIBS)
 
 huffc.exe : huffc.obj htree.obj

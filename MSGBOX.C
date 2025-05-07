@@ -3,6 +3,7 @@
 #include "dflat.h"
 
 extern DBOX MsgBox;
+extern DBOX InputBoxDB;
 WINDOW CancelWnd;
 
 static int ReturnValue;
@@ -91,11 +92,52 @@ void CloseCancelBox(void)
 		SendMessage(CancelWnd, CLOSE_WINDOW, 0, 0);
 }
 
-int GenericMessage(WINDOW wnd, char *ttl, char *msg, int buttonct,
+static char *InputText;
+static int TextLength;
+
+int InputBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
+{
+	int rtn;
+	switch (msg)	{
+		case CREATE_WINDOW:
+			rtn = DefaultWndProc(wnd, msg, p1, p2);
+			SendMessage(ControlWindow(&InputBoxDB, ID_INPUTTEXT),
+						SETTEXTLENGTH, TextLength, 0);
+			return rtn;
+		case COMMAND:
+			if ((int) p1 == ID_OK && (int) p2 == 0)
+				GetItemText(wnd, ID_INPUTTEXT,
+							InputText, TextLength);
+			break;
+		default:
+			break;
+	}
+	return DefaultWndProc(wnd, msg, p1, p2);
+}
+
+BOOL InputBox(WINDOW wnd, char *ttl, char *msg, char *text, int len)
+{
+	InputText = text;
+	TextLength = len;
+	InputBoxDB.dwnd.title = ttl;
+	InputBoxDB.dwnd.w = 4 + 
+		max(20, max(len, max(strlen(ttl), strlen(msg))));
+	InputBoxDB.ctl[1].dwnd.x = (InputBoxDB.dwnd.w-2-len)/2;
+	InputBoxDB.ctl[0].dwnd.w = strlen(msg);
+	InputBoxDB.ctl[0].itext = msg;
+	InputBoxDB.ctl[1].dwnd.w = len;
+	InputBoxDB.ctl[2].dwnd.x = (InputBoxDB.dwnd.w - 20) / 2;
+	InputBoxDB.ctl[3].dwnd.x = InputBoxDB.ctl[2].dwnd.x + 10;
+	InputBoxDB.ctl[2].isetting = ON;
+	InputBoxDB.ctl[3].isetting = ON;
+	return DialogBox(wnd, &InputBoxDB, TRUE, InputBoxProc);
+}
+
+BOOL GenericMessage(WINDOW wnd, char *ttl, char *msg, int buttonct,
 	int (*wndproc)(struct window *, enum messages, PARAM, PARAM),
 	char *b1, char *b2, int c1, int c2, int isModal)
 {
-	int rtn;
+	BOOL rtn;
 	MsgBox.dwnd.title = ttl;
 	MsgBox.ctl[0].dwnd.h = MsgHeight(msg);
 	MsgBox.ctl[0].dwnd.w = max(max(MsgWidth(msg),

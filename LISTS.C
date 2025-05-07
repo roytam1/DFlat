@@ -3,7 +3,6 @@
 #include "dflat.h"
 
 struct LinkedList Focus;
-struct LinkedList Built;
 
 /* --- set focus to the window beneath the one specified --- */
 void SetPrevFocus(WINDOW wnd)
@@ -13,9 +12,9 @@ void SetPrevFocus(WINDOW wnd)
         while (TRUE)    {
             if ((wnd1 = PrevWindow(wnd1)) == NULL)
                 wnd1 = Focus.LastWindow;
-            if (wnd1 == wnd)
+            if (wnd1 == NULL || wnd1 == wnd)
                 return;
-            if (wnd1 != NULL)
+            if (isVisible(wnd1))
                 break;
         }
         if (wnd1 != NULL)
@@ -55,23 +54,6 @@ void SetNextFocus(WINDOW wnd)
         SendMessage(wnd1, SETFOCUS, TRUE, 0);
 }
 
-/* ---- remove a window from the Built linked list ---- */
-void RemoveBuiltWindow(WINDOW wnd)
-{
-    if (wnd != NULL)    {
-        if (PrevWindowBuilt(wnd) != NULL)
-            NextWindowBuilt(PrevWindowBuilt(wnd)) =
-                NextWindowBuilt(wnd);
-        if (NextWindowBuilt(wnd) != NULL)
-            PrevWindowBuilt(NextWindowBuilt(wnd)) =
-                PrevWindowBuilt(wnd);
-        if (wnd == Built.FirstWindow)
-            Built.FirstWindow = NextWindowBuilt(wnd);
-        if (wnd == Built.LastWindow)
-            Built.LastWindow = PrevWindowBuilt(wnd);
-    }
-}
-
 /* ---- remove a window from the Focus linked list ---- */
 void RemoveFocusWindow(WINDOW wnd)
 {
@@ -84,20 +66,6 @@ void RemoveFocusWindow(WINDOW wnd)
             Focus.FirstWindow = NextWindow(wnd);
         if (wnd == Focus.LastWindow)
             Focus.LastWindow = PrevWindow(wnd);
-    }
-}
-
-/* ---- append a window to the Built linked list ---- */
-void AppendBuiltWindow(WINDOW wnd)
-{
-    if (wnd != NULL)    {
-        if (Built.FirstWindow == NULL)
-            Built.FirstWindow = wnd;
-        if (Built.LastWindow != NULL)
-            NextWindowBuilt(Built.LastWindow) = wnd;
-        PrevWindowBuilt(wnd) = Built.LastWindow;
-        NextWindowBuilt(wnd) = NULL;
-        Built.LastWindow = wnd;
     }
 }
 
@@ -132,12 +100,9 @@ void PrependFocusWindow(WINDOW wnd)
 /* -------- get the first child of a parent window ------- */
 WINDOW GetFirstChild(WINDOW wnd)
 {
-    WINDOW ThisWindow = Built.FirstWindow;
-    while (ThisWindow != NULL)    {
-        if (GetParent(ThisWindow) == wnd)
-            break;
-        ThisWindow = NextWindowBuilt(ThisWindow);
-    }
+    WINDOW ThisWindow = NULL;
+	if (wnd->ChildCt)
+		ThisWindow = *(wnd->Children);
     return ThisWindow;
 }
 
@@ -145,12 +110,14 @@ WINDOW GetFirstChild(WINDOW wnd)
 WINDOW GetNextChild(WINDOW wnd, WINDOW ThisWindow)
 {
     if (ThisWindow != NULL)    {
-        do    {
-            if ((ThisWindow = NextWindowBuilt(ThisWindow)) !=
-                    NULL)
-                if (GetParent(ThisWindow) == wnd)
-                    break;
-        }    while (ThisWindow != NULL);
+		int i;
+		for (i = 0; i < wnd->ChildCt; i++)
+			if (ThisWindow == *(wnd->Children+i))
+				break;
+		if (++i < wnd->ChildCt)
+			ThisWindow = *(wnd->Children+i);
+		else
+			ThisWindow = NULL;
     }
     return ThisWindow;
 }
@@ -175,32 +142,6 @@ WINDOW GetNextFocusChild(WINDOW wnd, WINDOW ThisWindow)
         if (ThisWindow != NULL)
             if (GetParent(ThisWindow) == wnd)
                 break;
-    }
-    return ThisWindow;
-}
-
-/* -------- get the last child of a parent window ------- */
-WINDOW GetLastChild(WINDOW wnd)
-{
-    WINDOW ThisWindow = Built.LastWindow;
-    while (ThisWindow != NULL)    {
-        if (GetParent(ThisWindow) == wnd)
-            break;
-        ThisWindow = PrevWindowBuilt(ThisWindow);
-    }
-    return ThisWindow;
-}
-
-/* ------- get the previous child of a parent window ------- */
-WINDOW GetPrevChild(WINDOW wnd, WINDOW ThisWindow)
-{
-    if (ThisWindow != NULL)    {
-        do    {
-            if ((ThisWindow = PrevWindowBuilt(ThisWindow)) !=
-                    NULL)
-                if (GetParent(ThisWindow) == wnd)
-                    break;
-        }    while (ThisWindow != NULL);
     }
     return ThisWindow;
 }

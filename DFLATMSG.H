@@ -63,7 +63,9 @@ DFlatMsg(TESTMOUSE)          /* test any mouse button pressed*/
 DFlatMsg(CAPTURE_MOUSE)      /* capture mouse into a window  */
 DFlatMsg(RELEASE_MOUSE)      /* release the mouse to system  */
 /* ---------------- text box messages ---------------------- */
-DFlatMsg(ADDTEXT)            /* add text to the text box     */
+DFlatMsg(ADDTEXT)            /* append text to the text box  */
+DFlatMsg(INSERTTEXT)		 /* insert line of text          */
+DFlatMsg(DELETETEXT)         /* delete line of text          */
 DFlatMsg(CLEARTEXT)          /* clear the edit box           */
 DFlatMsg(SETTEXT)            /* copy text to text buffer     */
 DFlatMsg(SCROLL)             /* vertical line scroll         */
@@ -76,7 +78,7 @@ DFlatMsg(GETTEXT)            /* get text from an edit box    */
 DFlatMsg(SETTEXTLENGTH)		 /* set maximum text length      */
 /* ---------------- menubar messages ----------------------- */
 DFlatMsg(BUILDMENU)          /* build the menu display       */
-DFlatMsg(SELECTION)          /* menubar selection            */
+DFlatMsg(MB_SELECTION)       /* menubar selection            */
 /* ---------------- popdown messages ----------------------- */
 DFlatMsg(BUILD_SELECTIONS)   /* build the menu display       */
 DFlatMsg(CLOSE_POPDOWN)    /* tell parent popdown is closing */

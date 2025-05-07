@@ -52,10 +52,19 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 	switch (msg)	{
 		case CREATE_WINDOW:
 			wnd->ct = malloc(sizeof(CTLWINDOW));
+			wnd->ct->setting = OFF;
 			break;
 		case SETFOCUS:
-			if ((int)p1 == FALSE)
+			if ((int)p1 == FALSE)	{
 				SendMessage(wnd, HIDE_WINDOW, 0, 0);
+				wnd->ct->setting = OFF;
+			}
+			else 
+				wnd->ct->setting = ON;
+			break;
+		case SHOW_WINDOW:
+			if (wnd->ct->setting == OFF)
+				return TRUE;
 			break;
 		case BORDER:
 			currFocus = inFocus;
@@ -70,12 +79,24 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 			SendMessage(cwnd, PAINT, 0, 0);
 			cwnd->TextChanged = TRUE;
 			return rtn;
+		case KEYBOARD:
+			switch ((int) p1)	{
+				case ESC:
+				case FWD:
+				case BS:
+					SendMessage(cwnd, SETFOCUS, TRUE, 0);
+					return TRUE;
+				default:
+					break;
+			}
+			break;
 		case LB_CHOOSE:
 			SendMessage(cwnd, SETFOCUS, TRUE, 0);
 			return TRUE;
 		case CLOSE_WINDOW:
 			if (wnd->ct != NULL)
 				free(wnd->ct);
+			break;
 		default:
 			break;
 	}

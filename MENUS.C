@@ -14,7 +14,7 @@ DEFMENU(MainMenu)
         SELECTION( "D~elete",     ID_DELETEFILE,   0, INACTIVE)
         SEPARATOR
         SELECTION( "~Print",      ID_PRINT,        0, INACTIVE)
-        SELECTION( "P~rinter Setup...", ID_PRINTSETUP, 0, 0   )
+        SELECTION( "P~rinter setup...", ID_PRINTSETUP, 0, 0   )
         SEPARATOR
         SELECTION( "~DOS",        ID_DOS,          0, 0 )
         SELECTION( "E~xit",       ID_EXIT,     ALT_X, 0 )
@@ -44,7 +44,7 @@ DEFMENU(MainMenu)
 	/* ------------ the Utilities popdown menu --------------- */
 	POPDOWN( "~Utilities", NULL, "Utility programs" )
 		SELECTION( "~Calendar",   ID_CALENDAR,     0,   0)
-		SELECTION( "~Bar Chart",  ID_BARCHART,     0,   0)
+		SELECTION( "~Bar chart",  ID_BARCHART,     0,   0)
 	ENDPOPDOWN
 
     /* ------------- the Options popdown menu ---------------*/
@@ -52,14 +52,14 @@ DEFMENU(MainMenu)
         SELECTION( "~Display...",   ID_DISPLAY,     0,      0 )
         SEPARATOR
 #ifdef INCLUDE_LOGGING
-        SELECTION( "~Log Messages", ID_LOG,     ALT_L,      0 )
+        SELECTION( "~Log messages", ID_LOG,     ALT_L,      0 )
         SEPARATOR
 #endif
         SELECTION( "~Insert",       ID_INSERT,     INS, TOGGLE)
         SELECTION( "~Word wrap",    ID_WRAP,        0,  TOGGLE)
         SELECTION( "~Tabs ( )",     ID_TABS,        0,  CASCADED)
         SEPARATOR
-        SELECTION( "~Save Options", ID_SAVEOPTIONS, 0,      0 )
+        SELECTION( "~Save options", ID_SAVEOPTIONS, 0,      0 )
     ENDPOPDOWN
 
     /* --------------- the Window popdown menu --------------*/
@@ -91,16 +91,16 @@ DEFMENU(MainMenu)
         SELECTION(  "~About...",          ID_ABOUT,     0, 0 )
 #ifdef TESTING_DFLAT
         SEPARATOR
-        SELECTION(  "~Reload Help Database",ID_LOADHELP,0, 0 )
+        SELECTION(  "~Reload help database",ID_LOADHELP,0, 0 )
 #endif
     ENDPOPDOWN
 
 	/* ----- cascaded pulldown from Tabs... above ----- */
 	CASCADED_POPDOWN( ID_TABS, NULL )
-		SELECTION( "~2 Tab Stops", ID_TAB2, 0, 0)
-		SELECTION( "~4 Tab Stops", ID_TAB4, 0, 0)
-		SELECTION( "~6 Tab Stops", ID_TAB6, 0, 0)
-		SELECTION( "~8 Tab Stops", ID_TAB8, 0, 0)
+		SELECTION( "~2 tab stops", ID_TAB2, 0, 0)
+		SELECTION( "~4 tab stops", ID_TAB4, 0, 0)
+		SELECTION( "~6 tab stops", ID_TAB6, 0, 0)
+		SELECTION( "~8 tab stops", ID_TAB8, 0, 0)
     ENDPOPDOWN
 
 ENDMENU

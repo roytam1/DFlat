@@ -15,21 +15,52 @@ static void ChangeFocus(WINDOW, int);
 static CTLWINDOW *AssociatedControl(DBOX *, enum commands);
 static void SetRadioButton(DBOX *, CTLWINDOW *);
 
-static int SysMenuOpen;
+static BOOL SysMenuOpen;
+
+static DBOX **dbs = NULL;
+static int dbct = 0;
+
+void ClearDialogBoxes(void)
+{
+	int i;
+	for (i = 0; i < dbct; i++)	{
+		CTLWINDOW *ct = (*(dbs+i))->ctl;
+		while (ct->class)	{
+			if ((ct->class == EDITBOX || ct->class == COMBOBOX) &&
+					ct->itext != NULL)
+				free(ct->itext);
+			ct++;
+		}
+	}
+	if (dbs != NULL)	{
+		free(dbs);
+		dbs = NULL;
+	}
+	dbct = 0;
+}
 
 int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
 	DBOX *db = wnd->extension;
 	CTLWINDOW *ct;
 	WINDOW cwnd;
-	int rtn;
+	int rtn, i;
 
 	switch (msg)	{
 		case CREATE_WINDOW:
+			/* ---- build a table of processed dialog boxes ---- */
+			for (i = 0; i < dbct; i++)
+				if (db == dbs[i])
+					break;
+			if (i == dbct)	{
+				dbs = realloc(dbs, sizeof(DBOX *) * (dbct+1));
+				if (dbs != NULL)
+					*(dbs + dbct++) = db;
+			}
 			rtn = BaseWndProc(DIALOG, wnd, msg, p1, p2);
 			ct = db->ctl;
 			while (ct->class)	{
-				int attrib = VISIBLE;
+				int attrib = 0;
 				if (TestAttribute(wnd, NOCLIP))
 					attrib |= NOCLIP;
 				if (wnd->Modal)
@@ -187,10 +218,10 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 	return BaseWndProc(DIALOG, wnd, msg, p1, p2);
 }
 
-int DialogBox(WINDOW wnd, DBOX *db, int Modal,
+BOOL DialogBox(WINDOW wnd, DBOX *db, BOOL Modal,
 	int (*wndproc)(struct window *, enum messages, PARAM, PARAM))
 {
-	int rtn;
+	BOOL rtn;
 	int x = db->dwnd.x, y = db->dwnd.y;
 	CTLWINDOW *ct;
 	WINDOW oldFocus = inFocus;
@@ -210,8 +241,9 @@ int DialogBox(WINDOW wnd, DBOX *db, int Modal,
 						wndproc,
 						Modal ? SAVESELF : 0);
 	DialogWnd->Modal = Modal;
-	SendMessage(((CTLWINDOW *)(DialogWnd->dFocus))->wnd, SETFOCUS, TRUE, 0);
+	SendMessage(inFocus, SETFOCUS, FALSE, 0);
 	SendMessage(DialogWnd, SHOW_WINDOW, 0, 0);
+	SendMessage(((CTLWINDOW *)(DialogWnd->dFocus))->wnd, SETFOCUS, TRUE, 0);
 	SendMessage(DialogWnd, INITIATE_DIALOG, 0, 0);
 	if (Modal)	{
 		SendMessage(DialogWnd, CAPTURE_MOUSE, 0, 0);
@@ -332,7 +364,7 @@ static void SetRadioButton(DBOX *db, CTLWINDOW *ct)
 	SendMessage(ct->wnd, PAINT, 0, 0);
 }
 
-int RadioButtonSetting(DBOX *db, enum commands cmd)
+BOOL RadioButtonSetting(DBOX *db, enum commands cmd)
 {
 	CTLWINDOW *ct = FindCommand(db, cmd, RADIOBUTTON);
 	if (ct != NULL)
@@ -368,7 +400,7 @@ void DisableButton(DBOX *db, enum commands cmd)
 	ControlSetting(db, cmd, BUTTON, OFF);
 }
 
-int CheckBoxSetting(DBOX *db, enum commands cmd)
+BOOL CheckBoxSetting(DBOX *db, enum commands cmd)
 {
 	CTLWINDOW *ct = FindCommand(db, cmd, CHECKBOX);
 	if (ct != NULL)
@@ -495,7 +527,7 @@ static int dircmp(const void *c1, const void *c2)
 	return stricmp(*(char **)c1, *(char **)c2);
 }
 
-int DlgDirList(WINDOW wnd, char *fspec,
+BOOL DlgDirList(WINDOW wnd, char *fspec,
 				enum commands nameid, enum commands pathid,
 				unsigned attrib)
 {
@@ -640,6 +672,21 @@ static void dbShortcutKeys(DBOX *db, int ky)
 	}
 }
 
+void SetScrollBars(WINDOW wnd)
+{
+	int oldattr = GetAttribute(wnd);
+	if (wnd->wlines > ClientHeight(wnd))
+		AddAttribute(wnd, VSCROLLBAR);
+	else 
+		ClearAttribute(wnd, VSCROLLBAR);
+	if (wnd->textwidth > ClientWidth(wnd))
+		AddAttribute(wnd, HSCROLLBAR);
+	else 
+		ClearAttribute(wnd, HSCROLLBAR);
+	if (GetAttribute(wnd) != oldattr)
+		SendMessage(wnd, BORDER, 0, 0);
+}
+
 /* generic window processor used by all dialog box control windows */
 static int ControlProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
@@ -717,19 +764,8 @@ static int ControlProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 		case PAINT:
 			if (GetClass(wnd) == EDITBOX ||
 					GetClass(wnd) == LISTBOX ||
-						GetClass(wnd) == TEXTBOX)	{
-				int oldattr = GetAttribute(wnd);
-				if (wnd->wlines > ClientHeight(wnd))
-					AddAttribute(wnd, VSCROLLBAR);
-				else 
-					ClearAttribute(wnd, VSCROLLBAR);
-				if (wnd->textwidth > ClientWidth(wnd))
-					AddAttribute(wnd, HSCROLLBAR);
-				else 
-					ClearAttribute(wnd, HSCROLLBAR);
-				if (GetAttribute(wnd) != oldattr)
-					SendMessage(wnd, BORDER, 0, 0);
-			}
+						GetClass(wnd) == TEXTBOX)
+				SetScrollBars(wnd);
 			break;
 		case BORDER:
 			if (GetClass(wnd) == EDITBOX)	{

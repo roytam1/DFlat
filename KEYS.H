@@ -9,6 +9,7 @@
 #define BELL          7
 #define ESC          27
 #define ALT_BS      (197+OFFSET)
+#define ALT_DEL     (184+OFFSET)
 #define SHIFT_DEL   (198+OFFSET)
 #define CTRL_INS    (186+OFFSET)
 #define SHIFT_INS   (185+OFFSET)

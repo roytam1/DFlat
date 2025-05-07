@@ -7,6 +7,7 @@
 
 void getvideo(RECT, void far *);
 void storevideo(RECT, void far *);
+void swapvideo(WINDOW, void far *);
 extern unsigned video_mode;
 extern unsigned video_page;
 void wputch(WINDOW, int, int, int);

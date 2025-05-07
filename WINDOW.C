@@ -93,25 +93,23 @@ void InsertTitle(WINDOW wnd, char *ttl)
 static unsigned char line[300];
 
 /* ------ write a line to video window client area ------ */
-void writeline(WINDOW wnd, char *str, int x, int y, int pad)
+void writeline(WINDOW wnd, char *str, int x, int y, BOOL pad)
 {
     char *cp;
     int len;
     int dif;
-	char *wline = calloc(1, 200);
+	char wline[200];
 
-	if (wline != NULL)	{
-        len = LineLength(str);
-        dif = strlen(str) - len;
-        strncpy(wline, str, ClientWidth(wnd) + dif);
-        if (pad)    {
-            cp = wline+strlen(wline);
-            while (len++ < ClientWidth(wnd)-x)
-                *cp++ = ' ';
-        }
-        wputs(wnd, wline, x, y);
-		free(wline);
-	}
+	memset(wline, 0, 200);
+    len = LineLength(str);
+    dif = strlen(str) - len;
+    strncpy(wline, str, ClientWidth(wnd) + dif);
+    if (pad)    {
+        cp = wline+strlen(wline);
+        while (len++ < ClientWidth(wnd)-x)
+            *cp++ = ' ';
+    }
+    wputs(wnd, wline, x, y);
 }
 
 RECT AdjustRectangle(WINDOW wnd, RECT rc)
@@ -215,7 +213,7 @@ static void near shadow_char(WINDOW wnd, int y)
     int x = WindowWidth(wnd);
     int c = videochar(GetLeft(wnd)+x, GetTop(wnd)+y);
 
-    if (TestAttribute(wnd, SHADOW) == 0)
+    if (TestAttribute(wnd, SHADOW) == 0 || cfg.mono)
         return;
     foreground = LIGHTGRAY;
     background = BLACK;
@@ -232,7 +230,7 @@ static void near shadowline(WINDOW wnd, RECT rc)
     int fg = foreground;
     int bg = background;
 
-    if ((TestAttribute(wnd, SHADOW)) == 0)
+    if ((TestAttribute(wnd, SHADOW)) == 0 || cfg.mono)
         return;
     for (i = 0; i < WindowWidth(wnd)+1; i++)
         line[i] = videochar(GetLeft(wnd)+i, y);
@@ -261,7 +259,7 @@ void RepaintBorder(WINDOW wnd, RECT *rcc)
         return;
     if (rcc == NULL)    {
         rc = RelativeWindowRect(wnd, WindowRect(wnd));
-	    if (TestAttribute(wnd, SHADOW))    {
+	    if (TestAttribute(wnd, SHADOW) || cfg.mono == 0)    {
     	    rc.rt++;
         	rc.bt++;
 	    }
@@ -429,8 +427,8 @@ void ClearWindow(WINDOW wnd, RECT *rcc, int clrchar)
 static RECT near ClipRect(WINDOW wnd)
 {
     RECT rc;
-    rc = wnd->rc;
-    if (TestAttribute(wnd, SHADOW))    {
+    rc = WindowRect(wnd);
+    if (TestAttribute(wnd, SHADOW) || cfg.mono == 0)    {
         RectBottom(rc)++;
         RectRight(rc)++;
     }

@@ -14,7 +14,7 @@ static void ClearSelection(WINDOW, int);
 #endif
 static void near ChangeSelection(WINDOW, int, int);
 static void near WriteSelection(WINDOW, int, int, RECT *);
-static int near SelectionInWindow(WINDOW, int);
+static BOOL SelectionInWindow(WINDOW, int);
 
 static int py = -1;    /* the previous y mouse coordinate */
 
@@ -210,8 +210,6 @@ static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
     if (my >= wnd->wlines-wnd->wtop)
         my = wnd->wlines - wnd->wtop;
 
-    if (WindowMoving || WindowSizing)
-        return FALSE;
     if (!InsideRect(p1, p2, ClientRect(wnd)))
         return FALSE;
     if (wnd->wlines && my != py)    {
@@ -296,6 +294,8 @@ int ListBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 return TRUE;
             break;
         case BUTTON_RELEASED:
+            if (WindowMoving || WindowSizing || VSliding)
+                break;
             py = -1;
             return TRUE;
         case ADDTEXT:
@@ -349,7 +349,7 @@ int ListBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(LISTBOX, wnd, msg, p1, p2);
 }
 
-static int near SelectionInWindow(WINDOW wnd, int sel)
+static BOOL SelectionInWindow(WINDOW wnd, int sel)
 {
     return (wnd->wlines && sel >= wnd->wtop &&
             sel < wnd->wtop+ClientHeight(wnd));
@@ -432,7 +432,7 @@ static void ClearSelection(WINDOW wnd, int sel)
     }
 }
 
-int ItemSelected(WINDOW wnd, int sel)
+BOOL ItemSelected(WINDOW wnd, int sel)
 {
     if (isMultiLine(wnd) && sel < wnd->wlines)    {
         char *cp = TextLine(wnd, sel);

@@ -8,8 +8,8 @@ all : memopad.exe huffc.exe
 #  Set BORLAND_CPP = 1 to compile with Borland C++ 3.0
 #  Set MSC = 1 to compile with Microsoft C
 #-------------------------------------------------------------------
-BORLAND_CPP = 0
-MSC = 1
+BORLAND_CPP = 1
+MSC = 0
 #------------------------------------------------
 # NOTE: Set DRIVE to match where you installed your compiler
 #------------------------------------------------
@@ -64,7 +64,7 @@ LINKDEBUG = /m /v
 #------------------------------------------------
 HEADERS=e:\temp\tcdef.sym
 #------------------------------------------------
-COMPILE = bcc $(DEBUG) -D$(TESTING) -D$(FULL) -DBCPP -c -d -m$(MODEL) -H=$(HEADERS)
+COMPILE = bcc -Od $(DEBUG) -D$(TESTING) -D$(FULL) -DBCPP -c -d -m$(MODEL) -H=$(HEADERS)
 LINK= tlink $(LINKDEBUG) $(DRIVE)\borlandc\lib\c0$(MODEL) 
 LIBS= $(DRIVE)\borlandc\lib\c$(MODEL)
 #------------------------------------------------
@@ -82,7 +82,7 @@ memopad.exe : memopad.obj window.obj video.obj message.obj             \
               fileopen.obj msgbox.obj helpbox.obj log.obj lists.obj    \
               statbar.obj decomp.obj htree.obj combobox.obj            \
               pictbox.obj calendar.obj barchart.obj clipbord.obj       \
-              search.obj
+              search.obj dfalloc.obj
 !if $(MSC)
     $(LINK) @memopad.lnk,$*,$*;
 !else

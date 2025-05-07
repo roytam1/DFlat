@@ -53,7 +53,7 @@ struct keywords {
 
 static FILE *helpfp;
 static char hline [160];
-static int Helping;
+static BOOL Helping;
 
 static void SelectHelp(WINDOW, char *);
 static void ReadHelp(WINDOW);
@@ -486,7 +486,7 @@ void UnLoadHelpFile(void)
 }
 
 /* ------------ display help text ----------- */
-int DisplayHelp(WINDOW wnd, char *Help)
+BOOL DisplayHelp(WINDOW wnd, char *Help)
 {
 	if (Helping)
 		return TRUE;
@@ -531,6 +531,7 @@ int DisplayHelp(WINDOW wnd, char *Help)
 				if (ThisHelp->PrevName == NULL)
 					DisableButton(db, ID_PREV);
 				DialogBox(wnd, db, TRUE, HelpBoxProc);
+				free(db);
 			}
 			fclose(helpfp);
 			return TRUE;
@@ -586,22 +587,22 @@ static void DisplayDefinition(WINDOW wnd, char *def)
 	}
 }
 
-static int wildcmp(char *s1, char *s2)
+static BOOL wildcmp(char *s1, char *s2)
 {
 	while (*s1 || *s2)	{
 		if (tolower(*s1) != tolower(*s2))
 			if (*s1 != '?' && *s2 != '?')
-				return 1;
+				return TRUE;
 		s1++, s2++;
 	}
-	return 0;
+	return FALSE;
 }
 
 static void FindHelp(char *Help)
 {
 	ThisHelp = FirstHelp;
 	while (ThisHelp != NULL)	{
-        if (wildcmp(Help, ThisHelp->hname) == 0)
+        if (wildcmp(Help, ThisHelp->hname) == FALSE)
             break;
 		ThisHelp = ThisHelp->NextHelp;
 	}
