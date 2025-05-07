@@ -1,0 +1,55 @@
+/* ----------------- dialbox.h ---------------- */
+
+#ifndef DIALOG_H
+#define DIALOG_H
+
+#include <stdio.h>
+
+#define MAXCONTROLS 26
+#define MAXRADIOS 20
+
+#define OFF FALSE
+#define ON  TRUE
+
+/* -------- dialog box and control window structure ------- */
+typedef struct  {
+    char *title;    /* window title         */
+    int x, y;       /* relative coordinates */
+    int h, w;       /* size                 */
+} DIALOGWINDOW;
+
+/* ------ one of these for each control window ------- */
+typedef struct {
+    DIALOGWINDOW dwnd;
+    CLASS class;    /* LISTBOX, BUTTON, etc */
+    char *itext;    /* initialized text     */
+    char *vtext;    /* variable text        */
+    int command;    /* command code         */
+    char *help;     /* help mnemonic        */
+    int isetting;   /* initially ON or OFF  */
+    int setting;    /* ON or OFF            */
+    void *wnd;      /* window handle        */
+} CTLWINDOW;
+
+/* --------- one of these for each dialog box ------- */
+typedef struct {
+    char *HelpName;
+    DIALOGWINDOW dwnd;
+    CTLWINDOW ctl[MAXCONTROLS+1];
+} DBOX;
+
+/* -------- macros for dialog box resource compile -------- */
+#define DIALOGBOX(db) DBOX db={ #db,
+#define DB_TITLE(ttl,x,y,h,w) {ttl,x,y,h,w},{
+#define CONTROL(ty,tx,x,y,h,w,c) \
+ {{NULL,x,y,h,w},ty,tx,NULL,c,#c,(ty==BUTTON?ON:OFF),OFF,NULL},
+
+#define ENDDB {{NULL}} }};
+
+#define Cancel  " Cancel "
+#define Ok      "   OK   "
+#define Yes     "  Yes   "
+#define No      "   No   "
+
+#endif
+
