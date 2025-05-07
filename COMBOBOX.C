@@ -66,8 +66,10 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             return rtn;
         case SETFOCUS:
             if ((int)p1 == FALSE)    {
-                SendMessage(wnd, HIDE_WINDOW, 0, 0);
-                wnd->ct->setting = OFF;
+				if (!wnd->isHelping)	{
+                	SendMessage(wnd, HIDE_WINDOW, 0, 0);
+                	wnd->ct->setting = OFF;
+				}
             }
             else
                 wnd->ct->setting = ON;

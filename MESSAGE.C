@@ -9,6 +9,7 @@ static int handshaking = 0;
 static BOOL CriticalError;
 BOOL AllocTesting = FALSE;
 jmp_buf AllocError;
+BOOL AltDown = FALSE;
 
 /* ---------- event queue ---------- */
 static struct events    {
@@ -195,23 +196,27 @@ static void near collect_events(void)
         ShiftKeys = sk;
         /* ---- the shift status changed ---- */
         PostEvent(SHIFT_CHANGED, sk, 0);
+    	if (sk & ALTKEY)
+			AltDown = TRUE;
     }
 
     /* ---- build keyboard events for key combinations that
         BIOS doesn't report --------- */
     if (sk & ALTKEY)	{
         if (keyportvalue == 14)    {
+			AltDown = FALSE;
 			waitforkeyboard();
             PostEvent(KEYBOARD, ALT_BS, sk);
         }
         if (keyportvalue == 83)    {
+			AltDown = FALSE;
 			waitforkeyboard();
             PostEvent(KEYBOARD, ALT_DEL, sk);
         }
 	}
     if (sk & CTRLKEY)	{
+		AltDown = FALSE;
         if (keyportvalue == 82)    {
-            while (!(inp(0x60) & 0x80))
 			waitforkeyboard();
             PostEvent(KEYBOARD, CTRL_INS, sk);
         }
@@ -222,6 +227,7 @@ static void near collect_events(void)
                         FWD,HOME,UP,PGUP};
         int c = getkey();
 
+		AltDown = FALSE;
         /* -------- convert numeric pad keys ------- */
         if (sk & (LEFTSHIFT | RIGHTSHIFT))    {
             if (c >= '0' && c <= '9')
@@ -240,6 +246,7 @@ static void near collect_events(void)
     /* ------------ test for mouse events --------- */
     if (button_releases())    {
         /* ------- the button was released -------- */
+		AltDown = FALSE;
         doubletimer = DOUBLETICKS;
         PostEvent(BUTTON_RELEASED, mx, my);
         disable_timer(delaytimer);
@@ -250,9 +257,12 @@ static void near collect_events(void)
         py = my;
         PostEvent(MOUSE_MOVED, mx, my);
     }
-    if (rightbutton())
+    if (rightbutton())	{
+		AltDown = FALSE;
         PostEvent(RIGHT_BUTTON, mx, my);
+	}
     if (leftbutton())    {
+		AltDown = FALSE;
         if (mx == pmx && my == pmy)    {
             /* ---- same position as last left button ---- */
             if (timer_running(doubletimer))    {
@@ -593,7 +603,7 @@ BOOL dispatch_message(void)
 		        	Mwnd = MouseWindow(ev.mx, ev.my);
                 	if (!CaptureMouse ||
                         	(!NoChildCaptureMouse &&
-								isAncestor(Kwnd, CaptureKeyboard)))
+								isAncestor(Mwnd, CaptureMouse)))
                     	if (Mwnd != inFocus)
                         	SendMessage(Mwnd, SETFOCUS, TRUE, 0);
                 	SendMessage(Mwnd, LEFT_BUTTON, ev.mx, ev.my);

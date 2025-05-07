@@ -3,7 +3,6 @@
 #include "dflat.h"
 
 static int ScreenHeight;
-static BOOL AltDown = FALSE;
 static BOOL DisplayModified = FALSE;
 WINDOW ApplicationWindow;
 
@@ -112,7 +111,7 @@ static int CreateWindowMsg(WINDOW wnd)
         if (WindowHeight(wnd) == ScreenHeight ||
                 SCREENHEIGHT-1 < GetBottom(wnd))    {
             WindowHeight(wnd) = SCREENHEIGHT-1;
-            GetBottom(wnd) = GetTop(wnd)+WindowHeight(wnd)-1;
+            GetBottom(wnd) = GetTop(wnd)+WindowHeight(wnd);
             wnd->RestoredRC = WindowRect(wnd);
         }
     }
@@ -173,7 +172,6 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* ----------- KEYBOARD Message ------------ */
 static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
-    AltDown = FALSE;
     if (WindowMoving || WindowSizing || (int) p1 == F1)
         return BaseWndProc(APPLICATION, wnd, KEYBOARD, p1, p2);
     switch ((int) p1)    {
@@ -198,6 +196,7 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* --------- SHIFT_CHANGED Message -------- */
 static void ShiftChangedMsg(WINDOW wnd, PARAM p1)
 {
+	extern BOOL AltDown;
     if ((int)p1 & ALTKEY)
         AltDown = TRUE;
     else if (AltDown)    {
@@ -307,6 +306,7 @@ static int CloseWindowMsg(WINDOW wnd)
     int rtn;
 #ifdef INCLUDE_MULTI_WINDOWS
     CloseAll(wnd, TRUE);
+	WindowSel = 0;
 #endif
     PostMessage(NULL, STOP, 0, 0);
     rtn = BaseWndProc(APPLICATION, wnd, CLOSE_WINDOW, 0, 0);
@@ -314,8 +314,6 @@ static int CloseWindowMsg(WINDOW wnd)
         SetScreenHeight(ScreenHeight);
     UnLoadHelpFile();
 	DisplayModified = FALSE;
-	AltDown = FALSE;
-	WindowSel = 0;
 	ApplicationWindow = NULL;
     return rtn;
 }
@@ -651,11 +649,21 @@ static void SelectLines(WINDOW wnd)
             cfg.ScreenLines = 50;
     }
     if (SCREENHEIGHT != cfg.ScreenLines)    {
-        int FullScreen = WindowHeight(wnd) == SCREENHEIGHT;
         SetScreenHeight(cfg.ScreenLines);
-        if (FullScreen || SCREENHEIGHT-1 < GetBottom(wnd))
+		/* ---- re-maximize ---- */
+        if (wnd->condition == ISMAXIMIZED)	{
             SendMessage(wnd, SIZE, (PARAM) GetRight(wnd),
                 SCREENHEIGHT-1);
+			return;
+		}
+		/* --- adjust if current size does not fit --- */
+		if (WindowHeight(wnd) > SCREENHEIGHT)
+            SendMessage(wnd, SIZE, (PARAM) GetRight(wnd),
+                (PARAM) GetTop(wnd)+SCREENHEIGHT-1);
+		/* --- if window is off-screen, move it on-screen --- */
+		if (GetTop(wnd) >= SCREENHEIGHT-1)
+			SendMessage(wnd, MOVE, (PARAM) GetLeft(wnd),
+				(PARAM) SCREENHEIGHT-WindowHeight(wnd));
     }
 }
 

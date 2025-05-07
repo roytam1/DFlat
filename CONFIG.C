@@ -30,7 +30,7 @@ unsigned char color[CLASSCOUNT] [4] [2] = {
 
     /* ----------- EDITBOX ------------ */
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
-    {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
+    {LIGHTGRAY, BLUE},  /* SELECT_COLOR */
     {LIGHTGRAY, BLUE},  /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 

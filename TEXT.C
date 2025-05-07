@@ -8,6 +8,10 @@ int TextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     CTLWINDOW *ct = GetControl(wnd);
     char *cp, *cp2 = ct->itext;
     switch (msg)    {
+		case SETFOCUS:
+			return TRUE;
+        case LEFT_BUTTON:
+			return TRUE;
         case PAINT:
             if (ct == NULL ||
                 ct->itext == NULL ||

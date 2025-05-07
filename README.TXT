@@ -1,6 +1,6 @@
-August, 1992
+November, 1992
 
-D-Flat Version 14
+D-Flat Version 15
 
 The source files in the DFLAT archive constitute the D-Flat windowing
 system. This is public domain code. You may use it in your
@@ -68,113 +68,104 @@ the memopad program and reload it immediately.
 
 ===============================================
 
-This is version 14. It fixes these problems:
+This is version 15. It fixes these problems:
 
-1. The COMBOBOX would display its Listbox when the dialog box was
-opened if the COMBOBOX was the first control on the dialog box.
+1. Titles did not always repaint correctly.
 
-2. Document windows did not display properly when they were selected
-with the mouse while the application window had the focus.
+2. Marking text with the mouse and scrolling at the same time by
+dragging the mouse to the frame caused the system to hang in some
+circumstances.
 
-3. The Window/Close All command did not work properly in all cases.
+3. Dialog Boxes did not recover focus properly after moving.
 
-4. Simultaneously scrolling and marking text with the mouse hung the
-system under some circumstances.
+4. Popdown menus would display off-screen when the application window
+was moved near the edges.
 
-5. Could not delete the last character of an editbox under some
-conditions.
+5. Combobox listboxes were hidden during the display of help windows.
+Added the isHelping variable to the window structure so a window
+would know if a help window is being displayed for it.
 
-6. Zero-length text files caused problems for memopad.
+6. Alt Down/Up got a phony Up event when Alt+key did not make it to
+the application window.
 
-7. Console.c had an errant geninterrupt(0x28) from one of my own
-off-beat uses of D-Flat.
+7. Marking an editbox block of text was not always clear because the
+block cursor masked the text block. Changed the marked block to a
+different color and the cursor to the underline configuration while
+the marking is underway.
 
-8. WatchIconProc and its prototype did not agree with respect to
-static. The QuickC compiler does not like that.
-
-9. Radio buttons sometimes did not reset properly leaving more than
-one radio button selected in a group.
-
-10. The applicat.c and helpbox.c/decomp.c code were not reusable. If
-a program shut D-Flat down and then tried to use it again, the system
-locked up.
-
-11. Removed the far keyword from dfalloc.c so that other than large
-memory models would work.
-
-12. The INSERTTEXT message did not work properly.
+8. Moving a dialog box with the mouse caused the document windows to
+be unnecessarily repainted first.
 
 ----------------------------------------------------------------------
 Calendar of D-Flat Source Code Published in the C Programming Column
- We are here: -----------------------------------------------------------\/---------
-             1991                            1992                         |    
+
+             1991                            1992                              
              May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar Apr May Jun Jul Aug Sep Oct
- APPLICAT.C                                                   x           |
- BARCHART.C                                       x                       |    
- BOX.C                                                                x   |
- BUTTON.C                                                             x   | 
- CALENDAR.C                                       x                       |
- CHECKBOX.C                                                           x   |  
- CLASSDEF.C       x                                                       |
- CLASSDEF.H       x                                                       |
- CLASSES.H                    x                                           |
- CLIPBORD.C                                       x                       |
- COMBOBOX.C                                                           x   |
- COMMANDS.H                       x                                       |
- CONFIG.C         x           x                                           |
- CONFIG.H         x       x                                               |
- CONSOLE.C    x                                                           |
- DECOMP.C                                                                 |   x
- DFLAT.H          x       x                                               |    
- DFLATMSG.H                       x                                       |       
- DIALBOX.C                                                        x       |        
- DIALBOX.H                    x                                           |        
-             1991                            1992                         |        
+ APPLICAT.C                                                   x            
+ BARCHART.C                                       x                            
+ BOX.C                                                                x    
+ BUTTON.C                                                             x     
+ CALENDAR.C                                       x                        
+ CHECKBOX.C                                                           x      
+ CLASSDEF.C       x                                                        
+ CLASSDEF.H       x                                                        
+ CLASSES.H                    x                                            
+ CLIPBORD.C                                       x                        
+ COMBOBOX.C                                                           x    
+ COMMANDS.H                       x                                        
+ CONFIG.C         x           x                                            
+ CONFIG.H         x       x                                                
+ CONSOLE.C    x                                                            
+ DECOMP.C                                                                     x
+ DFLAT.H          x       x                                                    
+ DFLATMSG.H                       x                                               
+ DIALBOX.C                                                        x                
+ DIALBOX.H                    x                                                    
+             1991                            1992                                  
              May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar Apr May Jun Jul Aug Sep Oct
- DIALOGS.C                    x                                           |       
- DIRECT.C                                                                 |       x
- EDITBOX.C                                    x                           |        
- FILEOPEN.C                                                               |       x
- HELPBOX.C                                                                |   x 
- HTREE.C                                                                  |       x
- HTREE.H                                                                  |       x
- HUFFC.C                                                                  |       x
- KEYS.C                       x                                           |
- KEYS.H       x                                                           |
- LISTBOX.C                                            x                   |
- LISTS.C                          x                                       |
- LOG.C                                                x                   |
- MEMOPAD.C                        x                                       |
- MENU.C                                                   x               |
- MENU.H                       x                                           |
- MENUBAR.C                                                x               |
- MENUS.C                      x                                           |
- MESSAGE.C            x                                                   |
- MESSAGE.H            x                                                   |
-             1991                            1992                         |
+ DIALOGS.C                    x                                                   
+ DIRECT.C                                                                         x
+ EDITBOX.C                                    x                                    
+ FILEOPEN.C                                                                       x
+ HELPBOX.C                                                                    x 
+ HTREE.C                                                                          x
+ HTREE.H                                                                          x
+ HUFFC.C                                                                          x
+ KEYS.C                       x                                            
+ KEYS.H       x                                                            
+ LISTBOX.C                                            x                    
+ LISTS.C                          x                                        
+ LOG.C                                                x                    
+ MEMOPAD.C                        x                                        
+ MENU.C                                                   x                
+ MENU.H                       x                                            
+ MENUBAR.C                                                x                
+ MENUS.C                      x                                            
+ MESSAGE.C            x                                                    
+ MESSAGE.H            x                                                    
+             1991                            1992                          
              May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar Apr May Jun Jul Aug Sep Oct
- MOUSE.C      x                                                           |
- MSGBOX.C                                                             x   | 
- NORMAL.C                             x                                   |
- PICTBOX.C                                        x                       |
- POPDOWN.C                                                x               |
- RADIO.C                                                              x   |
- RECT.C                           x                                       |
- RECT.H       x                                                           |
- SEARCH.C                                         x                       |
- SLIDEBOX.C                                                           x   |
- SPINBUTT.C                                                           x   |  
- STATBAR.C                                                                |       x 
- SYSMENU.C                                                x               |
- SYSTEM.H     x                                                           |
- TEXT.C                                                               x   |  
- TEXTBOX.C                                x                               |
- VIDEO.C      x                                                           |
- VIDEO.H      x                                                           |
- WATCH.C                                                              x   |  
- WINDOW.C         x       x                                               |
-                                                                          |
- We are here: -----------------------------------------------------------/\---------
+ MOUSE.C      x                                                            
+ MSGBOX.C                                                             x     
+ NORMAL.C                             x                                    
+ PICTBOX.C                                        x                        
+ POPDOWN.C                                                x                
+ RADIO.C                                                              x    
+ RECT.C                           x                                        
+ RECT.H       x                                                            
+ SEARCH.C                                         x                        
+ SLIDEBOX.C                                                           x    
+ SPINBUTT.C                                                           x      
+ STATBAR.C                                                                        x 
+ SYSMENU.C                                                x                
+ SYSTEM.H     x                                                            
+ TEXT.C                                                               x      
+ TEXTBOX.C                                x                                
+ VIDEO.C      x                                                            
+ VIDEO.H      x                                                            
+ WATCH.C                                                              x      
+ WINDOW.C         x       x                                                
+                                                                           
 
 ---------------------------------------------------------------------
 Calendar of D-Flat Topics in the C Programming Column
@@ -198,7 +189,7 @@ May:       The APPLICATION window class
 June:      The DIALBOX window class 
 July:      The ERRORBOX, and MESSAGEBOX window classes,
            BUTTON, RADIOBUTTON, CHECKBOX, COMBOBOX, SPINBUTTON controls
-*August:   Annual C issue. Discusses a Pen-based version of D-Flat
+August:    Annual C issue. Discusses a Pen-based version of D-Flat
 September: The HELPBOX window class
 October:   Help Database compression, File Open and File Save dialog boxes.
 November:  Official launch of D-Flat++

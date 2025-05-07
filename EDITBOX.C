@@ -16,6 +16,7 @@ static void StickEnd(WINDOW);
 static void NextWord(WINDOW);
 static void PrevWord(WINDOW);
 static void ModTextPointers(WINDOW, int, int);
+static void SetAnchor(WINDOW, int, int);
 /* -------- local variables -------- */
 static BOOL KeyBoardMarking, ButtonDown;
 static BOOL TextMarking;
@@ -116,7 +117,8 @@ static void KeyboardCursorMsg(WINDOW wnd, PARAM p1, PARAM p2)
     wnd->CurrLine = (int)p2 + wnd->wtop;
     if (wnd == inFocus)	{
 		if (CharInView(wnd, (int)p1, (int)p2))
-	        SendMessage(NULL, SHOW_CURSOR, wnd->InsertMode, 0);
+	        SendMessage(NULL, SHOW_CURSOR,
+				(wnd->InsertMode && !TextMarking), 0);
     	else
 			SendMessage(NULL, HIDE_CURSOR, 0, 0);
 	}
@@ -216,10 +218,11 @@ static void ExtendBlock(WINDOW wnd, int x, int y)
     int pbot = max(wnd->BlkBegLine, wnd->BlkEndLine);
     char *lp = TextLine(wnd, wnd->wtop+y);
     int len = (int) (strchr(lp, '\n') - lp);
-    x = max(0, min(x, len-wnd->wleft));
+    x = max(0, min(x, len));
 	y = max(0, y);
-    wnd->BlkEndCol = x+wnd->wleft;
+    wnd->BlkEndCol = min(len, x+wnd->wleft);
     wnd->BlkEndLine = y+wnd->wtop;
+	SendMessage(wnd, KEYBOARD_CURSOR, wnd->BlkEndCol, wnd->BlkEndLine);
     bbl = min(wnd->BlkBegLine, wnd->BlkEndLine);
     bel = max(wnd->BlkBegLine, wnd->BlkEndLine);
     while (ptop < bbl)    {
@@ -248,19 +251,22 @@ static int LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
     if (isMultiLine(wnd))    {
         if (TextMarking)    {
             if (!InsideRect(p1, p2, rc))    {
-                if ((int)p1 == GetLeft(wnd))
-                    if (SendMessage(wnd, HORIZSCROLL, 0, 0))
-                        ExtendBlock(wnd, MouseX-1, MouseY);
-                if ((int)p1 == GetRight(wnd))
-                    if (SendMessage(wnd, HORIZSCROLL, TRUE, 0))
-                        ExtendBlock(wnd, MouseX+1, MouseY);
+				int x = MouseX, y = MouseY;
+				int dir;
+				MESSAGE msg = 0;
                 if ((int)p2 == GetTop(wnd))
-                    if (SendMessage(wnd, SCROLL, FALSE, 0))
-                        ExtendBlock(wnd, MouseX, MouseY+1);
-                if ((int)p2 == GetBottom(wnd))
-                    if (SendMessage(wnd, SCROLL, TRUE, 0))
-                        ExtendBlock(wnd, MouseX, MouseY-1);
-                SendMessage(wnd, PAINT, 0, 0);
+					y++, dir = FALSE, msg = SCROLL;
+                else if ((int)p2 == GetBottom(wnd))
+					--y, dir = TRUE, msg = SCROLL;
+                else if ((int)p1 == GetLeft(wnd))
+					--x, dir = FALSE, msg = HORIZSCROLL;
+                else if ((int)p1 == GetRight(wnd))
+					x++, dir = TRUE, msg = HORIZSCROLL;
+				if (msg != 0)	{
+                    if (SendMessage(wnd, msg, dir, 0))
+                        ExtendBlock(wnd, x, y);
+	                SendMessage(wnd, PAINT, 0, 0);
+				}
             }
             return TRUE;
         }
@@ -349,37 +355,25 @@ static int ButtonReleasedMsg(WINDOW wnd)
 /* ---- Process text block keys for multiline text box ---- */
 static void DoMultiLines(WINDOW wnd, int c, PARAM p2)
 {
-    if (isMultiLine(wnd))    {
+    if (isMultiLine(wnd) && !KeyBoardMarking)    {
         if ((int)p2 & (LEFTSHIFT | RIGHTSHIFT))    {
-            int kx, ky;
-            SendMessage(NULL, CURRENT_KEYBOARD_CURSOR,
-                (PARAM) &kx, (PARAM) &ky);
-            kx -= GetClientLeft(wnd);
-            ky -= GetClientTop(wnd);
             switch (c)    {
                 case HOME:
-                case END:
                 case CTRL_HOME:
-                case CTRL_END:
+                case CTRL_BS:
                 case PGUP:
-                case PGDN:
                 case CTRL_PGUP:
-                case CTRL_PGDN:
                 case UP:
+                case BS:
+                case END:
+                case CTRL_END:
+                case PGDN:
+                case CTRL_PGDN:
                 case DN:
                 case FWD:
-                case BS:
                 case CTRL_FWD:
-                case CTRL_BS:
-                    if (!KeyBoardMarking)    {
-                        if (TextBlockMarked(wnd))    {
-                            ClearTextBlock(wnd);
-                            SendMessage(wnd, PAINT, 0, 0);
-                        }
-                        KeyBoardMarking = TextMarking = TRUE;
-                        SetAnchor(wnd, kx+wnd->wleft,
-                                                ky+wnd->wtop);
-                    }
+                    KeyBoardMarking = TextMarking = TRUE;
+                    SetAnchor(wnd, wnd->CurrCol, wnd->CurrLine);
                     break;
                 default:
                     break;
@@ -1094,5 +1088,15 @@ static void ModTextPointers(WINDOW wnd, int lineno, int var)
     while (lineno < wnd->wlines)
         *((wnd->TextPointers) + lineno++) += var;
 }
+/* ----- set anchor point for marking text block ----- */
+static void SetAnchor(WINDOW wnd, int mx, int my)
+{
+    ClearTextBlock(wnd);
+    /* ------ set the anchor ------ */
+    wnd->BlkBegLine = wnd->BlkEndLine = my;
+    wnd->BlkBegCol = wnd->BlkEndCol = mx;
+    SendMessage(wnd, PAINT, 0, 0);
+}
+
 
 

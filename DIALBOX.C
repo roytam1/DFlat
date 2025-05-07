@@ -194,6 +194,7 @@ static BOOL CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* ----- window-processing module, DIALOG window class ----- */
 int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
+	int rtn;
     DBOX *db = wnd->extension;
 
     switch (msg)    {
@@ -227,6 +228,12 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case PAINT:
             p2 = TRUE;
             break;
+		case MOVE:
+		case SIZE:
+		    rtn = BaseWndProc(DIALOG, wnd, msg, p1, p2);
+			if (wnd->dfocus != NULL)
+				SendMessage(wnd->dfocus, SETFOCUS, TRUE, 0);
+			return rtn;
         case CLOSE_WINDOW:
             if (!p1)    {
                 SendMessage(wnd, COMMAND, ID_CANCEL, 0);
@@ -663,17 +670,22 @@ static int ControlProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
                 return TRUE;
             }
             break;
-        case SETFOCUS:
+        case SETFOCUS:	{
+			WINDOW pwnd = GetParent(wnd);
             if (p1)    {
                 DefaultWndProc(wnd, msg, p1, p2);
-                SendMessage(GetParent(wnd), COMMAND,
-                    inFocusCommand(db), ENTERFOCUS);
+				if (pwnd != NULL)	{
+					pwnd->dfocus = wnd;
+	                SendMessage(pwnd, COMMAND,
+    	                inFocusCommand(db), ENTERFOCUS);
+				}
                 return TRUE;
             }
-            else 
-                SendMessage(GetParent(wnd), COMMAND,
+            else
+                SendMessage(pwnd, COMMAND,
                     inFocusCommand(db), LEAVEFOCUS);
             break;
+		}
         case CLOSE_WINDOW:
             CtlCloseWindowMsg(wnd);
             break;

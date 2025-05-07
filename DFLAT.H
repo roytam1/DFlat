@@ -29,7 +29,7 @@
 #include <setjmp.h>
 
 #ifndef VERSION
-#define VERSION "Version 14"
+#define VERSION "Version 15"
 #endif
 
 void *DFcalloc(size_t, size_t);
@@ -94,6 +94,7 @@ typedef struct window {
     struct window *PrevKeyboard;
 	struct window *MenuBarWnd;/* menu bar                   */
 	struct window *StatusBar; /* status bar                 */
+	int isHelping;	    /* > 0 when help is being displayed */
     /* ----------------- text box fields ------------------ */
     int wlines;     /* number of lines of text              */
     int wtop;       /* text line that is on the top display */
@@ -127,6 +128,7 @@ typedef struct window {
     int ReturnCode;        /* return code from a dialog box */
 	BOOL Modal;		       /* True if a modeless dialog box */
 	CTLWINDOW *ct;		   /* control structure             */
+	struct window *dfocus; /* control window that has focus */
 	/* -------------- popdownmenu fields ------------------ */
 	MENU *mnu;		/* points to menu structure             */
 	MBAR *holdmenu; /* previous active menu                 */
@@ -343,7 +345,6 @@ BOOL isAncestor(WINDOW, WINDOW);
 #define TextLine(wnd, sel) \
       (wnd->text + *((wnd->TextPointers) + sel))
 void WriteTextLine(WINDOW, RECT *, int, BOOL);
-void SetAnchor(WINDOW, int, int);
 #define TextBlockMarked(wnd) (  wnd->BlkBegLine ||    \
                                 wnd->BlkEndLine ||    \
                                 wnd->BlkBegCol  ||    \

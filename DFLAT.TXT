@@ -751,6 +751,30 @@ Returns the parent of the window or NULL if the window has no
 parent.
 
 -------------------------------------------------------------------
+WINDOW FirstWindow(wnd)
+
+Returns the first child window that wnd is a parent of or NULL if
+wnd has no children.
+
+-------------------------------------------------------------------
+WINDOW LastWindow(wnd) 
+
+Returns the last child window that wnd is a parent of or NULL if
+wnd has no children.
+
+-------------------------------------------------------------------
+WINDOW NextWindow(wnd)
+
+Returns the next adjacent sibling window of wnd or NULL if wnd has no
+siblings.
+
+-------------------------------------------------------------------
+WINDOW PrevWindow(wnd) 
+
+Returns the previous adjacent sibling window of wnd or NULL if wnd
+has no siblings.
+
+-------------------------------------------------------------------
 int CharInView(WINDOW wnd, int x, int y)
 
 Returns true if the x/y character position, relative to the window,
@@ -830,13 +854,6 @@ char *TextLine(WINDOW wnd, int line)
 
 Returns the address of a specified line of text (0, 1, ...) in a
 TEXTBOX or derived class.
-
--------------------------------------------------------------------
-WINDOW inWindow(WINDOW wnd, int x, int y)
-
-Returns the WINDOW handle of the window that x/y are in or NULL if
-x/y is outside of any window. Send NULL for wnd to search all
-windows. Send a window handle to search only that window's children.
 
 -------------------------------------------------------------------
 int isActive(MENU *mnu, int command)

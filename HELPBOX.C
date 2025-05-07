@@ -529,8 +529,10 @@ void UnLoadHelpFile(void)
 /* ---------- display a specified help text ----------- */
 BOOL DisplayHelp(WINDOW wnd, char *Help)
 {
+	BOOL rtn = FALSE;
     if (Helping)
         return TRUE;
+	wnd->isHelping++;
     FindHelp(Help);
     if (ThisHelp != NULL)    {
         if (LastStack == NULL ||
@@ -583,10 +585,11 @@ BOOL DisplayHelp(WINDOW wnd, char *Help)
             DialogBox(NULL, db, TRUE, HelpBoxProc);
             free(db);
             fclose(helpfp);
-            return TRUE;
+            rtn = TRUE;
         }
     }
-    return FALSE;
+	--wnd->isHelping;
+    return rtn;
 }
 
 /* ------- display a definition window --------- */

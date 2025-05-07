@@ -797,18 +797,6 @@ void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
     free(svlp);
 }
 
-/* ----- set anchor point for marking text block ----- */
-void SetAnchor(WINDOW wnd, int mx, int my)
-{
-    if (TextBlockMarked(wnd))    {
-        ClearTextBlock(wnd);
-        SendMessage(wnd, PAINT, 0, 0);
-    }
-    /* ------ set the anchor ------ */
-    wnd->BlkBegLine = wnd->BlkEndLine = my;
-    wnd->BlkBegCol = wnd->BlkEndCol = mx;
-}
-
 void MarkTextBlock(WINDOW wnd, int BegLine, int BegCol,
                                int EndLine, int EndCol)
 {

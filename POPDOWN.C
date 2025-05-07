@@ -8,12 +8,23 @@ static int py = -1;
 /* ------------ CREATE_WINDOW Message ------------- */
 static int CreateWindowMsg(WINDOW wnd)
 {
-    int rtn;
+    int rtn, adj;
     ClearAttribute(wnd, HASTITLEBAR     |
                         VSCROLLBAR     |
                         MOVEABLE     |
                         SIZEABLE     |
                         HSCROLLBAR);
+	/* ------ adjust to keep popdown on screen ----- */
+	adj = SCREENHEIGHT-1-wnd->rc.bt;
+	if (adj < 0)	{
+		wnd->rc.tp += adj;
+		wnd->rc.bt += adj;
+	}
+	adj = SCREENWIDTH-1-wnd->rc.rt;
+	if (adj < 0)	{
+		wnd->rc.lf += adj;
+		wnd->rc.rt += adj;
+	}
     rtn = BaseWndProc(POPDOWNMENU, wnd, CREATE_WINDOW, 0, 0);
     SendMessage(wnd, CAPTURE_MOUSE, 0, 0);
     SendMessage(wnd, CAPTURE_KEYBOARD, 0, 0);

@@ -198,7 +198,7 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 	RECT rc = {0,0,0,0};
     if (p1 && wnd != NULL && inFocus != wnd)    {
 		WINDOW this, thispar;
-		WINDOW that, thatpar;
+		WINDOW that = NULL, thatpar = NULL;
 
 		WINDOW cwnd = wnd, fwnd = GetParent(wnd);
 		/* ---- post focus in ancestors ---- */
@@ -222,6 +222,11 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 		while (thatpar != NULL)	{
 			thispar = wnd;
 			while (thispar != NULL)	{
+				if (this == CaptureMouse || this == CaptureKeyboard)	{
+					/* ---- don't repaint if this window has capture ---- */
+					that = thatpar = NULL;
+					break;
+				}
 				if (thispar == thatpar)	{
 					/* ---- don't repaint if SAVESELF window had focus ---- */
 					if (this != that && TestAttribute(that, SAVESELF))
@@ -827,7 +832,7 @@ static void near PaintOverLap(WINDOW wnd, RECT rc)
         }
         else if (TestAttribute(wnd, HASTITLEBAR))
             isTitle = RectTop(rc) == 0 &&
-                      RectLeft(rc) > 0 &&
+                      RectRight(rc) > 0 &&
                       RectLeft(rc)<WindowWidth(wnd)-BorderAdj(wnd);
 
         if (RectLeft(rc) >= WindowWidth(wnd)-BorderAdj(wnd))
