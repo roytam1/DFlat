@@ -4,6 +4,8 @@
 
 static int ScreenHeight;
 static BOOL AltDown = FALSE;
+static BOOL DisplayModified = FALSE;
+WINDOW ApplicationWindow;
 
 extern DBOX Display;
 extern DBOX Windows;
@@ -47,13 +49,10 @@ static char *Menus[9] = {
 };
 #endif
 
-WINDOW ApplicationWindow;
-
 /* --------------- CREATE_WINDOW Message -------------- */
 static int CreateWindowMsg(WINDOW wnd)
 {
     int rtn;
-	static BOOL DisplayModified = FALSE;
 	ApplicationWindow = wnd;
     ScreenHeight = SCREENHEIGHT;
     if (!DisplayModified)    {
@@ -78,8 +77,9 @@ static int CreateWindowMsg(WINDOW wnd)
     	if (isVGA() || isEGA())    {
 			/* ------ eliminate the snowy check box ----- */
 	       	ct = FindCommand(&Display, ID_SNOWY, CHECKBOX);
-			for (i = 0; i < 4; i++)
-				*(ct+i) = *(ct+2+i);
+			if (ct != NULL)
+				for (i = 0; i < 4; i++)
+					*(ct+i) = *(ct+2+i);
 		}
         DisplayModified = TRUE;
     }
@@ -313,6 +313,10 @@ static int CloseWindowMsg(WINDOW wnd)
     if (ScreenHeight != SCREENHEIGHT)
         SetScreenHeight(ScreenHeight);
     UnLoadHelpFile();
+	DisplayModified = FALSE;
+	AltDown = FALSE;
+	WindowSel = 0;
+	ApplicationWindow = NULL;
     return rtn;
 }
 
@@ -583,16 +587,16 @@ static void ChooseWindow(WINDOW wnd, int WindowNo)
 /* ----- Close all document windows ----- */
 static void CloseAll(WINDOW wnd, int closing)
 {
-    WINDOW wnd1;
+    WINDOW wnd1, wnd2;
     SendMessage(wnd, SETFOCUS, TRUE, 0);
-	wnd1 = FirstWindow(wnd);
+	wnd1 = LastWindow(wnd);
 	while (wnd1 != NULL)	{
-        if (GetClass(wnd1) != MENUBAR &&
-                GetClass(wnd1) != STATUSBAR)    {
-            ClearVisible(wnd1);
-            SendMessage(wnd1, CLOSE_WINDOW, 0, 0);
-        }
-		wnd1 = NextWindow(wnd1);
+		wnd2 = PrevWindow(wnd1);
+        if (GetClass(wnd1) != MENUBAR && GetClass(wnd1) != STATUSBAR)    {
+	        ClearVisible(wnd1);
+    	    SendMessage(wnd1, CLOSE_WINDOW, 0, 0);
+		}
+		wnd1 = wnd2;
     }
     if (!closing)
         SendMessage(wnd, PAINT, 0, 0);

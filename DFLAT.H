@@ -29,7 +29,7 @@
 #include <setjmp.h>
 
 #ifndef VERSION
-#define VERSION "Version 13"
+#define VERSION "Version 14"
 #endif
 
 void *DFcalloc(size_t, size_t);
@@ -309,7 +309,6 @@ int YesNoBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int StatusBarProc(WINDOW, MESSAGE, PARAM, PARAM);
 int WatchIconProc(WINDOW, MESSAGE, PARAM, PARAM);
 /* ------------- normal box prototypes ------------- */
-WINDOW inWindow(int, int);
 void SetStandardColor(WINDOW);
 void SetReverseColor(WINDOW);
 BOOL isAncestor(WINDOW, WINDOW);

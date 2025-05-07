@@ -26,7 +26,7 @@ FILE *OpenHelpFile(void)
 
     /* -------- get the name of the help file ---------- */
     BuildFileName(helpname, ".hlp");
-
+    LoadingASCII = FALSE;
     if ((fi = fopen(helpname, "rb")) == NULL)    {
         /* ---- no .hlp file, look for .txt file ---- */
         if ((cp = strrchr(helpname, '.')) != NULL)    {

@@ -31,7 +31,7 @@ int RadioButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 if ((int)p1 != ' ')
                     break;
             case LEFT_BUTTON:
-                PushRadioButton(db, ct->command);
+                SetRadioButton(db, ct);
                 break;
             default:
                 break;
@@ -40,19 +40,23 @@ int RadioButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return BaseWndProc(RADIOBUTTON, wnd, msg, p1, p2);
 }
 
-void PushRadioButton(DBOX *db, enum commands cmd)
-{
-    CTLWINDOW *ct = FindCommand(db, cmd, RADIOBUTTON);
-    if (ct != NULL)    {
-        SetRadioButton(db, ct);
-        ct->isetting = ON;
-    }
-}
+static BOOL Setting = TRUE;
 
 void SetRadioButton(DBOX *db, CTLWINDOW *ct)
 {
+	Setting = FALSE;
+	PushRadioButton(db, ct->command);
+	Setting = TRUE;
+}
+
+void PushRadioButton(DBOX *db, enum commands cmd)
+{
     CTLWINDOW *ctt = db->ctl;
+    CTLWINDOW *ct = FindCommand(db, cmd, RADIOBUTTON);
     int i;
+
+	if (ct == NULL)
+		return;
 
     /* --- clear all the radio buttons
                 in this group on the dialog box --- */
@@ -88,11 +92,16 @@ void SetRadioButton(DBOX *db, CTLWINDOW *ct)
         if (rct[i] != NULL)    {
             int wason = rct[i]->setting;
             rct[i]->setting = OFF;
+			if (Setting)
+	            rct[i]->isetting = OFF;
             if (wason)
                 SendMessage(rct[i]->wnd, PAINT, 0, 0);
         }
     }
+	/* ----- set the specified radio button on ----- */
     ct->setting = ON;
+	if (Setting)
+	    ct->isetting = ON;
     SendMessage(ct->wnd, PAINT, 0, 0);
 }
 

@@ -62,10 +62,12 @@ static void DeleteTextMsg(WINDOW wnd, int lno)
 static void InsertTextMsg(WINDOW wnd, char *txt, int lno)
 {
 	if (AddTextMsg(wnd, txt))	{
-		char *cp1 = TextLine(wnd, lno+1);
+		int len = strlen(txt);
 		char *cp2 = TextLine(wnd, lno);
-		memmove(cp1, cp2, strlen(cp2)+1);
+		char *cp1 = cp2+len+1;
+		memmove(cp1, cp2, strlen(cp2)-len);
 		strcpy(cp2, txt);
+		*(cp2+len) = '\n';
 	    BuildTextPointers(wnd);
 	}
 }

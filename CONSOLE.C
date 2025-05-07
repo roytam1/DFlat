@@ -46,7 +46,7 @@ int getkey(void)
 {
     int c;
     while (keyhit() == FALSE)
-        geninterrupt(0x28);
+        ;
     if (((c = bioskey(0)) & 0xff) == 0)
         c = (c >> 8) | 0x1080;
     else

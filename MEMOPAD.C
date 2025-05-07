@@ -124,6 +124,12 @@ static int MemoPadProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 					if (!YesNoBox("Exit Memopad?"))
 						return FALSE;
 					break;
+				case ID_WRAP:
+			        cfg.WordWrap = GetCommandToggle(&MainMenu, ID_WRAP);
+    	            return TRUE;
+				case ID_INSERT:
+			        cfg.InsertMode = GetCommandToggle(&MainMenu, ID_INSERT);
+    	            return TRUE;
 				case ID_TAB2:
 					cfg.Tabs = 2;
 					FixTabMenu();
@@ -255,6 +261,7 @@ static void LoadFile(WINDOW wnd)
 		while (!feof(fp))	{
 			handshake();
 			Buf = DFrealloc(Buf, recptr+150);
+			memset(Buf+recptr, 0, 150);
         	fgets(Buf+recptr, 150, fp);
 			recptr += strlen(Buf+recptr);
 		}
@@ -439,12 +446,12 @@ static int EditorProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 	                DisplayHelp(wnd, "MEMOPADDOC");
     	            return TRUE;
 				case ID_WRAP:
-					wnd->WordWrapMode = GetCommandToggle(&MainMenu, ID_WRAP);
-			        cfg.WordWrap = wnd->WordWrapMode;
+					SendMessage(GetParent(wnd), COMMAND, ID_WRAP, 0);
+					wnd->WordWrapMode = cfg.WordWrap;
     	            return TRUE;
 				case ID_INSERT:
-					wnd->InsertMode = GetCommandToggle(&MainMenu, ID_INSERT);
-			        cfg.InsertMode = wnd->InsertMode;
+					SendMessage(GetParent(wnd), COMMAND, ID_INSERT, 0);
+					wnd->InsertMode = cfg.InsertMode;
 					SendMessage(NULL, SHOW_CURSOR, wnd->InsertMode, 0);
     	            return TRUE;
 				default:

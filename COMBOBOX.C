@@ -14,14 +14,14 @@ int ComboProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                         wnd->rc.lf,wnd->rc.tp+1,
                         wnd->ht-1, wnd->wd+1,
                         NULL,
-                        GetParent(wnd),
+                        wnd,
                         ListProc,
                         HASBORDER | NOCLIP | SAVESELF);
             ((WINDOW)(wnd->extension))->ct->command =
                                         wnd->ct->command;
             wnd->ht = 1;
             wnd->rc.bt = wnd->rc.tp;
-            break;
+			break;
         case PAINT:
             foreground = WndBackground(wnd);
             background = WndForeground(wnd);
@@ -48,7 +48,8 @@ int ComboProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 
 int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    DBOX *db = GetParent(wnd)->extension;
+	WINDOW pwnd = GetParent(GetParent(wnd));
+    DBOX *db = pwnd->extension;
     WINDOW cwnd = ControlWindow(db, wnd->ct->command);
     char text[130];
     int rtn;
@@ -61,13 +62,14 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				wnd->WindowColors[STD_COLOR][FG];
 			wnd->WindowColors[FRAME_COLOR][BG] = 
 				wnd->WindowColors[STD_COLOR][BG];
-            break;
+            rtn = DefaultWndProc(wnd, msg, p1, p2);
+            return rtn;
         case SETFOCUS:
             if ((int)p1 == FALSE)    {
                 SendMessage(wnd, HIDE_WINDOW, 0, 0);
                 wnd->ct->setting = OFF;
             }
-            else 
+            else
                 wnd->ct->setting = ON;
             break;
         case SHOW_WINDOW:
@@ -84,7 +86,7 @@ int ListProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             rtn = DefaultWndProc(wnd, msg, p1, p2);
             SendMessage(wnd, LB_GETTEXT,
                             (PARAM) text, wnd->selection);
-            PutItemText(GetParent(wnd), wnd->ct->command, text);
+            PutItemText(pwnd, wnd->ct->command, text);
             SendMessage(cwnd, PAINT, 0, 0);
             cwnd->TextChanged = TRUE;
             return rtn;

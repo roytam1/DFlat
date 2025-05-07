@@ -492,18 +492,58 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return rtn;
 }
 
+static RECT VisibleRect(WINDOW wnd)
+{
+	RECT rc = WindowRect(wnd);
+	if (!TestAttribute(wnd, NOCLIP))	{
+		WINDOW pwnd = GetParent(wnd);
+		RECT prc;
+		prc = ClientRect(pwnd);
+		while (pwnd != NULL)	{
+			if (TestAttribute(pwnd, NOCLIP))
+				break;
+			rc = subRectangle(rc, prc);
+			if (!ValidRect(rc))
+				break;
+			if ((pwnd = GetParent(pwnd)) != NULL)
+				prc = ClientRect(pwnd);
+		}
+	}
+	return rc;
+}
+
+/* ----- find window that mouse coordinates are in --- */
+static WINDOW inWindow(WINDOW wnd, int x, int y)
+{
+	WINDOW Hit = NULL;
+	while (wnd != NULL)	{
+		if (isVisible(wnd))	{
+			WINDOW wnd1;
+			RECT rc = VisibleRect(wnd);
+			if (InsideRect(x, y, rc))
+				Hit = wnd;
+			if ((wnd1 = inWindow(LastWindow(wnd), x, y)) != NULL)
+				Hit = wnd1;
+			if (Hit != NULL)
+				break;
+		}
+		wnd = PrevWindow(wnd);
+	}
+	return Hit;
+}
+
 static WINDOW MouseWindow(int x, int y)
 {
     /* ------ get the window in which a
                     mouse event occurred ------ */
-    WINDOW Mwnd = inWindow(x, y);
-
+    WINDOW Mwnd = inWindow(ApplicationWindow, x, y);
     /* ---- process mouse captures ----- */
-    if (CaptureMouse != NULL)
-        if (Mwnd == NULL ||
-                NoChildCaptureMouse ||
-                    GetParent(Mwnd) != CaptureMouse)
+    if (CaptureMouse != NULL)	{
+        if (NoChildCaptureMouse ||
+				Mwnd == NULL 	||
+					!isAncestor(Mwnd, CaptureMouse))
             Mwnd = CaptureMouse;
+	}
 	return Mwnd;
 }
 
@@ -537,7 +577,7 @@ BOOL dispatch_message(void)
         if (CaptureKeyboard != NULL)
             if (Kwnd == NULL ||
                     NoChildCaptureKeyboard ||
-                        GetParent(Kwnd) != CaptureKeyboard)
+						!isAncestor(Kwnd, CaptureKeyboard))
                 Kwnd = CaptureKeyboard;
 
         /* -------- send mouse and keyboard messages to the
@@ -553,7 +593,7 @@ BOOL dispatch_message(void)
 		        	Mwnd = MouseWindow(ev.mx, ev.my);
                 	if (!CaptureMouse ||
                         	(!NoChildCaptureMouse &&
-                            	GetParent(Mwnd) == CaptureMouse))
+								isAncestor(Kwnd, CaptureKeyboard)))
                     	if (Mwnd != inFocus)
                         	SendMessage(Mwnd, SETFOCUS, TRUE, 0);
                 	SendMessage(Mwnd, LEFT_BUTTON, ev.mx, ev.my);

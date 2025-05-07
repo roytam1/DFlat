@@ -2,7 +2,6 @@
 
 #include "dflat.h"
 
-
 static void AllocationError(void)
 {
 	WINDOW wnd;
@@ -46,21 +45,17 @@ void *DFcalloc(size_t nitems, size_t size)
 
 void *DFmalloc(size_t size)
 {
-	void far * rtn = malloc(size);
+	void *rtn = malloc(size);
 	if (size && rtn == NULL)
 		AllocationError();
 	return rtn;
 }
 
-void *DFrealloc(void far *block, size_t size)
+void *DFrealloc(void *block, size_t size)
 {
-	void far * rtn = realloc(block, size);
+	void *rtn = realloc(block, size);
 	if (size && rtn == NULL)
 		AllocationError();
 	return rtn;
 }
-
-
-
-
 

@@ -5,9 +5,9 @@
 static int inFocusCommand(DBOX *);
 static void dbShortcutKeys(DBOX *, int);
 static int ControlProc(WINDOW, MESSAGE, PARAM, PARAM);
-static void FirstFocus(WINDOW wnd);
-static void NextFocus(void);
-static void PrevFocus(void);
+static void FirstFocus(DBOX *db);
+static void NextFocus(DBOX *db);
+static void PrevFocus(DBOX *db);
 static CTLWINDOW *AssociatedControl(DBOX *, enum commands);
 
 static BOOL SysMenuOpen;
@@ -125,7 +125,7 @@ static BOOL LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
 static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     DBOX *db = wnd->extension;
-    CTLWINDOW *ct = db->ctl;
+    CTLWINDOW *ct;
 
     if (WindowMoving || WindowSizing)
         return FALSE;
@@ -139,13 +139,13 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         case SHIFT_HT:
         case BS:
         case UP:
-            PrevFocus();
+            PrevFocus(db);
             break;
         case ALT_F6:
         case '\t':
         case FWD:
         case DN:
-            NextFocus();
+            NextFocus(db);
             break;
         case ' ':
             if (((int)p2 & ALTKEY) &&
@@ -261,7 +261,7 @@ BOOL DialogBox(WINDOW wnd, DBOX *db, BOOL Modal,
                         wndproc,
                         Modal ? SAVESELF : 0);
     DialogWnd->Modal = Modal;
-	FirstFocus(DialogWnd);
+	FirstFocus(db);
     PostMessage(DialogWnd, INITIATE_DIALOG, 0, 0);
     if (Modal)    {
         SendMessage(DialogWnd, CAPTURE_MOUSE, 0, 0);
@@ -309,6 +309,18 @@ WINDOW ControlWindow(DBOX *db, enum commands cmd)
     while (ct->class)    {
         if (ct->class != TEXT && cmd == ct->command)
             return ct->wnd;
+        ct++;
+    }
+    return NULL;
+}
+
+/* --- return a pointer to the control structure that matches a window --- */
+CTLWINDOW *WindowControl(DBOX *db, WINDOW wnd)
+{
+    CTLWINDOW *ct = db->ctl;
+    while (ct->class)    {
+        if (ct->wnd == wnd)
+            return ct;
         ct++;
     }
     return NULL;
@@ -598,8 +610,6 @@ static void CtlCloseWindowMsg(WINDOW wnd)
     }
 }
 
-
-
 static void FixColors(WINDOW wnd)
 {
     CTLWINDOW *ct = wnd->ct;
@@ -623,12 +633,10 @@ static void FixColors(WINDOW wnd)
 static int ControlProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 {
     DBOX *db;
-    CTLWINDOW *ct;
 
     if (wnd == NULL)
         return FALSE;
     db = GetParent(wnd) ? GetParent(wnd)->extension : NULL;
-    ct = GetControl(wnd);
 
     switch (msg)    {
         case CREATE_WINDOW:
@@ -676,28 +684,56 @@ static int ControlProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 }
 
 /* ---- change the focus to the first control --- */
-static void FirstFocus(WINDOW wnd)
+static void FirstFocus(DBOX *db)
 {
-	WINDOW fwnd = FirstWindow(wnd);
-	do	{
-		SendMessage(fwnd, SETFOCUS, TRUE, 0);
-		if ((fwnd = NextWindow(fwnd)) == NULL)
-			break;
-	} while (GetClass(inFocus) == TEXT || GetClass(inFocus) == BOX);
+    CTLWINDOW *ct = db->ctl;
+	if (ct != NULL)	{
+		while (ct->class == TEXT || ct->class == BOX)	{
+			ct++;
+			if (ct->class == 0)
+				return;
+		}
+		SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+	}
 }
 
 /* ---- change the focus to the next control --- */
-static void NextFocus(void)
+static void NextFocus(DBOX *db)
 {
-	do	SetNextFocus();
-	while (GetClass(inFocus) == TEXT || GetClass(inFocus) == BOX);
+    CTLWINDOW *ct = WindowControl(db, inFocus);
+	int looped = 0;
+	if (ct != NULL)	{
+		do	{
+			ct++;
+			if (ct->class == 0)	{
+				if (looped)
+					return;
+				looped++;
+				ct = db->ctl;
+			}
+		} while (ct->class == TEXT || ct->class == BOX);
+		SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+	}
 }
 
 /* ---- change the focus to the previous control --- */
-static void PrevFocus(void)
+static void PrevFocus(DBOX *db)
 {
-	do	SetPrevFocus();
-	while (GetClass(inFocus) == TEXT || GetClass(inFocus) == BOX);
+    CTLWINDOW *ct = WindowControl(db, inFocus);
+	int looped = 0;
+	if (ct != NULL)	{
+		do	{
+			if (ct == db->ctl)	{
+				if (looped)
+					return;
+				looped++;
+				while (ct->class)
+					ct++;
+			}
+			--ct;
+		} while (ct->class == TEXT || ct->class == BOX);
+		SendMessage(ct->wnd, SETFOCUS, TRUE, 0);
+	}
 }
 
 void SetFocusCursor(WINDOW wnd)

@@ -424,7 +424,7 @@ void LoadHelpFile()
     while (*hline != '<')    {
         if (GetHelpLine(hline) == NULL)    {
             fclose(helpfp);
-               return;
+            return;
         }
     }
     while (*hline == '<')   {
@@ -523,6 +523,7 @@ void UnLoadHelpFile(void)
     }
     ThisHelp = LastHelp = NULL;
     free(HelpTree);
+	HelpTree = NULL;
 }
 
 /* ---------- display a specified help text ----------- */

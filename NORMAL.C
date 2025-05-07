@@ -255,7 +255,7 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 				}
 			}
 		}
-		if (!ValidRect(rc) && isVisible(wnd))	{
+		if (that != NULL && !ValidRect(rc) && isVisible(wnd))	{
 		    SendMessage(wnd, BORDER, 0, 0);
 			this = NULL;
 		}
@@ -993,46 +993,6 @@ static BOOL InsideWindow(WINDOW wnd, int x, int y)
     }
     return InsideRect(x, y, rc);
 }
-
-RECT VisibleRect(WINDOW wnd)
-{
-	RECT rc = WindowRect(wnd);
-	if (!TestAttribute(wnd, NOCLIP))	{
-		WINDOW pwnd = GetParent(wnd);
-		RECT prc;
-		prc = ClientRect(pwnd);
-		while (pwnd != NULL)	{
-			if (TestAttribute(pwnd, NOCLIP))
-				break;
-			rc = subRectangle(rc, prc);
-			if (!ValidRect(rc))
-				break;
-			if ((pwnd = GetParent(pwnd)) != NULL)
-				prc = ClientRect(pwnd);
-		}
-	}
-	return rc;
-}
-
-/* ----- find window that screen coordinates are in --- */
-WINDOW inWindow(int x, int y)
-{
-	WINDOW Hit = NULL;
-	WINDOW wnd = ApplicationWindow;
-	while (wnd != NULL)	{
-		if (isVisible(wnd))	{
-			RECT rc = VisibleRect(wnd);
-			if (InsideRect(x, y, rc))	{
-				Hit = wnd;
-				wnd = LastWindow(wnd);
-				continue;
-			}
-		}
-		wnd = PrevWindow(wnd);
-	}
-	return Hit;
-}
-
 
 BOOL isDerivedFrom(WINDOW wnd, CLASS class)
 {

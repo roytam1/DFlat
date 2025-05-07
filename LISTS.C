@@ -64,10 +64,8 @@ void SetPrevFocus()
 void ReFocus(WINDOW wnd)
 {
 	if (GetParent(wnd) != NULL)	{
-		if (!isDerivedFrom(GetParent(wnd), DIALOG))	{
-			RemoveWindow(wnd);
-			AppendWindow(wnd);
-		}
+		RemoveWindow(wnd);
+		AppendWindow(wnd);
 		ReFocus(GetParent(wnd));
 	}
 }

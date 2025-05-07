@@ -216,7 +216,8 @@ static void ExtendBlock(WINDOW wnd, int x, int y)
     int pbot = max(wnd->BlkBegLine, wnd->BlkEndLine);
     char *lp = TextLine(wnd, wnd->wtop+y);
     int len = (int) (strchr(lp, '\n') - lp);
-    x = min(x, len-wnd->wleft);
+    x = max(0, min(x, len-wnd->wleft));
+	y = max(0, y);
     wnd->BlkEndCol = x+wnd->wleft;
     wnd->BlkEndLine = y+wnd->wtop;
     bbl = min(wnd->BlkBegLine, wnd->BlkEndLine);
@@ -465,7 +466,7 @@ static void DelKey(WINDOW wnd)
         SendMessage(wnd, PAINT, 0, 0);
         return;
     }
-    if (isMultiLine(wnd) && *(currchar+1) == '\0')
+    if (isMultiLine(wnd) && *currchar == '\n' && *(currchar+1) == '\0')
         return;
     strcpy(currchar, currchar+1);
     if (repaint)    {
@@ -576,8 +577,8 @@ static void KeyTyped(WINDOW wnd, int c)
     /* ---------- test end of window --------- */
     if (WndCol == ClientWidth(wnd)-1)    {
         if (!isMultiLine(wnd))	{
-				if (!(currchar == wnd->text+wnd->MaxTextLength-2))
-	            SendMessage(wnd, HORIZSCROLL, TRUE, 0);
+			if (!(currchar == wnd->text+wnd->MaxTextLength-2))
+            SendMessage(wnd, HORIZSCROLL, TRUE, 0);
 		}
 		else	{
 			char *cp = currchar;

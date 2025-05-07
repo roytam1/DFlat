@@ -104,6 +104,7 @@ static void PaintMsg(WINDOW wnd)
 static void KeyboardMsg(WINDOW wnd, PARAM p1)
 {
     MENU *mnu;
+	int sel;
     if (mwnd == NULL)    {
         /* ----- search for menu bar shortcut keys ---- */
         int c = tolower((int)p1);
@@ -144,14 +145,19 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
     }
     switch ((int)p1)    {
         case F1:
-            if (ActiveMenu != NULL &&
-                (mwnd == NULL ||
-                (ActiveMenu+ActiveMenuBar->ActiveSelection)->
-                    Selections[0].SelectionTitle == NULL)) {
-                DisplayHelp(wnd,
-        (ActiveMenu+ActiveMenuBar->ActiveSelection)->Title+1);
-                return;
-            }
+            if (ActiveMenu == NULL || ActiveMenuBar == NULL)
+				break;
+			sel = ActiveMenuBar->ActiveSelection;
+			if (sel == -1)	{
+	    		BaseWndProc(MENUBAR, wnd, KEYBOARD, F1, 0);
+				return;
+			}
+			mnu = ActiveMenu+sel;
+			if (mwnd == NULL ||
+					mnu->Selections[0].SelectionTitle == NULL) {
+               	DisplayHelp(wnd,mnu->Title+1);
+            	return;
+			}
             break;
         case '\r':
             if (mwnd == NULL &&
@@ -272,6 +278,10 @@ static void SelectionMsg(WINDOW wnd, PARAM p1, PARAM p2)
 /* --------- COMMAND Message ---------- */
 static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
+	if (p1 == ID_HELP)	{
+    	BaseWndProc(MENUBAR, wnd, COMMAND, p1, p2);
+		return;
+	}
     if (isCascadedCommand(ActiveMenuBar, (int)p1))    {
         /* find the cascaded menu based on command id in p1 */
         MENU *mnu = ActiveMenu+mctr;

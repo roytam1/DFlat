@@ -42,14 +42,16 @@ int SystemMenuProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 /* ------- Build a system menu -------- */
 void BuildSystemMenu(WINDOW wnd)
 {
-    int lf = GetLeft(wnd)+1;
-    int tp = GetTop(wnd)+1;
-    int ht = MenuHeight(SystemMenu.PullDown[0].Selections);
-    int wd = MenuWidth(SystemMenu.PullDown[0].Selections);
+	int lf, tp, ht, wd;
     WINDOW SystemMenuWnd;
 
     SystemMenu.PullDown[0].Selections[6].Accelerator = 
         (GetClass(wnd) == APPLICATION) ? ALT_F4 : CTRL_F4;
+
+    lf = GetLeft(wnd)+1;
+    tp = GetTop(wnd)+1;
+    ht = MenuHeight(SystemMenu.PullDown[0].Selections);
+    wd = MenuWidth(SystemMenu.PullDown[0].Selections);
 
     if (lf+wd > SCREENWIDTH-1)
         lf = (SCREENWIDTH-1) - wd;

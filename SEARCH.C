@@ -4,6 +4,7 @@
 extern DBOX SearchTextDB;
 extern DBOX ReplaceTextDB;
 static int CheckCase = TRUE;
+static int Replacing = FALSE;
 
 /* - case-insensitive, white-space-normalized char compare - */
 static BOOL SearchCmp(int a, int b)
@@ -44,14 +45,14 @@ static void replacetext(WINDOW wnd, char *cp1, DBOX *db)
 }
 
 /* ------- search for the occurrance of a string ------- */
-static void SearchTextBox(WINDOW wnd, int Replacing, int incr)
+static void SearchTextBox(WINDOW wnd, int incr)
 {
     char *s1 = NULL, *s2, *cp1;
     DBOX *db = Replacing ? &ReplaceTextDB : &SearchTextDB;
     char *cp = GetEditBoxText(db, ID_SEARCHFOR);
     BOOL rpl = TRUE, FoundOne = FALSE;
 
-    while (rpl == TRUE && cp != NULL)    {
+    while (rpl == TRUE && cp != NULL && *cp)    {
         rpl = Replacing ?
                 CheckBoxSetting(&ReplaceTextDB, ID_REPLACEALL) :
                 FALSE;
@@ -132,28 +133,30 @@ static void SearchTextBox(WINDOW wnd, int Replacing, int incr)
         replace it with a specified string ------- */
 void ReplaceText(WINDOW wnd)
 {
+	Replacing = TRUE;
     if (CheckCase)
         SetCheckBox(&ReplaceTextDB, ID_MATCHCASE);
     if (DialogBox(NULL, &ReplaceTextDB, TRUE, NULL))    {
         CheckCase=CheckBoxSetting(&ReplaceTextDB,ID_MATCHCASE);
-        SearchTextBox(wnd, TRUE, FALSE);
+        SearchTextBox(wnd, FALSE);
     }
 }
 
 /* ------- search for the first occurrance of a string ------ */
 void SearchText(WINDOW wnd)
 {
+	Replacing = FALSE;
     if (CheckCase)
         SetCheckBox(&SearchTextDB, ID_MATCHCASE);
     if (DialogBox(NULL, &SearchTextDB, TRUE, NULL))    {
         CheckCase=CheckBoxSetting(&SearchTextDB,ID_MATCHCASE);
-        SearchTextBox(wnd, FALSE, FALSE);
+        SearchTextBox(wnd, FALSE);
     }
 }
 
 /* ------- search for the next occurrance of a string ------- */
 void SearchNext(WINDOW wnd)
 {
-    SearchTextBox(wnd, FALSE, TRUE);
+    SearchTextBox(wnd, TRUE);
 }
 

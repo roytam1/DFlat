@@ -480,7 +480,7 @@ Text Box Messages
 
 ADDTEXT                add text to the text box       
   Sent:    to append a line of text to the text box
-  P1:      address of null-terminated string 
+  P1:      address of null-terminated string without \n
            (textbox makes its own copy. string can go out of scope.)
   P2:      
   Returns: 
@@ -492,9 +492,8 @@ DELETETEXT         delete line of text from the text box
   Returns: 
 
 INSERTTEXT           insert line of text into the text box       
-  Sent:    to append a line of text to the text box
-  P1:      address of null-terminated string 
-           (textbox makes its own copy. string can go out of scope.)
+  Sent:    to insert a line of text into the text box
+  P1:      address of null-terminated string without \n
   P2:      line number relative to zero that will follow new line.
   Returns: 
 
@@ -750,32 +749,6 @@ WINDOW GetParent(WINDOW wnd)
 
 Returns the parent of the window or NULL if the window has no
 parent.
--------------------------------------------------------------------
-WINDOW GetFirstChild(WINDOW pwnd)
-
-Returns the first child of a parent window or NULL if the window
-has no children.
-
--------------------------------------------------------------------
-WINDOW GetNextChild(WINDOW pwnd, WINDOW cwnd)
-
-Call this function repetitively after GetFirstChild. It returns the
-next child window after the one specified in the second parameter. If
-there are no more children, the function returns NULL.
-
--------------------------------------------------------------------
-WINDOW GetLastChild(WINDOW pwnd)
-
-Returns the last child of a p`rent window or NULL if the window
-has no children.
-
--------------------------------------------------------------------
-WINDOW GetPrevChild(WINDOW pwnd, WINDOW wnd)
-
-Call this function repetitively after GetLastChild. It returns the
-previous child window before the one specified in the second
-parameter. If there are no more children, the function returns
-NULL.
 
 -------------------------------------------------------------------
 int CharInView(WINDOW wnd, int x, int y)
