@@ -87,11 +87,16 @@ DIALOGBOX( MsgBox )
     CONTROL(0,      NULL,   0, 0, 1, 8, ID_CANCEL)
 ENDDB
 
-#define offset 4
+#ifdef INCLUDE_WINDOWOPTIONS
+#define offset 7
+#else
+#define offset 0
+#endif
 
 /* ------------ Display dialog box -------------- */
 DIALOGBOX( Display )
-    DB_TITLE(     "Display", -1, -1, 14+offset, 35)
+    DB_TITLE(     "Display", -1, -1, 11+offset, 35)
+#ifdef INCLUDE_WINDOWOPTIONS
 	CONTROL(BOX,      "Window",    7, 1, 6,20, 0)
     CONTROL(CHECKBOX,    NULL,     9, 2, 1, 3, ID_TITLE)
     CONTROL(TEXT,     "~Title",   15, 2, 1, 5, ID_TITLE)
@@ -101,25 +106,26 @@ DIALOGBOX( Display )
     CONTROL(TEXT,   "~Status bar",15, 4, 1,10, ID_STATUSBAR)
     CONTROL(CHECKBOX,    NULL,     9, 5, 1, 3, ID_TEXTURE)
     CONTROL(TEXT,     "Te~xture", 15, 5, 1, 7, ID_TEXTURE)
-	CONTROL(BOX,      "Colors",    1, 4+offset,5,15, 0)
-    CONTROL(RADIOBUTTON, NULL,     3, 5+offset,1,3,ID_COLOR)
-    CONTROL(TEXT,     "Co~lor",    7, 5+offset,1,5,ID_COLOR)
-    CONTROL(RADIOBUTTON, NULL,     3, 6+offset,1,3,ID_MONO)
-    CONTROL(TEXT,     "~Mono",     7, 6+offset,1,4,ID_MONO)
-    CONTROL(RADIOBUTTON, NULL,     3, 7+offset,1,3,ID_REVERSE)
-    CONTROL(TEXT,     "~Reverse",  7, 7+offset,1,7,ID_REVERSE)
+#endif
+	CONTROL(BOX,      "Colors",    1, 1+offset,5,15, 0)
+    CONTROL(RADIOBUTTON, NULL,     3, 2+offset,1,3,ID_COLOR)
+    CONTROL(TEXT,     "Co~lor",    7, 2+offset,1,5,ID_COLOR)
+    CONTROL(RADIOBUTTON, NULL,     3, 3+offset,1,3,ID_MONO)
+    CONTROL(TEXT,     "~Mono",     7, 3+offset,1,4,ID_MONO)
+    CONTROL(RADIOBUTTON, NULL,     3, 4+offset,1,3,ID_REVERSE)
+    CONTROL(TEXT,     "~Reverse",  7, 4+offset,1,7,ID_REVERSE)
 
-	CONTROL(BOX,      "Lines",    17, 4+offset,5,15, 0)
-    CONTROL(RADIOBUTTON, NULL,    19, 5+offset,1,3,ID_25LINES)
-    CONTROL(TEXT,     "~25",      23, 5+offset,1,2,ID_25LINES)
-    CONTROL(RADIOBUTTON, NULL,    19, 6+offset,1,3,ID_43LINES)
-    CONTROL(TEXT,     "~43",      23, 6+offset,1,2,ID_43LINES)
-    CONTROL(RADIOBUTTON, NULL,    19, 7+offset,1,3,ID_50LINES)
-    CONTROL(TEXT,     "~50",      23, 7+offset,1,2,ID_50LINES)
+	CONTROL(BOX,      "Lines",    17, 1+offset,5,15, 0)
+    CONTROL(RADIOBUTTON, NULL,    19, 2+offset,1,3,ID_25LINES)
+    CONTROL(TEXT,     "~25",      23, 2+offset,1,2,ID_25LINES)
+    CONTROL(RADIOBUTTON, NULL,    19, 3+offset,1,3,ID_43LINES)
+    CONTROL(TEXT,     "~43",      23, 3+offset,1,2,ID_43LINES)
+    CONTROL(RADIOBUTTON, NULL,    19, 4+offset,1,3,ID_50LINES)
+    CONTROL(TEXT,     "~50",      23, 4+offset,1,2,ID_50LINES)
 
-    CONTROL(BUTTON, "   ~OK   ",   2,10+offset,1,8,ID_OK)
-    CONTROL(BUTTON, " ~Cancel ",  12,10+offset,1,8,ID_CANCEL)
-    CONTROL(BUTTON, "  ~Help  ",  22,10+offset,1,8,ID_HELP)
+    CONTROL(BUTTON, "   ~OK   ",   2, 7+offset,1,8,ID_OK)
+    CONTROL(BUTTON, " ~Cancel ",  12, 7+offset,1,8,ID_CANCEL)
+    CONTROL(BUTTON, "  ~Help  ",  22, 7+offset,1,8,ID_HELP)
 ENDDB
 
 /* ------------ Windows dialog box -------------- */
@@ -131,6 +137,7 @@ DIALOGBOX( Windows )
     CONTROL(BUTTON,  "  ~Help  ",  7, 15, 1, 8, ID_HELP)
 ENDDB
 
+#ifdef INCLUDE_LOGGING
 /* ------------ Message Log dialog box -------------- */
 DIALOGBOX( Log )
     DB_TITLE(    "D-Flat Message Log", -1, -1, 18, 41)
@@ -142,6 +149,7 @@ DIALOGBOX( Log )
     CONTROL(BUTTON,  " ~Cancel ", 29,  10,  1,  8, ID_CANCEL)
     CONTROL(BUTTON,  "  ~Help  ", 29,  13, 1,   8, ID_HELP)
 ENDDB
+#endif
 
 /* ------------ the Help window dialog box -------------- */
 DIALOGBOX( HelpBox )

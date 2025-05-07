@@ -51,8 +51,10 @@ DEFMENU(MainMenu)
     POPDOWN( "~Options", NULL, "Editor and display options" )
         SELECTION( "~Display...",   ID_DISPLAY,     0,      0 )
         SEPARATOR
+#ifdef INCLUDE_LOGGING
         SELECTION( "~Log Messages", ID_LOG,     ALT_L,      0 )
         SEPARATOR
+#endif
         SELECTION( "~Insert",       ID_INSERT,     INS, TOGGLE)
         SELECTION( "~Word wrap",    ID_WRAP,        0,  TOGGLE)
         SELECTION( "~Tabs ( )",     ID_TABS,        0,  CASCADED)
@@ -87,8 +89,10 @@ DEFMENU(MainMenu)
         SELECTION(  "Help ~index...",     ID_HELPINDEX, 0, 0 )
         SEPARATOR
         SELECTION(  "~About...",          ID_ABOUT,     0, 0 )
+#ifdef TESTING_DFLAT
         SEPARATOR
         SELECTION(  "~Reload Help Database",ID_LOADHELP,0, 0 )
+#endif
     ENDPOPDOWN
 
 	/* ----- cascaded pulldown from Tabs... above ----- */
@@ -104,11 +108,17 @@ ENDMENU
 /* ------------- the System Menu --------------------- */
 DEFMENU(SystemMenu)
     POPDOWN("System Menu", NULL, NULL)
+#ifdef INCLUDE_RESTORE
         SELECTION("~Restore",  ID_SYSRESTORE,  0,         0 )
+#endif
         SELECTION("~Move",     ID_SYSMOVE,     0,         0 )
         SELECTION("~Size",     ID_SYSSIZE,     0,         0 )
+#ifdef INCLUDE_MINIMIZE
         SELECTION("Mi~nimize", ID_SYSMINIMIZE, 0,         0 )
+#endif
+#ifdef INCLUDE_MAXIMIZE
         SELECTION("Ma~ximize", ID_SYSMAXIMIZE, 0,         0 )
+#endif
         SEPARATOR
         SELECTION("~Close",    ID_SYSCLOSE,    CTRL_F4,   0 )
     ENDPOPDOWN

@@ -58,12 +58,18 @@ void BuildSystemMenu(WINDOW wnd)
 	SystemMenuWnd = CreateWindow(POPDOWNMENU, NULL,
 					lf,	tp,	ht,	wd,	NULL, wnd, SystemMenuProc, 0);
 
+#ifdef INCLUDE_RESTORE
 	if (wnd->condition == ISRESTORED)
 		DeactivateCommand(&SystemMenu, ID_SYSRESTORE);
 	else
 		ActivateCommand(&SystemMenu, ID_SYSRESTORE);
+#endif
 
-	if (TestAttribute(wnd, MOVEABLE) && wnd->condition != ISMAXIMIZED)
+	if (TestAttribute(wnd, MOVEABLE)
+#ifdef INCLUDE_MAXIMIZE
+			&& wnd->condition != ISMAXIMIZED
+#endif
+				)
 		ActivateCommand(&SystemMenu, ID_SYSMOVE);
 	else
 		DeactivateCommand(&SystemMenu, ID_SYSMOVE);
@@ -73,15 +79,19 @@ void BuildSystemMenu(WINDOW wnd)
 	else
 		ActivateCommand(&SystemMenu, ID_SYSSIZE);
 
+#ifdef INCLUDE_MINIMIZE
 	if (wnd->condition == ISMINIMIZED || TestAttribute(wnd, MINMAXBOX) == FALSE)
 		DeactivateCommand(&SystemMenu, ID_SYSMINIMIZE);
 	else
 		ActivateCommand(&SystemMenu, ID_SYSMINIMIZE);
+#endif
 
+#ifdef INCLUDE_MAXIMIZE
 	if (wnd->condition != ISRESTORED ||	TestAttribute(wnd, MINMAXBOX) == FALSE)
 		DeactivateCommand(&SystemMenu, ID_SYSMAXIMIZE);
 	else
 		ActivateCommand(&SystemMenu, ID_SYSMAXIMIZE);
+#endif
 
 	SendMessage(SystemMenuWnd, BUILD_SELECTIONS,
 				(PARAM) &SystemMenu.PullDown[0], 0);

@@ -13,17 +13,17 @@ int VSliding;
 int HSliding;
 
 /* ------------ ADDTEXT Message -------------- */
-static void AddTextMsg(WINDOW wnd, PARAM p1)
+static int AddTextMsg(WINDOW wnd, PARAM p1)
 {
     /* --- append text to the textbox's buffer --- */
     unsigned adln = strlen((char *)p1);
     if (adln > (unsigned)0xfff0)
-        return;
+        return FALSE;
     if (wnd->text != NULL)    {
         /* ---- appending to existing text ---- */
         unsigned txln = strlen(wnd->text);
         if ((long)txln+adln > (unsigned) 0xfff0)
-            return;
+            return FALSE;
         if (txln+adln > wnd->textlen)    {
             wnd->text = realloc(wnd->text, txln+adln+3);
             wnd->textlen = txln+adln+1;
@@ -39,11 +39,13 @@ static void AddTextMsg(WINDOW wnd, PARAM p1)
         strcat(wnd->text, (char*) p1);
         strcat(wnd->text, "\n");
         BuildTextPointers(wnd);
+		return TRUE;
     }
+	return FALSE;
 }
 
 /* ------------ SETTEXT Message -------------- */
-static void SetTextMsg(WINDOW wnd, PARAM p1)
+static int SetTextMsg(WINDOW wnd, PARAM p1)
 {
     /* -- assign new text value to textbox buffer -- */
     char *cp;
@@ -53,11 +55,13 @@ static void SetTextMsg(WINDOW wnd, PARAM p1)
     if (wnd->text == NULL || wnd->textlen < len)    {
         wnd->textlen = len;
         if ((wnd->text=realloc(wnd->text, len+1)) == NULL)
-            return;
+            return FALSE;
         wnd->text[len] = '\0';
     }
     strcpy(wnd->text, cp);
     BuildTextPointers(wnd);
+    wnd->wtop = wnd->wleft = 0;
+	return TRUE;
 }
 
 /* ------------ CLEARTEXT Message -------------- */
@@ -233,12 +237,8 @@ static int ScrollMsg(WINDOW wnd, PARAM p1)
         rc = ClipRectangle(wnd, ClientRect(wnd));
         if (ValidRect(rc))    {
             /* ---- scroll the window ----- */
-            if (wnd != inFocus)    {
-                int sv = ClipString;
-                ClipString = TRUE;
+            if (wnd != inFocus)
                 SendMessage(wnd, PAINT, 0, 0);
-                ClipString = sv;
-            }
             else    {
                 scroll_window(wnd, rc, (int)p1);
                 if (!(int)p1)
@@ -289,11 +289,8 @@ static void ScrollPageMsg(WINDOW wnd, PARAM p1)
     /* --- vertical scroll one page --- */
     if ((int) p1 == FALSE)    {
         /* ---- page up ---- */
-        if (wnd->wtop)    {
+        if (wnd->wtop)
             wnd->wtop -= ClientHeight(wnd);
-            if (wnd->wtop < 0)
-                wnd->wtop = 0;
-        }
     }
     else     {
         /* ---- page down ---- */
@@ -303,6 +300,8 @@ static void ScrollPageMsg(WINDOW wnd, PARAM p1)
                 wnd->wtop=wnd->wlines-ClientHeight(wnd);
         }
     }
+    if (wnd->wtop < 0)
+        wnd->wtop = 0;
     SendMessage(wnd, PAINT, 0, 0);
 }
 
@@ -310,18 +309,17 @@ static void ScrollPageMsg(WINDOW wnd, PARAM p1)
 static void HorizScrollPageMsg(WINDOW wnd, PARAM p1)
 {
     /* --- horizontal scroll one page --- */
-    if ((int) p1 == FALSE)    {
+    if ((int) p1 == FALSE)
         /* ---- page left ----- */
         wnd->wleft -= ClientWidth(wnd);
-        if (wnd->wleft < 0)
-            wnd->wleft = 0;
-    }
     else    {
         /* ---- page right ----- */
         wnd->wleft += ClientWidth(wnd);
-        if (wnd->wleft>wnd->textwidth-ClientWidth(wnd))
-            wnd->wleft=wnd->textwidth-ClientWidth(wnd);
+        if (wnd->wleft > wnd->textwidth-ClientWidth(wnd))
+            wnd->wleft = wnd->textwidth-ClientWidth(wnd);
     }
+    if (wnd->wleft < 0)
+        wnd->wleft = 0;
     SendMessage(wnd, PAINT, 0, 0);
 }
 
@@ -339,7 +337,7 @@ static void ScrollDocMsg(WINDOW wnd, PARAM p1)
 }
 
 /* ------------ PAINT Message -------------- */
-static int PaintMsg(WINDOW wnd, PARAM p1)
+static int PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
     /* ------ paint the client area ----- */
     RECT rc, rcc;
@@ -358,6 +356,9 @@ static int PaintMsg(WINDOW wnd, PARAM p1)
         RectRight(rc) = WindowWidth(wnd)-2;
     }
     rcc = AdjustRectangle(wnd, rc);
+
+	if (!p2 && wnd != inFocus)
+		ClipString++;
 
     /* ----- blank line for padding ----- */
     memset(blankline, ' ', SCREENWIDTH);
@@ -397,6 +398,8 @@ static int PaintMsg(WINDOW wnd, PARAM p1)
             SendMessage(wnd, BORDER, p1, 0);
         }
     }
+	if (!p2 && wnd != inFocus)
+		--ClipString;
     return TRUE;
 }
 
@@ -419,11 +422,9 @@ int TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             ClearTextPointers(wnd);
             break;
         case ADDTEXT:
-            AddTextMsg(wnd, p1);
-            break;
+            return AddTextMsg(wnd, p1);
         case SETTEXT:
-            SetTextMsg(wnd, p1);
-            break;
+            return SetTextMsg(wnd, p1);
         case CLEARTEXT:
             ClearTextMsg(wnd);
             break;
@@ -461,7 +462,7 @@ int TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             return TRUE;
         case PAINT:
             if (isVisible(wnd) && wnd->wlines)    {
-                PaintMsg(wnd, p1);
+                PaintMsg(wnd, p1, p2);
                 return FALSE;
             }
             break;

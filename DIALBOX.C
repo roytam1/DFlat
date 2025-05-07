@@ -34,7 +34,6 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					attrib |= NOCLIP;
 				if (wnd->Modal)
 					attrib |= SAVESELF;
-				ct->vtext = ct->itext;
 				ct->setting = ct->isetting;
 				if (ct->class == EDITBOX && ct->dwnd.h > 1)
 					attrib |= (MULTILINE | HASBORDER);
@@ -50,9 +49,10 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					 		wnd,
 					 		ControlProc,
 					 		attrib);
-				if ((ct->class == EDITBOX || ct->class == COMBOBOX) &&
-						ct->itext != NULL)
-					SendMessage(cwnd, ADDTEXT, (PARAM) ct->itext, 0);
+				if ((ct->class == EDITBOX ||
+						ct->class == COMBOBOX) &&
+							ct->itext != NULL)
+					SendMessage(cwnd, SETTEXT, (PARAM) ct->itext, 0);
 				if (ct->class != BOX &&
 					ct->class != TEXT &&
 						wnd->dFocus == NULL)
@@ -114,10 +114,7 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 						if (DisplayHelp(wnd, ct->help))
 							return TRUE;
 					break;
-				case CTRL_FIVE:		/* same as SHIFT-TAB */
-					if ((int)p2 & (LEFTSHIFT | RIGHTSHIFT))
-						ChangeFocus(wnd, FALSE);
-					break;
+				case SHIFT_HT:
 				case BS:
 				case UP:
 					ChangeFocus(wnd, FALSE);
@@ -175,6 +172,9 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					break;
 			}
 			break;
+		case PAINT:
+			p2 = TRUE;
+			break;
 		case CLOSE_WINDOW:
 			if (!p1)	{
 				SendMessage(wnd, COMMAND, ID_CANCEL, 0);
@@ -191,12 +191,18 @@ int DialogBox(WINDOW wnd, DBOX *db, int Modal,
 	int (*wndproc)(struct window *, enum messages, PARAM, PARAM))
 {
 	int rtn;
+	int x = db->dwnd.x, y = db->dwnd.y;
 	CTLWINDOW *ct;
 	WINDOW oldFocus = inFocus;
-	WINDOW DialogWnd = CreateWindow(DIALOG,
+	WINDOW DialogWnd;
+
+	if (!Modal && wnd != NULL)	{
+		x += GetLeft(wnd);
+		y += GetTop(wnd);
+	}
+	DialogWnd = CreateWindow(DIALOG,
 						db->dwnd.title,
-						db->dwnd.x,
-						db->dwnd.y,
+						x, y,
 						db->dwnd.h,
 						db->dwnd.w,
 						db,
@@ -389,22 +395,12 @@ void SetDlgTextString(DBOX *db, enum commands cmd, char *text, CLASS class)
 	}
 }
 
-static void Scrollers(WINDOW wnd)
-{
-	if (wnd->wlines > ClientHeight(wnd) &&
-			!TestAttribute(wnd, VSCROLLBAR))	{
-		AddAttribute(wnd, VSCROLLBAR);
-		SendMessage(wnd, BORDER, 0, 0);
-	}
-}
-
 void PutComboListText(WINDOW wnd, enum commands cmd, char *text)
 {
 	CTLWINDOW *ct = FindCommand(wnd->extension, cmd, COMBOBOX);
 	if (ct != NULL)		{
 		WINDOW lwnd = ((WINDOW)(ct->wnd))->extension;
 		SendMessage(lwnd, ADDTEXT, (PARAM) text, 0);
-		Scrollers(lwnd);
 	}
 }
 
@@ -431,13 +427,11 @@ void PutItemText(WINDOW wnd, enum commands cmd, char *text)
 				SendMessage(cwnd, ADDTEXT, (PARAM) text, 0);
 				if (!isMultiLine(cwnd))
 					SendMessage(cwnd, PAINT, 0, 0);
-				Scrollers(cwnd);
 				break;
 			case LISTBOX:
 			case TEXTBOX:
 			case SPINBUTTON:
 				SendMessage(cwnd, ADDTEXT, (PARAM) text, 0);
-				Scrollers(cwnd);
 				break;
 			case TEXT:	{
 				SendMessage(cwnd, CLEARTEXT, 0, 0);
@@ -590,10 +584,6 @@ int DlgDirList(WINDOW wnd, char *fspec,
 			}
 			free(dirlist);
 		}
-		if (lwnd->wlines > ClientHeight(lwnd))
-			AddAttribute(lwnd, VSCROLLBAR);
-		else
-			ClearAttribute(lwnd, VSCROLLBAR);
 		SendMessage(lwnd, SHOW_WINDOW, 0, 0);
 	}
 
@@ -625,7 +615,7 @@ static void dbShortcutKeys(DBOX *db, int ky)
 	if (ch != 0)	{
 		ct = db->ctl;
 		while (ct->class)	{
-			char *cp = ct->vtext;
+			char *cp = ct->itext;
 			while (cp && *cp)	{
 				if (*cp == SHORTCUTCHAR && tolower(*(cp+1)) == ch)	{
 					if (ct->class == TEXT)
@@ -724,6 +714,32 @@ static int ControlProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					break;
 			}
 			break;
+		case PAINT:
+			if (GetClass(wnd) == EDITBOX ||
+					GetClass(wnd) == LISTBOX ||
+						GetClass(wnd) == TEXTBOX)	{
+				int oldattr = GetAttribute(wnd);
+				if (wnd->wlines > ClientHeight(wnd))
+					AddAttribute(wnd, VSCROLLBAR);
+				else 
+					ClearAttribute(wnd, VSCROLLBAR);
+				if (wnd->textwidth > ClientWidth(wnd))
+					AddAttribute(wnd, HSCROLLBAR);
+				else 
+					ClearAttribute(wnd, HSCROLLBAR);
+				if (GetAttribute(wnd) != oldattr)
+					SendMessage(wnd, BORDER, 0, 0);
+			}
+			break;
+		case BORDER:
+			if (GetClass(wnd) == EDITBOX)	{
+				WINDOW oldFocus = inFocus;
+				inFocus = NULL;
+				DefaultWndProc(wnd, msg, p1, p2);
+				inFocus = oldFocus;
+				return TRUE;
+			}
+			break;
 		case SETFOCUS:
 			if (p1)	{
 				DefaultWndProc(wnd, msg, p1, p2);
@@ -810,7 +826,7 @@ void CreatePath(char *path, char *fspec, int InclName, int Change)
 	if (InclName)	{
 		if (!(cm & FILENAME))
 			strcpy(name, "*");
-		if (!(cm & EXTENSION))
+		if (!(cm & EXTENSION) && strchr(fspec, '.') != NULL)
 			strcpy(ext, ".*");
 	}
 	else

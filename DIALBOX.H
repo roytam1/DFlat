@@ -23,7 +23,6 @@ typedef struct {
     DIALOGWINDOW dwnd;
     CLASS class;    /* LISTBOX, BUTTON, etc */
     char *itext;    /* initialized text     */
-    char *vtext;    /* variable text        */
     int command;    /* command code         */
     char *help;     /* help mnemonic        */
     int isetting;   /* initially ON or OFF  */
@@ -42,7 +41,7 @@ typedef struct {
 #define DIALOGBOX(db) DBOX db={ #db,
 #define DB_TITLE(ttl,x,y,h,w) {ttl,x,y,h,w},{
 #define CONTROL(ty,tx,x,y,h,w,c) \
- {{NULL,x,y,h,w},ty,tx,NULL,c,#c,(ty==BUTTON?ON:OFF),OFF,NULL},
+ {{NULL,x,y,h,w},ty,tx,c,#c,(ty==BUTTON?ON:OFF),OFF,NULL},
 
 #define ENDDB {{NULL}} }};
 

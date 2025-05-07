@@ -91,7 +91,7 @@ void set_mousetravel(int minx, int maxx, int miny, int maxy)
 			minx *= 2;
 			maxx *= 2;
 		}
-		mouse(7, 0, minx*8, maxx*8);
+        mouse(7, 0, minx*8, maxx*8);
 		mouse(8, 0, miny*8, maxy*8);
 	}
 }

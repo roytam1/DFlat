@@ -146,7 +146,9 @@ static void PaintVector(WINDOW wnd, RECT rc)
 static void PaintBar(WINDOW wnd, RECT rc, enum VectTypes vt)
 {
     int i, vertbar, len;
-    unsigned int tys[] = {'Û', '²', '±', '°'};
+    unsigned int tys[] = {219, 178, 177, 176};
+/*    unsigned int tys[] = {'Û', '²', '±', '°'};
+*/
     unsigned int nc = tys[vt-1];
 
     if (rc.rt == rc.lf)    {
@@ -230,7 +232,7 @@ int PictureProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             DrawBoxMsg(wnd, p1);
             return TRUE;
         case DRAWBAR:
-            DrawVectorMsg(wnd, p1, p2);
+            DrawVectorMsg(wnd, p1, (enum VectTypes)p2);
             return TRUE;
         case CLOSE_WINDOW:
             if (wnd->VectorList != NULL)

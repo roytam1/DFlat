@@ -339,8 +339,13 @@ static void ReadHelp(WINDOW wnd)
 			}
 		}
 		PutItemText(wnd, ID_HELPTEXT, hline);
+		/* ---- display help text as soon as window is full ---- */
 		if (++linectr == ClientHeight(cwnd))
 			SendMessage(cwnd, PAINT, 0, 0);
+		if (linectr > ClientHeight(cwnd))	{
+			AddAttribute(cwnd, VSCROLLBAR);
+			SendMessage(cwnd, BORDER, 0, 0);
+		}
 	}
 }
 

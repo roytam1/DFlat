@@ -75,15 +75,15 @@ int ButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 int TextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
 	CTLWINDOW *ct;
-	int rtn;
 	switch (msg)	{
-		case CREATE_WINDOW:
-			rtn = BaseWndProc(TEXT, wnd, msg, p1, p2);
+		case PAINT:
 			ct = GetControl(wnd);
-			if (ct != NULL && ct->itext != NULL)	{
-				char *cp = ct->itext;
-				int len = min(ct->dwnd.h, MsgHeight(cp));
-				int i;
+			if (ct != NULL && GetText(wnd) == NULL)	{
+				int i, len;
+				char *cp, *cp2 = ct->itext;
+
+				len = min(ct->dwnd.h, MsgHeight(cp2));
+				cp = cp2;
 				for (i = 0; i < len; i++)	{
 					int mlen;
 					char *txt = cp;
@@ -108,7 +108,7 @@ int TextProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					}
 				}
 			}
-			return rtn;
+			break;
 		default:
 			break;
 	}
@@ -143,6 +143,7 @@ int RadioButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					rb[1] = 7;
 				SendMessage(wnd, CLEARTEXT, 0, 0);
 				SendMessage(wnd, ADDTEXT, (PARAM) rb, 0);
+				SetFocusCursor(wnd);
 				break;
 			}
 			case KEYBOARD:
@@ -175,6 +176,7 @@ int CheckBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					cb[1] = 'X';
 				SendMessage(wnd, CLEARTEXT, 0, 0);
 				SendMessage(wnd, ADDTEXT, (PARAM) cb, 0);
+				SetFocusCursor(wnd);
 				break;
 			}
 			case KEYBOARD:
@@ -235,6 +237,7 @@ int SpinButtonProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				background = FrameBackground(wnd);
 				wputch(wnd, UPSCROLLBOX, WindowWidth(wnd), 0);
 				wputch(wnd, DOWNSCROLLBOX, WindowWidth(wnd)+1, 0);
+				SetFocusCursor(wnd);
 				break;
 			case LEFT_BUTTON:
 				if (p1 == GetRight(wnd) + 1)

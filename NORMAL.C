@@ -2,13 +2,18 @@
 
 #include "dflat.h"
 
+#ifdef INCLUDE_MULTI_WINDOWS
 static void near PaintOverLappers(WINDOW wnd);
 static void near PaintUnderLappers(WINDOW wnd);
+#endif
+
 static int InsideWindow(WINDOW, int, int);
 static void TerminateMoveSize(void);
 static void SaveBorder(RECT);
 static void RestoreBorder(RECT);
+#ifdef INCLUDE_MINIMIZE
 static RECT PositionIcon(WINDOW);
+#endif
 static void near dragborder(WINDOW, int, int);
 static void near sizeborder(WINDOW, int, int);
 static int px = -1, py = -1;
@@ -48,7 +53,7 @@ static void ShowWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
                         wnd->videosave == NULL)
             GetVideoBuffer(wnd);
         SetVisible(wnd);
-        SendMessage(wnd, PAINT, 0, 0);
+        SendMessage(wnd, PAINT, 0, TRUE);
         SendMessage(wnd, BORDER, 0, 0);
         /* --- show the children of this window --- */
         while (cwnd != NULL)    {
@@ -68,8 +73,10 @@ static void HideWindowMsg(WINDOW wnd)
         /* --- paint what this window covered --- */
         if (wnd->videosave != NULL)
             RestoreVideoBuffer(wnd);
+#ifdef INCLUDE_MULTI_WINDOWS
         else
             PaintOverLappers(wnd);
+#endif
     }
 }
 
@@ -136,9 +143,11 @@ static void CommandMsg(WINDOW wnd, PARAM p1)
         case ID_HELP:
             DisplayHelp(wnd,ClassNames[GetClass(wnd)]);
             break;
+#ifdef INCLUDE_RESTORE
         case ID_SYSRESTORE:
             SendMessage(wnd, RESTORE, 0, 0);
             break;
+#endif
         case ID_SYSMOVE:
             SendMessage(wnd, CAPTURE_MOUSE, TRUE,
                 (PARAM) &dwnd);
@@ -159,12 +168,16 @@ static void CommandMsg(WINDOW wnd, PARAM p1)
             WindowSizing = TRUE;
             dragborder(wnd, GetLeft(wnd), GetTop(wnd));
             break;
+#ifdef INCLUDE_MINIMIZE
         case ID_SYSMINIMIZE:
             SendMessage(wnd, MINIMIZE, 0, 0);
             break;
+#endif
+#ifdef INCLUDE_MAXIMIZE
         case ID_SYSMAXIMIZE:
             SendMessage(wnd, MAXIMIZE, 0, 0);
             break;
+#endif
         case ID_SYSCLOSE:
             SendMessage(wnd, CLOSE_WINDOW, 0, 0);
             break;
@@ -200,6 +213,7 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
         WINDOW pwnd = GetParent(wnd);
         int Redraw = !TestAttribute(wnd, SAVESELF) && isVisible(wnd);
 		AddAttribute(wnd, VISIBLE);
+#ifdef INCLUDE_MULTI_WINDOWS
         if (GetClass(pwnd) == APPLICATION)    {
             WINDOW cwnd = Focus.FirstWindow;
             /* -- if no children, do not need selective
@@ -212,12 +226,15 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
             if (cwnd == NULL)
                 Redraw = FALSE;
         }
+#endif
         SendMessage(inFocus, SETFOCUS, FALSE, 0);
 
         inFocus = wnd;
 
         if (Redraw)	{
+#ifdef INCLUDE_MULTI_WINDOWS
             PaintUnderLappers(GetAncestor(wnd));
+#endif
 			ReFocus(wnd, NULL);
             SendMessage(wnd, BORDER, 0, 0);
 		}
@@ -262,23 +279,30 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
         if (TestAttribute(wnd, MINMAXBOX) &&
                 TestAttribute(wnd, HASTITLEBAR))  {
             if (mx == WindowWidth(wnd)-2)    {
-                if (wnd->condition == ISRESTORED)
-                    /* --- hit the maximize box --- */
-                    SendMessage(wnd, MAXIMIZE, 0, 0);
-                else
+                if (wnd->condition != ISRESTORED)
                     /* --- hit the restore box --- */
                     SendMessage(wnd, RESTORE, 0, 0);
+#ifdef INCLUDE_MAXIMIZE
+                else
+                    /* --- hit the maximize box --- */
+                    SendMessage(wnd, MAXIMIZE, 0, 0);
+#endif
                 return;
             }
+#ifdef INCLUDE_MINIMIZE
             if (mx == WindowWidth(wnd)-3)    {
                 /* --- hit the minimize box --- */
                 if (wnd->condition != ISMINIMIZED)
                     SendMessage(wnd, MINIMIZE, 0, 0);
                 return;
             }
+#endif
         }
-        if (wnd->condition != ISMAXIMIZED &&
-                    TestAttribute(wnd, MOVEABLE))    {
+#ifdef INCLUDE_MAXIMIZE
+        if (wnd->condition == ISMAXIMIZED)
+			return;
+#endif
+        if (TestAttribute(wnd, MOVEABLE))    {
             WindowMoving = TRUE;
             px = mx;
             py = my;
@@ -292,16 +316,23 @@ static void LeftButtonMsg(WINDOW wnd, PARAM p1, PARAM p2)
     if (mx == WindowWidth(wnd)-1 &&
             my == WindowHeight(wnd)-1)    {
         /* ------- hit the resize corner ------- */
-        if (wnd->condition == ISMINIMIZED ||
-                !TestAttribute(wnd, SIZEABLE))
+#ifdef INCLUDE_MINIMIZE
+        if (wnd->condition == ISMINIMIZED)
+			return;
+#endif
+        if (!TestAttribute(wnd, SIZEABLE))
             return;
+#ifdef INCLUDE_MAXIMIZE
         if (wnd->condition == ISMAXIMIZED)    {
+			if (GetParent(wnd) == NULL)
+				return;
             if (TestAttribute(GetParent(wnd),HASBORDER))
                 return;
             /* ----- resizing a maximized window over a
                     borderless parent ----- */
             wnd = GetParent(wnd);
         }
+#endif
         WindowSizing = TRUE;
         SendMessage(wnd, CAPTURE_MOUSE,
             TRUE, (PARAM) &dwnd);
@@ -347,6 +378,7 @@ static int MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
     return FALSE;
 }
 
+#ifdef INCLUDE_MAXIMIZE
 static void MaximizeMsg(WINDOW wnd)
 {
     RECT rc = {0, 0, 0, 0};
@@ -371,7 +403,9 @@ static void MaximizeMsg(WINDOW wnd)
     SendMessage(wnd, SHOW_WINDOW, 0, 0);
     wnd->RestoredRC = holdrc;
 }
+#endif
 
+#ifdef INCLUDE_MINIMIZE
 static void MinimizeMsg(WINDOW wnd)
 {
     RECT rc;
@@ -397,7 +431,9 @@ static void MinimizeMsg(WINDOW wnd)
     SendMessage(wnd, SHOW_WINDOW, 0, 0);
     wnd->RestoredRC = holdrc;
 }
+#endif
 
+#ifdef INCLUDE_RESTORE
 static void RestoreMsg(WINDOW wnd)
 {
     RECT holdrc;
@@ -417,6 +453,7 @@ static void RestoreMsg(WINDOW wnd)
     conditioning = FALSE;
     SendMessage(wnd, SHOW_WINDOW, 0, 0);
 }
+#endif
 
 static void MoveMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
@@ -466,6 +503,7 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
         wnd->RestoredRC = WindowRect(wnd);
 
     rc = ClientRect(wnd);
+#ifdef INCLUDE_MAXIMIZE
     while (wnd1 != NULL)    {
         if (GetParent(wnd1) == wnd &&
                 wnd1->condition == ISMAXIMIZED)
@@ -473,6 +511,7 @@ static void SizeMsg(WINDOW wnd, PARAM p1, PARAM p2)
                                     RectBottom(rc));
         wnd1 = NextWindow(wnd1);
     }
+#endif
     if (wasVisible)
         SendMessage(wnd, SHOW_WINDOW, 0, 0);
 }
@@ -587,22 +626,30 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 TerminateMoveSize();
             }
             break;
+#ifdef INCLUDE_MAXIMIZE
         case MAXIMIZE:
 		    if (wnd->condition != ISMAXIMIZED)
 				MaximizeMsg(wnd);
             break;
+#endif
+#ifdef INCLUDE_MINIMIZE
         case MINIMIZE:
             if (wnd->condition != ISMINIMIZED)
 				MinimizeMsg(wnd);
             break;
+#endif
+#ifdef INCLUDE_RESTORE
         case RESTORE:
             if (wnd->condition != ISRESTORED)    {
+#ifdef INCLUDE_MAXIMIZE
 				if (wnd->oldcondition == ISMAXIMIZED)
 					SendMessage(wnd, MAXIMIZE, 0, 0);
 				else
+#endif
 					RestoreMsg(wnd);
             }
             break;
+#endif
         case MOVE:
 			MoveMsg(wnd, p1, p2);
             break;
@@ -618,6 +665,7 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     }
     return TRUE;
 }
+#ifdef INCLUDE_MINIMIZE
 /* ---- compute lower left icon space in a rectangle ---- */
 static RECT LowerRight(RECT prc)
 {
@@ -671,6 +719,7 @@ static RECT PositionIcon(WINDOW wnd)
     }
     return rc;
 }
+#endif
 /* ----- terminate the move or size operation ----- */
 static void TerminateMoveSize(void)
 {
@@ -732,6 +781,7 @@ static void near sizeborder(WINDOW wnd, int rt, int bt)
         RepaintBorder(&dwnd, NULL);
     }
 }
+#ifdef INCLUDE_MULTI_WINDOWS
 /* ----- adjust a rectangle to include the shadow ----- */
 static RECT adjShadow(WINDOW wnd)
 {
@@ -783,7 +833,7 @@ static void near PaintOverLap(WINDOW wnd, RECT rc)
         	isBorder |= RectRight(rc) == WindowWidth(wnd) ||
                     	RectBottom(rc) == WindowHeight(wnd);
     	if (isData)
-        	SendMessage(wnd, PAINT, (PARAM) &rc, 0);
+        	SendMessage(wnd, PAINT, (PARAM) &rc, TRUE);
     	if (isBorder)
         	SendMessage(wnd, BORDER, (PARAM) &rc, 0);
     	else if (isTitle)
@@ -875,6 +925,8 @@ static void near PaintUnderLappers(WINDOW wnd)
         hwnd = NextWindow(hwnd);
     }
 }
+#endif /* #ifdef INCLUDE_MULTI_WINDOWS */
+
 /* --- save video area to be used by dummy window border --- */
 static void SaveBorder(RECT rc)
 {

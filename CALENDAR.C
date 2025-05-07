@@ -15,10 +15,7 @@ static void FixDate(void)
 {
     /* ---- adjust Feb for leap year ---- */
     DyMo[1] = (ttm.tm_year % 4) ? 28 : 29;
-#ifndef BCPP
-    /* bug in the Borland C++ mktime function prohibits this */
     ttm.tm_mday = min(ttm.tm_mday, DyMo[ttm.tm_mon]);
-#endif
 }
 
 /* ---- build calendar dates array ---- */
@@ -166,5 +163,4 @@ void Calendar(WINDOW pwnd)
 }
 
 #endif
-
 

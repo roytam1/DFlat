@@ -21,7 +21,9 @@ ClassDef(  MENUBAR,     NORMAL,  MenuBarProc,     NOCLIP     )
 ClassDef(  POPDOWNMENU, LISTBOX, PopDownProc,     SAVESELF  |
                                                   NOCLIP    |
                                                   HASBORDER  )
+#ifdef INCLUDE_PICTUREBOX
 ClassDef(  PICTUREBOX,  TEXTBOX, PictureProc,     0          )
+#endif
 ClassDef(  DIALOG,      NORMAL,  DialogProc,      SHADOW    |
                                                   MOVEABLE  |
                                                   CONTROLBOX|

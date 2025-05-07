@@ -214,7 +214,7 @@ PAINT                  paint the window's data space
   Sent:    to paint the client area of a window
   P1:      address of RECT relative to window (0/0 = upper left) 
            to paint or 0 to paint entire client area
-  P2:      
+  P2:      True to make non-focus window paint without clipping
   Returns: 
 
 BORDER                 paint the window's border      
@@ -819,6 +819,12 @@ Returns the address of the text buffer for a TEXTBOX or derived
 window class.
 
 -------------------------------------------------------------------
+int GetTextLines(WINDOW wnd)
+
+Returns the number of text lines in a TEXTBOX or derived
+window class.
+
+-------------------------------------------------------------------
 char *TextLine(WINDOW wnd, int line)
 
 Returns the address of a specified line of text (0, 1, ...) in a
@@ -1080,7 +1086,8 @@ void ClearCheckBox(DBOX *db, enum commands cmd)
 int CheckBoxSetting(DBOX *db, enum commands cmd)
 
 These functions set, clear, and test the setting of a specified check
-box control item on a dialog box.
+box control item on a dialog box. They are valid only when the dialog
+box is not active.
 
 -------------------------------------------------------------------
 void LoadHelpFile(char *expath);

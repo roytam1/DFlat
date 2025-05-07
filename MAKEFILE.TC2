@@ -14,6 +14,12 @@ DRIVE = F:\COMPILER
 #-------------------------------------------------------------------
 TESTING = TESTING_DFLAT
 #-------------------------------------------------------------------
+#  This macro builds the full D-Flat system with all options enabled.
+#  Comment it out for a minimum system or selectively
+#  comment out the #defines at the top of dflat.h.
+#-------------------------------------------------------------------
+FULL = BUILD_FULL_DFLAT
+#-------------------------------------------------------------------
 
 #-------------------------------------------------------------------
 #  Memory Model
@@ -25,7 +31,7 @@ MODEL = l
 #------------------------------------------------
 DEBUG = -v
 LINKDEBUG = /m /v
-COMPILE = tcc $(DEBUG) -DTURBOC -D$(TESTING) -c -d -m$(MODEL)
+COMPILE = tcc $(DEBUG) -DTURBOC -D$(TESTING) -D$(FULL) -c -d -m$(MODEL)
 LINK= tlink $(LINKDEBUG) $(DRIVE)\tc\lib\c0$(MODEL) 
 LIBS= $(DRIVE)\tc\lib\c$(MODEL)
 #------------------------------------------------

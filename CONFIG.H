@@ -19,10 +19,12 @@ typedef struct config {
     int InsertMode;    /* Editor insert mode                 */
     int Tabs;          /* Editor tab stops                   */
     int WordWrap;      /* True to word wrap editor           */
+#ifdef INCLUDE_WINDOWOPTIONS
     int Border;        /* True for application window border */
     int Title;         /* True for application window title  */
 	int StatusBar;     /* True for appl'n window status bar  */
     int Texture;       /* True for textured appl window      */
+#endif
     int ScreenLines;   /* Number of screen lines (25/43/50)  */
 	char PrinterPort[5];
 	int LinesPage;     /* Lines per printer page             */
@@ -31,7 +33,7 @@ typedef struct config {
 	int RightMargin;
 	int TopMargin;
 	int BottomMargin;
-    char clr[CLASSCOUNT] [4] [2]; /* Colors                  */
+    unsigned char clr[CLASSCOUNT] [4] [2]; /* Colors         */
 } CONFIG;
 
 extern CONFIG cfg;

@@ -21,8 +21,12 @@ DFlatMsg(BORDER)             /* paint the window's border    */
 DFlatMsg(TITLE)              /* display the window's title   */
 DFlatMsg(MOVE)               /* move the window              */
 DFlatMsg(SIZE)               /* change the window's size     */
+#ifdef INCLUDE_MAXIMIZE
 DFlatMsg(MAXIMIZE)           /* maximize the window          */
+#endif
+#ifdef INCLUDE_MINIMIZE
 DFlatMsg(MINIMIZE)           /* minimize the window          */
+#endif
 DFlatMsg(RESTORE)            /* restore the window           */
 DFlatMsg(INSIDE_WINDOW)      /* test x/y inside a window     */
 /* ---------------- clock messages ------------------------- */

@@ -176,12 +176,12 @@ static void near collect_events(void)
     /* ---- build keyboard events for key combinations that
         BIOS doesn't report --------- */
     if (sk & ALTKEY)
-        if (inp(0x60) == 14)    {
+        if (keyportvalue == 14)    {
 			waitforkeyboard();
             PostEvent(KEYBOARD, ALT_BS, sk);
         }
     if (sk & CTRLKEY)
-        if (inp(0x60) == 82)    {
+        if (keyportvalue == 82)    {
             while (!(inp(0x60) & 0x80))
 			waitforkeyboard();
             PostEvent(KEYBOARD, CTRL_INS, sk);
@@ -276,7 +276,9 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
     int rtn = TRUE, x, y;
 
+#ifdef INCLUDE_LOGGING
 	LogMessages(wnd, msg, p1, p2);
+#endif
     if (wnd != NULL)
         switch (msg)    {
             case PAINT:

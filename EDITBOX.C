@@ -15,7 +15,6 @@ static void Upward(WINDOW);
 static void StickEnd(WINDOW);
 static void NextWord(WINDOW);
 static void PrevWord(WINDOW);
-static void ResetEditBox(WINDOW);
 static void ModTextPointers(WINDOW, int, int);
 /* -------- local variables -------- */
 static int KeyBoardMarking, ButtonDown;
@@ -295,8 +294,8 @@ static int MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
     if (ButtonDown)    {
         SetAnchor(wnd, ButtonX+wnd->wleft, ButtonY+wnd->wtop);
         TextMarking = TRUE;
-        SendMessage(NULL,MOUSE_TRAVEL,
-                (PARAM)&WindowRect(wnd),0);
+		rc = WindowRect(wnd);
+        SendMessage(NULL,MOUSE_TRAVEL,(PARAM) &rc, 0);
         ButtonDown = FALSE;
     }
     if (TextMarking && !(WindowMoving || WindowSizing))    {
@@ -484,6 +483,20 @@ static int TabKey(WINDOW wnd, PARAM p2)
     PostMessage(GetParent(wnd), KEYBOARD, '\t', p2);
     return FALSE;
 }
+/* ------------ Shift+Tab key ------------ */
+static int ShiftTabKey(WINDOW wnd, PARAM p2)
+{
+    if (isMultiLine(wnd))    {
+        do  {
+            if (CurrChar == GetText(wnd))
+                break;
+            SendMessage(wnd,KEYBOARD,BS,0);
+        } while (wnd->CurrCol % cfg.Tabs);
+        return TRUE;
+    }
+    PostMessage(GetParent(wnd), KEYBOARD, SHIFT_HT, p2);
+    return FALSE;
+}
 /* --------- All displayable typed keys ------------- */
 static void KeyTyped(WINDOW wnd, int c)
 {
@@ -508,7 +521,7 @@ static void KeyTyped(WINDOW wnd, int c)
         BuildTextPointers(wnd);
     }
     /* --- displayable char or newline --- */
-    if (c == '\n' || wnd->InsertMode ||    *currchar == '\n') {
+    if (c == '\n' || wnd->InsertMode || *currchar == '\n') {
         /* ------ inserting the keyed character ------ */
         if (wnd->text[wnd->textlen-1] != '\0')    {
             /* --- the current text buffer is full --- */
@@ -590,9 +603,10 @@ static int DoKeyStroke(WINDOW wnd, int c, PARAM p2)
             if (DelKey(wnd))
                 return TRUE;
             break;
-        case CTRL_FIVE:    /* same as Shift+Tab */
-            if (!((int)p2 & (LEFTSHIFT | RIGHTSHIFT)))
-                break;
+        case SHIFT_HT:
+            if (ShiftTabKey(wnd, p2))
+                return TRUE;
+            break;
         case '\t':
             if (TabKey(wnd, p2))
                 return TRUE;
@@ -894,8 +908,9 @@ int EditBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
         case SETTEXT:
             return SetTextMsg(wnd, p1);
         case CLEARTEXT:
+            rtn = BaseWndProc(EDITBOX, wnd, msg, p1, p2);
             ResetEditBox(wnd);
-            break;
+            return rtn;
         case GETTEXT:
             return GetTextMsg(wnd, p1, p2);
         case SETTEXTLENGTH:
@@ -1096,7 +1111,7 @@ static void PrevWord(WINDOW wnd)
         SendMessage(wnd, PAINT, 0, 0);
 }
 /* ----- reset the text attributes of an EDITBOX ------- */
-static void ResetEditBox(WINDOW wnd)
+void ResetEditBox(WINDOW wnd)
 {
     unsigned blen = EditBufLen(wnd)+2;
     wnd->text = realloc(wnd->text, blen);

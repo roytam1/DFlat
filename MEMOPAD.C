@@ -32,12 +32,6 @@ static int CancelPrint;
 #define CHARSLINE 80
 #define LINESPAGE 66
 
-#ifdef BCPP
-/* --- to bypass Borland C++ precompiled header problem --- */
-extern int far cdecl _setargv__;
-static void far *bozo = &_setargv__;
-#endif
-
 void main(int argc, char *argv[])
 {
     WINDOW wnd;
@@ -427,10 +421,12 @@ static int EditorProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
 	                DisplayHelp(wnd, "MEMOPADDOC");
     	            return TRUE;
 				case ID_WRAP:
-					wnd->WordWrapMode ^= TRUE;
+					wnd->WordWrapMode = GetCommandToggle(&MainMenu, ID_WRAP);
+			        cfg.WordWrap = wnd->WordWrapMode;
     	            return TRUE;
 				case ID_INSERT:
-					wnd->InsertMode ^= TRUE;
+					wnd->InsertMode = GetCommandToggle(&MainMenu, ID_INSERT);
+			        cfg.InsertMode = wnd->InsertMode;
 					SendMessage(NULL, SHOW_CURSOR, wnd->InsertMode, 0);
     	            return TRUE;
 				default:

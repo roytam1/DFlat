@@ -48,11 +48,13 @@ unsigned char color[CLASSCOUNT] [4] [2] = {
     {DARKGRAY, RED}},   /* HILITE_COLOR
                            Inactive ,Shortcut (both FG) */
 
+#ifdef INCLUDE_PICTUREBOX
     /* ------------ PICTUREBOX ----------- */
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
     {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
     {BLACK, LIGHTGRAY}, /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
+#endif
 
     /* ------------- DIALOG ----------- */
    {{LIGHTGRAY, BLUE},  /* STD_COLOR    */
@@ -79,10 +81,10 @@ unsigned char color[CLASSCOUNT] [4] [2] = {
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
     /* ------------- TEXT ----------- */
-   {{LIGHTGRAY, BLUE},  /* STD_COLOR    */
-    {BLACK, LIGHTGRAY}, /* SELECT_COLOR */
-    {LIGHTGRAY, BLUE},  /* FRAME_COLOR  */
-    {LIGHTGRAY, BLUE}}, /* HILITE_COLOR */
+   {{0xff, 0xff},  /* STD_COLOR    */
+    {0xff, 0xff},  /* SELECT_COLOR */
+    {0xff, 0xff},  /* FRAME_COLOR  */
+    {0xff, 0xff}}, /* HILITE_COLOR */
 
     /* ------------- RADIOBUTTON ----------- */
    {{LIGHTGRAY, BLUE},  /* STD_COLOR    */
@@ -185,11 +187,13 @@ unsigned char bw[CLASSCOUNT] [4] [2] = {
     {DARKGRAY, WHITE}}, /* HILITE_COLOR
                            Inactive ,Shortcut (both FG) */
 
+#ifdef INCLUDE_PICTUREBOX
     /* ------------ PICTUREBOX ----------- */
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
     {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
     {BLACK, LIGHTGRAY}, /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
+#endif
 
     /* ------------- DIALOG ----------- */
    {{LIGHTGRAY, BLACK},  /* STD_COLOR    */
@@ -216,10 +220,10 @@ unsigned char bw[CLASSCOUNT] [4] [2] = {
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
     /* ------------- TEXT ----------- */
-   {{LIGHTGRAY, BLACK},  /* STD_COLOR    */
-    {BLACK, LIGHTGRAY},  /* SELECT_COLOR */
-    {LIGHTGRAY, BLACK},  /* FRAME_COLOR  */
-    {LIGHTGRAY, BLACK}}, /* HILITE_COLOR */
+   {{0xff, 0xff},  /* STD_COLOR    */
+    {0xff, 0xff},  /* SELECT_COLOR */
+    {0xff, 0xff},  /* FRAME_COLOR  */
+    {0xff, 0xff}}, /* HILITE_COLOR */
 
     /* ------------- RADIOBUTTON ----------- */
    {{LIGHTGRAY, BLACK},  /* STD_COLOR    */
@@ -321,11 +325,13 @@ unsigned char reverse[CLASSCOUNT] [4] [2] = {
     {DARKGRAY, WHITE}}, /* HILITE_COLOR
                            Inactive ,Shortcut (both FG) */
 
+#ifdef INCLUDE_PICTUREBOX
     /* ------------ PICTUREBOX ----------- */
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
     {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
     {BLACK, LIGHTGRAY}, /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
+#endif
 
     /* ------------- DIALOG ----------- */
    {{BLACK, LIGHTGRAY},  /* STD_COLOR    */
@@ -352,10 +358,10 @@ unsigned char reverse[CLASSCOUNT] [4] [2] = {
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
     /* ------------- TEXT ----------- */
-   {{BLACK, LIGHTGRAY},  /* STD_COLOR    */
-    {LIGHTGRAY, BLACK},  /* SELECT_COLOR */
-    {BLACK, LIGHTGRAY},  /* FRAME_COLOR  */
-    {BLACK, LIGHTGRAY}}, /* HILITE_COLOR */
+   {{0xff, 0xff},  /* STD_COLOR    */
+    {0xff, 0xff},  /* SELECT_COLOR */
+    {0xff, 0xff},  /* FRAME_COLOR  */
+    {0xff, 0xff}}, /* HILITE_COLOR */
 
     /* ------------- RADIOBUTTON ----------- */
    {{BLACK, LIGHTGRAY},  /* STD_COLOR    */
@@ -419,10 +425,12 @@ CONFIG cfg = {
     TRUE,            /* Editor Insert Mode          */
     4,               /* Editor tab stops            */
     TRUE,            /* Editor word wrap            */
+#ifdef INCLUDE_WINDOWOPTIONS
     TRUE,            /* Application Border          */
     TRUE,            /* Application Title           */
     TRUE,            /* Status Bar                  */
     TRUE,            /* Textured application window */
+#endif
     25,              /* Number of screen lines      */
 	"Lpt1",			 /* Printer Port                */
 	66,              /* Lines per printer page      */
@@ -462,8 +470,6 @@ void SaveConfig(void)
 {
     FILE *fp = OpenCfg("wb");
     if (fp != NULL)    {
-        cfg.InsertMode = GetCommandToggle(&MainMenu, ID_INSERT);
-        cfg.WordWrap = GetCommandToggle(&MainMenu, ID_WRAP);
         fwrite(&cfg, sizeof(CONFIG), 1, fp);
         fclose(fp);
     }

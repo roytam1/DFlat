@@ -2,6 +2,18 @@
 #ifndef DFLAT_H
 #define DFLAT_H
 
+#ifdef BUILD_FULL_DFLAT
+#define INCLUDE_MULTI_WINDOWS
+#define INCLUDE_LOGGING
+#define INCLUDE_SHELLDOS
+#define INCLUDE_WINDOWOPTIONS
+#define INCLUDE_PICTUREBOX
+#define INCLUDE_MINIMIZE
+#define INCLUDE_MAXIMIZE
+#define INCLUDE_RESTORE
+#define INCLUDE_EXTENDEDSELECTIONS
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -15,7 +27,7 @@
 #include <sys\stat.h>
 #include <time.h>
 
-#define VERSION "Version 9.x"
+#define VERSION "Version 10"
 
 #define TRUE 1
 #define FALSE 0
@@ -96,7 +108,7 @@ typedef struct window {
     int WndRow;     /* Current window row                   */
     int TextChanged; /* TRUE if text has changed            */
     unsigned char *DeletedText; /* for undo                 */
-    int DeletedLength; /* Length of deleted field           */
+    unsigned DeletedLength; /* Length of deleted field      */
 	int InsertMode;    /* TRUE or FALSE for text insert     */
 	int WordWrapMode;  /* TRUE or FALSE for word wrap       */
 	unsigned int MaxTextLength; /* maximum text length      */
@@ -114,9 +126,11 @@ typedef struct window {
 	void *thisword;  /* -> current in list of key words     */
 	/* -------------- status bar fields ------------------- */
 	int TimePosted;  /* True if time has been posted        */
+#ifdef INCLUDE_PICTUREBOX
 	/* ------------- picture box fields ------------------- */
 	int VectorCount;  /* number of vectors in vector list   */
 	void *VectorList; /* list of picture box vectors        */
+#endif
 } * WINDOW;
 
 #include "classdef.h"
@@ -201,7 +215,7 @@ RECT AdjustRectangle(WINDOW, RECT);
 int isDerivedFrom(WINDOW, CLASS);
 WINDOW GetAncestor(WINDOW);
 void PutWindowChar(WINDOW,int,int,int);
-#define PutWindowLine(w,s,x,y) wputs(w,s,x+BorderAdj(w),y+TopBorderAdj(w))
+void PutWindowLine(WINDOW, void *,int,int);
 #define BaseWndProc(class,wnd,msg,p1,p2)    \
     (*classdefs[(classdefs[class].base)].wndproc)(wnd,msg,p1,p2)
 #define DefaultWndProc(wnd,msg,p1,p2)         \
@@ -224,7 +238,7 @@ extern int TextMarking;
 extern int VSliding;
 extern int HSliding;
 extern char *Clipboard;
-extern int ClipboardLength;
+extern unsigned ClipboardLength;
 extern int VSliding;
 extern int HSliding;
 extern char DFlatApplication[];
@@ -342,12 +356,14 @@ void MarkTextBlock(WINDOW, int, int, int, int);
 #define ClearTextBlock(wnd) wnd->BlkBegLine = wnd->BlkEndLine =  \
                         wnd->BlkBegCol  = wnd->BlkEndCol = 0;
 #define GetText(w)        ((w)->text)
+#define GetTextLines(w)   ((w)->wlines)
 void ClearTextPointers(WINDOW);
 void BuildTextPointers(WINDOW);
 int TextLineNumber(WINDOW, char *);
+/* ------------ Clipboard prototypes ------------- */
 void CopyToClipboard(WINDOW);
 #define PasteFromClipboard(wnd) PasteText(wnd,Clipboard,ClipboardLength)
-void PasteText(WINDOW, char *, int);
+int PasteText(WINDOW, char *, unsigned);
 /* --------- menu prototypes ---------- */
 int CopyCommand(unsigned char *, unsigned char *, int, int);
 void PrepFileMenu(void *, struct Menu *);
@@ -374,6 +390,7 @@ int ItemSelected(WINDOW, int);
 void SearchText(WINDOW);
 void ReplaceText(WINDOW);
 void SearchNext(WINDOW);
+void ResetEditBox(WINDOW);
 /* --------- message box prototypes -------- */
 int GenericMessage(WINDOW, char *, char *, int,
 	int (*)(struct window *, enum messages, PARAM, PARAM),
@@ -385,10 +402,10 @@ int GenericMessage(WINDOW, char *, char *, int,
 	GenericMessage(NULL, "Error", msg, 1, ErrorBoxProc,   \
 		Ok, NULL, ID_OK, 0, TRUE)
 #define MessageBox(ttl, msg) \
-	GenericMessage(NULL, ttl,     msg, 1, MessageBoxProc, \
+	GenericMessage(NULL, ttl, msg, 1, MessageBoxProc, \
 		Ok, NULL, ID_OK, 0, TRUE)
 #define YesNoBox(msg)	\
-	GenericMessage(NULL, NULL,    msg, 2, YesNoBoxProc,   \
+	GenericMessage(NULL, NULL, msg, 2, YesNoBoxProc,   \
 		Yes, No, ID_OK, ID_CANCEL, TRUE)
 #define CancelBox(wnd, msg) \
 	GenericMessage(wnd, "Wait...", msg, 1, CancelBoxProc, \

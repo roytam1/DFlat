@@ -6,22 +6,34 @@ static int ScreenHeight;
 
 extern DBOX Display;
 extern DBOX Windows;
-extern DBOX Log;
 
+#ifdef INCLUDE_LOGGING
+extern DBOX Log;
+#endif
+
+#ifdef INCLUDE_SHELLDOS
 static void ShellDOS(WINDOW);
+#endif
 static void CreateMenu(WINDOW);
 static void CreateStatusBar(WINDOW);
-static void CloseAll(WINDOW);
 static void SelectColors(WINDOW);
 static void SetScreenHeight(int);
-static void MoreWindows(WINDOW);
-static void ChooseWindow(WINDOW, int);
+
+#ifdef INCLUDE_WINDOWOPTIONS
 static void SelectTexture(void);
 static void SelectBorder(WINDOW);
 static void SelectTitle(WINDOW);
 static void SelectStatusBar(WINDOW);
+#endif
+
 static void SelectLines(WINDOW);
 static int DisplayModified;
+
+#ifdef INCLUDE_MULTI_WINDOWS
+static void CloseAll(WINDOW);
+static void MoreWindows(WINDOW);
+static void ChooseWindow(WINDOW, int);
+#endif
 
 int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
@@ -52,6 +64,7 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					*ct1++ = *ct++;
 				DisplayModified = TRUE;
 			}
+#ifdef INCLUDE_WINDOWOPTIONS
 			if (cfg.Border)
 				SetCheckBox(&Display, ID_BORDER);
 			if (cfg.Title)
@@ -60,6 +73,7 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				SetCheckBox(&Display, ID_STATUSBAR);
 			if (cfg.Texture)
 				SetCheckBox(&Display, ID_TEXTURE);
+#endif
 			if (cfg.mono == 1)
 				PushRadioButton(&Display, ID_MONO);
 			else if (cfg.mono == 2)
@@ -82,9 +96,11 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				}
 			}
 			SelectColors(wnd);
+#ifdef INCLUDE_WINDOWOPTIONS
 			SelectBorder(wnd);
 			SelectTitle(wnd);
 			SelectStatusBar(wnd);
+#endif
 			rtn = BaseWndProc(APPLICATION, wnd, msg, p1, p2);
 			if (wnd->extension != NULL)
 				CreateMenu(wnd);
@@ -127,6 +143,10 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 			if (WasVisible)
 				SendMessage(wnd, SHOW_WINDOW, 0, 0);
 			return TRUE;
+#ifdef INCLUDE_MINIMIZE
+		case MINIMIZE:
+			return TRUE;
+#endif
 		case KEYBOARD:
 			AltDown = FALSE;
 			if (WindowMoving || WindowSizing)
@@ -137,10 +157,12 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				case ALT_F4:
 					PostMessage(wnd, CLOSE_WINDOW, 0, 0);
 					return TRUE;
+#ifdef INCLUDE_MULTI_WINDOWS
                 case ALT_F6:
                     SetNextFocus(inFocus);
                     SkipSystemWindows(FALSE);
                     return TRUE;
+#endif
 				case ALT_HYPHEN:
 					BuildSystemMenu(wnd);
 					return TRUE;
@@ -154,15 +176,19 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				AltDown = TRUE;
 			else if (AltDown)	{
 				AltDown = FALSE;
-				if (((int)p1 & ~ALTKEY) == 0)
-					SendMessage(wnd->MenuBarWnd, KEYBOARD,
-						wnd->MenuBarWnd == inFocus ? ESC : F10, 0);
+  				SendMessage(wnd->MenuBarWnd, KEYBOARD,
+  					wnd->MenuBarWnd == inFocus ? ESC : F10, 0);
 			}
 			return TRUE;
 		case PAINT:
-			if (isVisible(wnd))
-				ClearWindow(wnd, (RECT *)p1, cfg.Texture ?
-					APPLCHAR : ' ');
+			if (isVisible(wnd))	{
+#ifdef INCLUDE_WINDOWOPTIONS
+				int cl = cfg.Texture ? APPLCHAR : ' ';
+#else
+				int cl = APPLCHAR;
+#endif
+				ClearWindow(wnd, (RECT *)p1, cl);
+			}
 			return TRUE;
 		case COMMAND:
 			switch ((int)p1)	{
@@ -181,19 +207,21 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				case ID_HELPINDEX:
 					DisplayHelp(wnd, "HelpIndex");
 					break;
+#ifdef TESTING_DFLAT
 				case ID_LOADHELP:
 					LoadHelpFile();
 					break;
+#endif
+#ifdef INCLUDE_LOGGING
 				case ID_LOG:
 					MessageLog(wnd);
-					if (CheckBoxSetting(&Log, ID_LOGGING))
-						SetCommandToggle(&MainMenu, ID_LOG);
-					else
-						ClearCommandToggle(&MainMenu, ID_LOG);
 					break;
+#endif
+#ifdef INCLUDE_SHELLDOS
 				case ID_DOS:
 					ShellDOS(wnd);
 					return TRUE;
+#endif
 				case ID_EXIT:
 				case ID_SYSCLOSE:
 					PostMessage(wnd, CLOSE_WINDOW, 0, 0);
@@ -203,10 +231,12 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 						SendMessage(wnd, HIDE_WINDOW, 0, 0);
 						SelectColors(wnd);
 						SelectLines(wnd);
+#ifdef INCLUDE_WINDOWOPTIONS
 						SelectBorder(wnd);
 						SelectTitle(wnd);
 						SelectStatusBar(wnd);
 						SelectTexture();
+#endif
 						CreateMenu(wnd);
 						CreateStatusBar(wnd);
 						SendMessage(wnd, SHOW_WINDOW, 0, 0);
@@ -215,6 +245,7 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				case ID_SAVEOPTIONS:
 					SaveConfig();
 					break;
+#ifdef INCLUDE_MULTI_WINDOWS
 				case ID_WINDOW:
 					ChooseWindow(wnd, (int)p2-2);
 					break;
@@ -224,11 +255,18 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 				case ID_MOREWINDOWS:
 					MoreWindows(wnd);
 					break;
+#endif
+#ifdef INCLUDE_RESTORE
 				case ID_SYSRESTORE:
+#endif
 				case ID_SYSMOVE:
 				case ID_SYSSIZE:
+#ifdef INCLUDE_MINIMIZE
 				case ID_SYSMINIMIZE:
+#endif
+#ifdef INCLUDE_MAXIMIZE
 				case ID_SYSMAXIMIZE:
+#endif
 					return BaseWndProc(APPLICATION, wnd, msg, p1, p2);
 				default:
 					if (inFocus != wnd->MenuBarWnd && inFocus != wnd)
@@ -241,7 +279,9 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 			sprintf(exmsg, "Exit %s?", DFlatApplication);
 			if (!YesNoBox(exmsg))
 				return FALSE;
+#ifdef INCLUDE_MULTI_WINDOWS
 			CloseAll(wnd);
+#endif
 			PostMessage(NULL, STOP, 0, 0);
 			rtn = BaseWndProc(APPLICATION, wnd, msg, p1, p2);
 			if (ScreenHeight != SCREENHEIGHT)
@@ -256,6 +296,7 @@ int ApplicationProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 	return BaseWndProc(APPLICATION, wnd, msg, p1, p2);
 }
 
+#ifdef INCLUDE_SHELLDOS
 static void SwitchCursor(void)
 {
 	SendMessage(NULL, SAVE_CURSOR, 0, 0);
@@ -280,6 +321,7 @@ static void ShellDOS(WINDOW wnd)
 	SendMessage(wnd, SHOW_WINDOW, 0, 0);
 	SendMessage(NULL, SHOW_MOUSE, 0, 0);
 }
+#endif
 
 static void CreateMenu(WINDOW wnd)
 {
@@ -320,6 +362,8 @@ static void CreateStatusBar(WINDOW wnd)
 		AddAttribute(wnd->StatusBar, VISIBLE);
 	}
 }
+
+#ifdef INCLUDE_MULTI_WINDOWS
 
 static char *Menus[9] = {
 	"~1.                      ",
@@ -462,14 +506,33 @@ static void ChooseWindow(WINDOW wnd, int WindowNo)
 	}
 }
 
+static void CloseAll(WINDOW wnd)
+{
+	WINDOW wnd1 = GetLastChild(wnd);
+	SendMessage(wnd, SETFOCUS, TRUE, 0);
+	while (wnd1 != NULL)	{
+		if (GetClass(wnd1) == MENUBAR || GetClass(wnd1) == STATUSBAR)
+			wnd1 = GetPrevChild(wnd, wnd1);
+		else	{
+			ClearVisible(wnd1);
+			SendMessage(wnd1, CLOSE_WINDOW, 0, 0);
+			wnd1 = GetLastChild(wnd);
+		}
+	}
+	SendMessage(wnd, PAINT, 0, 0);
+}
+
+#endif	/* #ifdef INCLUDE_MULTI_WINDOWS */
+
 static void DoWindowColors(WINDOW wnd)
 {
-	WINDOW cwnd;
+	WINDOW cwnd = Built.FirstWindow;
 	InitWindowColors(wnd);
-	cwnd = GetFirstChild(wnd);
 	while (cwnd != NULL)	{
-		DoWindowColors(cwnd);
-		cwnd = GetNextChild(wnd, cwnd);
+		InitWindowColors(cwnd);
+		if (GetClass(cwnd) == TEXT && GetText(cwnd) != NULL)
+			SendMessage(cwnd, CLEARTEXT, 0, 0);
+		cwnd = NextWindowBuilt(cwnd);
 	}
 }
 
@@ -534,6 +597,8 @@ static void SetScreenHeight(int height)
 	}
 }
 
+#ifdef INCLUDE_WINDOWOPTIONS
+
 static void SelectTexture(void)
 {
 	cfg.Texture = CheckBoxSetting(&Display, ID_TEXTURE);
@@ -566,20 +631,5 @@ static void SelectTitle(WINDOW wnd)
 		ClearAttribute(wnd, HASTITLEBAR);
 }
 
-static void CloseAll(WINDOW wnd)
-{
-	WINDOW wnd1 = GetLastChild(wnd);
-	SendMessage(wnd, SETFOCUS, TRUE, 0);
-	while (wnd1 != NULL)	{
-		if (GetClass(wnd1) == MENUBAR || GetClass(wnd1) == STATUSBAR)
-			wnd1 = GetPrevChild(wnd, wnd1);
-		else	{
-			ClearVisible(wnd1);
-			SendMessage(wnd1, CLOSE_WINDOW, 0, 0);
-			wnd1 = GetLastChild(wnd);
-		}
-	}
-	SendMessage(wnd, PAINT, 0, 0);
-}
-
+#endif	/* #ifdef INCLUDE_WINDOWOPTIONS */
 

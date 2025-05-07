@@ -68,8 +68,8 @@ WINDOW CreateWindow(
         wnd->oldcondition = wnd->condition = ISRESTORED;
         wnd->RestoredRC = wnd->rc;
         wnd->PrevKeyboard = wnd->PrevMouse = NULL;
-		InitWindowColors(wnd);
         SendMessage(wnd, CREATE_WINDOW, 0, 0);
+		InitWindowColors(wnd);
         if (isVisible(wnd))
             SendMessage(wnd, SHOW_WINDOW, 0, 0);
     }
@@ -162,7 +162,9 @@ void DisplayTitle(WINDOW wnd, RECT *rcc)
             	background = cfg.clr[TITLEBAR] [STD_COLOR] [BG];
         	}
         	memset(line,' ',WindowWidth(wnd));
+#ifdef INCLUDE_MINIMIZE
         	if (wnd->condition != ISMINIMIZED)
+#endif
             	strncpy(line + ((WindowWidth(wnd)-2 - tlen) / 2),
                 	wnd->title, tlen);
         	if (TestAttribute(wnd, CONTROLBOX))
@@ -170,16 +172,28 @@ void DisplayTitle(WINDOW wnd, RECT *rcc)
         	if (TestAttribute(wnd, MINMAXBOX))    {
             	switch (wnd->condition)    {
                 	case ISRESTORED:
+#ifdef INCLUDE_MAXIMIZE
                     	line[tend+1] = MAXPOINTER;
+#endif
+#ifdef INCLUDE_MINIMIZE
                     	line[tend]   = MINPOINTER;
+#endif
                     	break;
+#ifdef INCLUDE_MINIMIZE
                 	case ISMINIMIZED:
                     	line[tend+1] = MAXPOINTER;
                     	break;
+#endif
+#ifdef INCLUDE_MAXIMIZE
                 	case ISMAXIMIZED:
+#ifdef INCLUDE_MINIMIZE
                     	line[tend]   = MINPOINTER;
+#endif
+#ifdef INCLUDE_RESTORE
                     	line[tend+1] = RESTOREPOINTER;
+#endif
                     	break;
+#endif
                 	default:
                     	break;
             	}
@@ -471,10 +485,14 @@ int LineLength(char *ln)
 void InitWindowColors(WINDOW wnd)
 {
 	int fbg,col;
+	int cls = GetClass(wnd);
+	/* window classes without assigned colors inherit parent's colors */
+	if (cfg.clr[cls][0][0] == 0xff && GetParent(wnd) != NULL)
+		cls = GetClass(GetParent(wnd));
 	/* ---------- set the colors ---------- */
 	for (fbg = 0; fbg < 2; fbg++)
 		for (col = 0; col < 4; col++)
-			wnd->WindowColors[col][fbg] = cfg.clr[GetClass(wnd)][col][fbg];
+			wnd->WindowColors[col][fbg] = cfg.clr[cls][col][fbg];
 }
 
 void PutWindowChar(WINDOW wnd, int c, int x, int y)
@@ -483,5 +501,22 @@ void PutWindowChar(WINDOW wnd, int c, int x, int y)
 		wputch(wnd, c, x+BorderAdj(wnd), y+TopBorderAdj(wnd));
 }
 
+void PutWindowLine(WINDOW wnd, void *s, int x, int y)
+{
+	int saved = FALSE, sv;
+	if (x < ClientWidth(wnd) && y < ClientHeight(wnd))	{
+		char *en = (char *)s+ClientWidth(wnd)-x;
+		if (strlen(s)+x > ClientWidth(wnd))	{
+			sv = *en;
+			*en = '\0';
+			saved = TRUE;
+		}
+		ClipString++;
+		wputs(wnd, s, x+BorderAdj(wnd), y+TopBorderAdj(wnd));
+		--ClipString;
+		if (saved)
+			*en = sv;
+	}
+}
 
 
