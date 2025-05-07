@@ -6,6 +6,7 @@
  * does not exist
  */
 
+#include <assert.h>
 #include "dflat.h"
 #include "htree.h"
 
@@ -17,30 +18,31 @@ struct htr *HelpTree;
 static int root;
 
 /* ------- open the help database file -------- */
-FILE *OpenHelpFile(void)
+FILE *OpenHelpFile(const char *fn, const char *md)
 {
     char *cp;
     int treect, i;
     char helpname[65];
 
     /* -------- get the name of the help file ---------- */
-    BuildFileName(helpname, ".hlp");
-    if ((fi = fopen(helpname, "r+b")) == NULL)
+    BuildFileName(helpname, fn, ".hlp");
+    if ((fi = fopen(helpname, md)) == NULL)
         return NULL;
-
-    /* ----- read the byte count ------ */
-    fread(&bytectr, sizeof bytectr, 1, fi);
-    /* ----- read the frequency count ------ */
-    fread(&treect, sizeof treect, 1, fi);
-    /* ----- read the root offset ------ */
-    fread(&root, sizeof root, 1, fi);
-    HelpTree = calloc(treect-256, sizeof(struct htr));
-	if (HelpTree != NULL)	{
-    	/* ---- read in the tree --- */
-    	for (i = 0; i < treect-256; i++)    {
-        	fread(&HelpTree[i].left,  sizeof(int), 1, fi);
-        	fread(&HelpTree[i].right, sizeof(int), 1, fi);
-    	}
+	if (HelpTree == NULL)	{
+    	/* ----- read the byte count ------ */
+    	fread(&bytectr, sizeof bytectr, 1, fi);
+    	/* ----- read the frequency count ------ */
+    	fread(&treect, sizeof treect, 1, fi);
+    	/* ----- read the root offset ------ */
+    	fread(&root, sizeof root, 1, fi);
+    	HelpTree = calloc(treect-256, sizeof(struct htr));
+		if (HelpTree != NULL)	{
+    		/* ---- read in the tree --- */
+    		for (i = 0; i < treect-256; i++)    {
+        		fread(&HelpTree[i].left,  sizeof(int), 1, fi);
+        		fread(&HelpTree[i].right, sizeof(int), 1, fi);
+    		}
+		}
 	}
     return fi;
 }
@@ -98,7 +100,8 @@ void HelpFilePosition(long *offset, int *bit)
 /* -- position the database to the specified byte and bit -- */
 void SeekHelpLine(long offset, int bit)
 {
-    fseek(fi, offset, 0);
+    int fs = fseek(fi, offset, 0);
+	assert(fs == 0);
     ct8 = bit;
     if (ct8 < 8)    {
         in8 = fgetc(fi);

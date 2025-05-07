@@ -89,7 +89,7 @@ BOOL CharInView(WINDOW wnd, int x, int y)
         }
     }
 	while (nwnd != NULL)	{
-		if (!isHidden(nwnd) && !isAncestor(wnd, nwnd))	{
+		if (!isHidden(nwnd) /* && !isAncestor(wnd, nwnd) */ )	{
 			rc = WindowRect(nwnd);
     		if (TestAttribute(nwnd, SHADOW))    {
         		RectBottom(rc)++;

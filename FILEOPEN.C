@@ -2,13 +2,14 @@
 
 #include "dflat.h"
 
-static BOOL DlgFileOpen(char *, char *, DBOX *);
+static BOOL DlgFileOpen(char *, char *, char *, DBOX *);
 static int DlgFnOpen(WINDOW, MESSAGE, PARAM, PARAM);
 static void InitDlgBox(WINDOW);
 static void StripPath(char *);
 static BOOL IncompleteFilename(char *);
 
 static char FileSpec[15];
+static char SrchSpec[15];
 static char FileName[15];
 
 extern DBOX FileOpen;
@@ -19,23 +20,24 @@ extern DBOX SaveAs;
  */
 BOOL OpenFileDialogBox(char *Fspec, char *Fname)
 {
-    return DlgFileOpen(Fspec, Fname, &FileOpen);
+    return DlgFileOpen(Fspec, Fspec, Fname, &FileOpen);
 }
 
 /*
  * Dialog Box to select a file to save as
  */
-BOOL SaveAsDialogBox(char *Fspec, char *Fname)
+BOOL SaveAsDialogBox(char *Fspec, char *Sspec, char *Fname)
 {
-    return DlgFileOpen(Fspec, Fname, &SaveAs);
+    return DlgFileOpen(Fspec, Sspec ? Sspec : Fspec, Fname, &SaveAs);
 }
 
 /* --------- generic file open ---------- */
-static BOOL DlgFileOpen(char *Fspec, char *Fname, DBOX *db)
+static BOOL DlgFileOpen(char *Fspec, char *Sspec, char *Fname, DBOX *db)
 {
     BOOL rtn;
 
     strncpy(FileSpec, Fspec, 15);
+    strncpy(SrchSpec, Sspec, 15);
 
     if ((rtn = DialogBox(NULL, db, TRUE, DlgFnOpen)) != FALSE)
         strcpy(Fname, FileName);
@@ -77,6 +79,7 @@ static int DlgFnOpen(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
             				DBOX *db = wnd->extension;
             				WINDOW cwnd = ControlWindow(db, ID_FILENAME);
 	                    	strcpy(FileSpec, FileName);
+	                    	strcpy(SrchSpec, FileName);
 	                       	InitDlgBox(wnd);
 							SendMessage(cwnd, SETFOCUS, TRUE, 0);
                         	return TRUE;
@@ -161,7 +164,7 @@ static void InitDlgBox(WINDOW wnd)
 {
     if (*FileSpec)
         PutItemText(wnd, ID_FILENAME, FileSpec);
-	if (BuildFileList(wnd, FileSpec))
+	if (BuildFileList(wnd, SrchSpec))
 		BuildDirectoryList(wnd);
 	BuildDriveList(wnd);
 	BuildPathDisplay(wnd);

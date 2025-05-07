@@ -353,12 +353,15 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 break;
             /* ------- clock messages --------- */
             case CAPTURE_CLOCK:
+				if (Cwnd == NULL)
+	                set_timer(clocktimer, 0);
+				wnd->PrevClock = Cwnd;
                 Cwnd = wnd;
-                set_timer(clocktimer, 0);
                 break;
             case RELEASE_CLOCK:
-                Cwnd = NULL;
-                disable_timer(clocktimer);
+                Cwnd = wnd->PrevClock;
+				if (Cwnd == NULL)
+	                disable_timer(clocktimer);
                 break;
             /* -------- keyboard messages ------- */
             case KEYBOARD_CURSOR:

@@ -2,6 +2,10 @@
 
 #include "dflat.h"
 
+#ifndef BCPP
+#include FA_DIREC 0x10
+#endif
+
 static char path[MAXPATH];
 static char drive[MAXDRIVE] = " :";
 static char dir[MAXDIR];

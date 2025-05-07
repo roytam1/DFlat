@@ -460,7 +460,7 @@ CONFIG cfg = {
 	55				 /* Bottom printer margin		*/
 };
 
-void BuildFileName(char *path, char *ext)
+void BuildFileName(char *path, const char *fn, const char *ext)
 {
 	extern char **Argv;
     char *cp;
@@ -471,14 +471,14 @@ void BuildFileName(char *path, char *ext)
 		cp = path;
 	else 
 		cp++;
-	strcpy(cp, DFlatApplication);
+	strcpy(cp, fn);
 	strcat(cp, ext);
 }
 
 FILE *OpenConfig(char *mode)
 {
 	char path[64];
-	BuildFileName(path, ".cfg");
+	BuildFileName(path, DFlatApplication, ".cfg");
 	return fopen(path, mode);
 }
 
@@ -497,7 +497,7 @@ BOOL LoadConfig(void)
         	}
         	else	{
 				char path[64];
-				BuildFileName(path, ".cfg");
+				BuildFileName(path, DFlatApplication, ".cfg");
 	        	fclose(fp);
 				unlink(path);
             	strcpy(cfg.version, VERSION);

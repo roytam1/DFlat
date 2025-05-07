@@ -21,6 +21,7 @@ char *ClassNames[] = {
 static struct helps *FirstHelp;
 static struct helps *ThisHelp;
 static int HelpCount;
+static char HelpFileName[9];
 
 static int HelpStack[MAXHELPSTACK];
 static int stacked;
@@ -330,15 +331,16 @@ static int HelpLength(char *s)
 }
 
 /* ----------- load the help text file ------------ */
-void LoadHelpFile()
+void LoadHelpFile(char *fname)
 {
 	long where;
 	int i;
     if (Helping)
         return;
     UnLoadHelpFile();
-    if ((helpfp = OpenHelpFile()) == NULL)
+    if ((helpfp = OpenHelpFile(fname, "rb")) == NULL)
         return;
+	strcpy(HelpFileName, fname);
 	fseek(helpfp, - (long) sizeof(long), SEEK_END);
 	fread(&where, sizeof(long), 1, helpfp);
 	fseek(helpfp, where, SEEK_SET);
@@ -359,6 +361,7 @@ void LoadHelpFile()
 		fread(&(FirstHelp+i)->hptr, sizeof(int)*5+sizeof(long), 1, helpfp);
 	}
     fclose(helpfp);
+	helpfp = NULL;
 }
 
 /* ------ free the memory used by the help file table ------ */
@@ -451,6 +454,7 @@ static void SelectHelp(WINDOW wnd, struct helps *newhelp, BOOL recall)
 		}
 		/* --- read the help text into the help window --- */
 		ReadHelp(wnd);
+		ReFocus(wnd);
 		SendMessage(wnd, SHOW_WINDOW, 0, 0);
 	}
 }
@@ -485,7 +489,7 @@ BOOL DisplayHelp(WINDOW wnd, char *Help)
 	stacked = 0;
 	wnd->isHelping++;
     if ((ThisHelp = FindHelp(FixedHelp)) != NULL)	{
-        if ((helpfp = OpenHelpFile()) != NULL)    {
+        if ((helpfp = OpenHelpFile(HelpFileName, "rb")) != NULL)    {
 			BuildHelpBox(wnd);
 		    DisableButton(&HelpBox, ID_BACK);
             /* ------- display the help window ----- */
@@ -493,6 +497,7 @@ BOOL DisplayHelp(WINDOW wnd, char *Help)
             free(HelpBox.dwnd.title);
 			HelpBox.dwnd.title = NULL;
             fclose(helpfp);
+			helpfp = NULL;
             rtn = TRUE;
         }
     }
@@ -506,46 +511,44 @@ static void DisplayDefinition(WINDOW wnd, char *def)
     WINDOW dwnd;
     WINDOW hwnd = wnd;
     int y;
+	struct helps *HoldThisHelp;
 
+	HoldThisHelp = ThisHelp;
     if (GetClass(wnd) == POPDOWNMENU)
         hwnd = GetParent(wnd);
     y = GetClass(hwnd) == MENUBAR ? 2 : 1;
     if ((ThisHelp = FindHelp(def)) != NULL)    {
-        clearBIOSbuffer();
-        if ((helpfp = OpenHelpFile()) != NULL)    {
+        dwnd = CreateWindow(
+                    TEXTBOX,
+                    NULL,
+                    GetClientLeft(hwnd),
+                    GetClientTop(hwnd)+y,
+                    min(ThisHelp->hheight, MAXHEIGHT)+3,
+                    ThisHelp->hwidth+2,
+                    NULL,
+                    wnd,
+                    NULL,
+                    HASBORDER | NOCLIP | SAVESELF);
+        if (dwnd != NULL)    {
             clearBIOSbuffer();
-            dwnd = CreateWindow(
-                        TEXTBOX,
-                        NULL,
-                        GetClientLeft(hwnd),
-                        GetClientTop(hwnd)+y,
-                        min(ThisHelp->hheight, MAXHEIGHT)+3,
-                        ThisHelp->hwidth+2,
-                        NULL,
-                        wnd,
-                        NULL,
-                        HASBORDER | NOCLIP | SAVESELF);
-            if (dwnd != NULL)    {
+            /* ----- read the help text ------- */
+            SeekHelpLine(ThisHelp->hptr, ThisHelp->bit);
+            while (TRUE)    {
                 clearBIOSbuffer();
-                /* ----- read the help text ------- */
-                SeekHelpLine(ThisHelp->hptr, ThisHelp->bit);
-                while (TRUE)    {
-                    clearBIOSbuffer();
-                    if (GetHelpLine(hline) == NULL)
-                        break;
-                    if (*hline == '<')
-                        break;
-                    hline[strlen(hline)-1] = '\0';
-                    SendMessage(dwnd,ADDTEXT,(PARAM)hline,0);
-                }
-                SendMessage(dwnd, SHOW_WINDOW, 0, 0);
-                SendMessage(NULL, WAITKEYBOARD, 0, 0);
-                SendMessage(NULL, WAITMOUSE, 0, 0);
-                SendMessage(dwnd, CLOSE_WINDOW, 0, 0);
+                if (GetHelpLine(hline) == NULL)
+                    break;
+                if (*hline == '<')
+                    break;
+                hline[strlen(hline)-1] = '\0';
+                SendMessage(dwnd,ADDTEXT,(PARAM)hline,0);
             }
-            fclose(helpfp);
+            SendMessage(dwnd, SHOW_WINDOW, 0, 0);
+            SendMessage(NULL, WAITKEYBOARD, 0, 0);
+            SendMessage(NULL, WAITMOUSE, 0, 0);
+            SendMessage(dwnd, CLOSE_WINDOW, 0, 0);
         }
     }
+	ThisHelp = HoldThisHelp;
 }
 
 /* ------ compare help names with wild cards ----- */

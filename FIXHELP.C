@@ -58,7 +58,7 @@ main(int argc, char *argv[])
 	if (argc < 2)
 		return -1;
 	Argv = argv;
-    if ((helpfp = OpenHelpFile()) == NULL)
+    if ((helpfp = OpenHelpFile(argv[1], "r+b")) == NULL)
         return -1;
 
 
@@ -173,9 +173,10 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-void BuildFileName(char *fn, char *ext)
+void BuildFileName(char *fn, const char *fname, const char *ext)
 {
 	strcpy(fn, Argv[1]);
+	strcat(fn, ext);
 }
 
 static void WriteText(char *text)

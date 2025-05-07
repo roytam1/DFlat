@@ -116,8 +116,8 @@ static int CreateWindowMsg(WINDOW wnd)
         SetScreenHeight(cfg.ScreenLines);
         if (WindowHeight(wnd) == ScreenHeight ||
                 SCREENHEIGHT-1 < GetBottom(wnd))    {
-            WindowHeight(wnd) = SCREENHEIGHT-1;
-            GetBottom(wnd) = GetTop(wnd)+WindowHeight(wnd);
+            WindowHeight(wnd) = SCREENHEIGHT;
+            GetBottom(wnd) = GetTop(wnd)+WindowHeight(wnd)-1;
             wnd->RestoredRC = WindowRect(wnd);
         }
     }

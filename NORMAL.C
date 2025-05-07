@@ -263,7 +263,8 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 		if (that != NULL && !ValidRect(rc) && isVisible(wnd))
 			this = NULL;
 		ReFocus(wnd);
-		if (this != NULL && !TestAttribute(this, SAVESELF))
+		if (this != NULL &&
+				(!isVisible(this) || !TestAttribute(this, SAVESELF)))
 	        SendMessage(this, SHOW_WINDOW, 0, 0);
 		else 
 		    SendMessage(wnd, BORDER, 0, 0);
@@ -555,14 +556,10 @@ static void CloseWindowMsg(WINDOW wnd)
 {
     WINDOW cwnd;
     wnd->condition = ISCLOSING;
-    if (wnd->PrevMouse != NULL)
-        SendMessage(wnd, RELEASE_MOUSE, 0, 0);
-    if (wnd->PrevKeyboard != NULL)
-        SendMessage(wnd, RELEASE_KEYBOARD, 0, 0);
     /* ----------- hide this window ------------ */
     SendMessage(wnd, HIDE_WINDOW, 0, 0);
-    /* --- close the children of this window --- */
 
+    /* --- close the children of this window --- */
 	cwnd = LastWindow(wnd);
 	while (cwnd != NULL)	{
         if (inFocus == cwnd)
@@ -570,6 +567,14 @@ static void CloseWindowMsg(WINDOW wnd)
         SendMessage(cwnd,CLOSE_WINDOW,0,0);
 		cwnd = LastWindow(wnd);
     }
+
+	/* ----- release captured resources ------ */
+    if (wnd->PrevClock != NULL)
+        SendMessage(wnd, RELEASE_CLOCK, 0, 0);
+    if (wnd->PrevMouse != NULL)
+        SendMessage(wnd, RELEASE_MOUSE, 0, 0);
+    if (wnd->PrevKeyboard != NULL)
+        SendMessage(wnd, RELEASE_KEYBOARD, 0, 0);
 
     /* --- change focus if this window had it -- */
 	if (wnd == inFocus)
@@ -600,8 +605,7 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             HideWindowMsg(wnd);
             break;
         case DISPLAY_HELP:
-            DisplayHelp(wnd, (char *)p1);
-            break;
+            return DisplayHelp(wnd, (char *)p1);
         case INSIDE_WINDOW:
             return InsideWindow(wnd, (int) p1, (int) p2);
         case KEYBOARD:

@@ -40,9 +40,10 @@ int StatusBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 			SetStandardColor(wnd);
 			PutWindowLine(wnd, (char *)p1, WindowWidth(wnd)-8, 0);
 			wnd->TimePosted = TRUE;
+			SendMessage(wnd->PrevClock, msg, p1, p2);
 			return TRUE;
 		case CLOSE_WINDOW:
-			SendMessage(NULL, RELEASE_CLOCK, 0, 0);
+			SendMessage(wnd, RELEASE_CLOCK, 0, 0);
 			break;
 		default:
 			break;

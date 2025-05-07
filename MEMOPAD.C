@@ -52,7 +52,7 @@ void main(int argc, char *argv[])
                         HASSTATUSBAR
                         );
 
-    LoadHelpFile();
+    LoadHelpFile(DFlatApplication);
     SendMessage(wnd, SETFOCUS, TRUE, 0);
     while (argc > 1)    {
         PadWindow(wnd, argv[1]);
@@ -346,7 +346,7 @@ static void SaveFile(WINDOW wnd, int Saveas)
     FILE *fp;
     if (wnd->extension == NULL || Saveas)    {
         char FileName[15];
-        if (SaveAsDialogBox("*.*", FileName))    {
+        if (SaveAsDialogBox("*.*", NULL, FileName))    {
             if (wnd->extension != NULL)
                 free(wnd->extension);
             wnd->extension = DFmalloc(strlen(FileName)+1);

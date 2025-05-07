@@ -280,7 +280,8 @@ CLOCKTICK              the clock ticked
   Returns: 
 
 CAPTURE_CLOCK          capture clock into a window    
-  Sent:    to capture the clock
+  Sent:    to capture the clock. To chain clock ticks, send this
+           message to wnd->PrevClock when you receive the message.
   P1:      
   P2:      
   Returns: 
@@ -1127,11 +1128,10 @@ void SetDlgTitle(DBOX *db, char *ttl)
 
 This function changes the specified dialog box's title.
 -------------------------------------------------------------------
-void LoadHelpFile(char *expath);
+void LoadHelpFile(char *apname);
 
-This function loads the help file named by the DFLAT_APPLICATION
-global constant with the .HLP file extension. The expath parameter
-points to the DOS path where the file can be found.
+This function loads the help file. The apname parameter points to 
+the helpfile name without the .hlp extension.
 
 Call this function at the beginning of an application program or to
 change the help file midstream.

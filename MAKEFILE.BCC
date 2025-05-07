@@ -66,5 +66,5 @@ fixhelp.exe : fixhelp.obj decomp.obj
 
 memopad.hlp : memopad.txt huffc.exe fixhelp.exe
     huffc memopad.txt memopad.hlp
-    fixhelp memopad.hlp
+    fixhelp memopad
 

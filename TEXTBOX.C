@@ -538,9 +538,9 @@ static void ComputeWindowTop(WINDOW wnd)
         int lines_tick;
 
         if (pagelen > barlen)
-            lines_tick = pagelen / barlen;
+            lines_tick = barlen ? (pagelen / barlen) : 0;
         else
-            lines_tick = barlen / pagelen;
+            lines_tick = pagelen ? (barlen / pagelen) : 0;
         wnd->wtop = (wnd->VScrollBox-1) * lines_tick;
         if (wnd->wtop + ClientHeight(wnd) > wnd->wlines)
             wnd->wtop = pagelen;
@@ -562,10 +562,10 @@ static int ComputeHScrollBox(WINDOW wnd)
         hscrollbox = 1;
     else     {
         if (pagewidth > barlen)
-            chars_tick = pagewidth / barlen;
+            chars_tick = barlen ? (pagewidth / barlen) : 0;
         else
-            chars_tick = barlen / pagewidth;
-        hscrollbox = 1 + (wnd->wleft / chars_tick);
+            chars_tick = pagewidth ? (barlen / pagewidth) : 0;
+        hscrollbox = 1 + (chars_tick ? (wnd->wleft / chars_tick) : 0);
         if (hscrollbox > ClientWidth(wnd)-2 ||
                 wnd->wleft + ClientWidth(wnd) >= wnd->textwidth)
             hscrollbox = ClientWidth(wnd)-2;
@@ -609,7 +609,7 @@ static char *GetTextLine(WINDOW wnd, int selection)
         len++;
         cp++;
     }
-    line = DFmalloc(len+6);
+    line = DFmalloc(len+7);
     memmove(line, cp1, len);
     line[len] = '\0';
     return line;
@@ -685,6 +685,10 @@ void WriteTextLine(WINDOW wnd, RECT *rcc, int y, BOOL reverse)
                     /* ---- the block ends on this line ---- */
                     blkend = bec;
             }
+			if (blkend == 0 && lnlen == 0)	{
+				strcpy(lp, " ");
+				blkend++;
+			}
             /* ----- insert the reset color token ----- */
             memmove(lp+blkend+1,lp+blkend,strlen(lp+blkend)+1);
             lp[blkend] = RESETCOLOR;

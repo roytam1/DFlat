@@ -29,7 +29,7 @@
 #include <setjmp.h>
 
 #ifndef VERSION
-#define VERSION "Version 18"
+#define VERSION "Version 19"
 #endif
 
 void *DFcalloc(size_t, size_t);
@@ -92,8 +92,9 @@ typedef struct window {
 	BOOL wasCleared;
     int restored_attrib;        /* attributes when restored */
     void *extension;      /* menus, dialogs, documents, etc */
-    struct window *PrevMouse;
-    struct window *PrevKeyboard;
+    struct window *PrevMouse;   /* previous mouse capture   */
+    struct window *PrevKeyboard;/* previous keyboard capture*/
+	struct window *PrevClock;   /* previous clock capture   */
 	struct window *MenuBarWnd;/* menu bar                   */
 	struct window *StatusBar; /* status bar                 */
 	int isHelping;	    /* > 0 when help is being displayed */
@@ -424,7 +425,7 @@ BOOL DialogBox(WINDOW, DBOX *, BOOL,
        int (*)(struct window *, enum messages, PARAM, PARAM));
 void ClearDialogBoxes(void);
 BOOL OpenFileDialogBox(char *, char *);
-BOOL SaveAsDialogBox(char *, char *);
+BOOL SaveAsDialogBox(char *, char *, char *);
 void GetDlgListText(WINDOW, char *, enum commands);
 BOOL RadioButtonSetting(DBOX *, enum commands);
 void PushRadioButton(DBOX *, enum commands);
@@ -466,14 +467,14 @@ void DrawBar(WINDOW, enum VectTypes, int, int, int, int);
 WINDOW WatchIcon(void);
 
 /* ------------- help box prototypes ------------- */
-void LoadHelpFile(void);
+void LoadHelpFile(char *);
 void UnLoadHelpFile(void);
 BOOL DisplayHelp(WINDOW, char *);
 char *HelpComment(char *);
 
 extern char *ClassNames[];
 
-void BuildFileName(char *, char *);
+void BuildFileName(char *path, const char *fn, const char *ext);
 
 #endif
 

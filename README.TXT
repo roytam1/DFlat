@@ -1,6 +1,6 @@
-March, 1994
+June, 1994
 
-D-Flat Version 18
+D-Flat Version 19
 
 The source files in the DFLAT archive constitute the D-Flat windowing
 system. This is public domain code. You may use it in your
@@ -54,67 +54,39 @@ The makefile compresses the help file with these commands:
 
 Both of the programs must be run in order for the help system to work
 properly. Note that .hlp files from previous versions are not
-compatible with version. The .txt files are, however, so you can use
-the huffc and fixhelp programs to rebuild the .hlp file.
+compatible with versions 18 and higher. The .txt files are, however,
+so you can use the huffc and fixhelp programs to rebuild the .hlp
+file.
 
 ===============================================
 
-This is version 18. It fixes these problems:
+This is version 19. It fixes these problems:
 
-1. Changing screen modes did not work with all systems.
+1. Applicat.c did not set the window height properly when 43 or 50
+lines was selected with the result that the application window's
+ClientHeight macro returned a value 1 less than it should have.
 
-2. Selecting text and scrolling with the keyboard sent the cursor off
-of the screen.
+2. Dragging scroll boxes on documents exactly the width or length of
+the window caused divide-by-zero errors.
 
-3. The PAINT message did not repaint (clear) the screen after a
-CLEARTEXT message.
+3. The SaveAsDialogBox function now lets you specify an initial filename
+for the display and a separate search path for the file list. Note the
+additional argument to the function.
 
-4. Overhauled the File Open and Save As dialog boxes. Note that these
-DBs now return the file name only and have changed the drive and 
-subdirectory to what the user chooses. The application window saves
-and restores the drive and subdirectory on open and close, but your
-application needs to know that the log-on could be different after
-using the dialog boxes.
+4. The DisplayDefinition function in helpbox.c opened and closed the
+help database file even though the file is already open. It also used
+the global ThisHelp pointer, which should have been saved and
+restored.
 
-5. Added an EDITOR class that manages tabs on input and output. This
-class does not do paragraph reforming.
+5. Capturing and restoring the clock did not provide for chained and
+returned captures. See CAPTURE_CLOCK message in dflat.doc for
+details.
 
-6. Added the wd parameter to the InputBox function.
+6. Changed text block marking display so that zero-length lines
+display as if there is one blank character.
 
-7. Clicking a box frame in a dialog box disabled the radio buttons,
-checkboxes, etc. inside the box.
-
-8. Dialog box unnecessarily repainted when changing focus among controls.
-
-9. Padding blank lines when painting a textbox used a line that was one
-character too short.
-
-10. Help windows would be overwritten by the borders of the current
-in-focus window.
-
-11. Large help files took a long time to load, particularly on slower
-processors. This was because the load process read the entire
-compressed database to build an internal list of help windows. I added
-a program (fixhelp.c) that puts the list at the end of the database.
-The load process now seeks to the end and reads the list instead of
-computing it. I removed the feature that let D-Flat applications load
-the uncompressed text version of the help file.
-
-12. Added a [*] comment token to the help database. The memopad
-doesn't use it, but Quincy does. A program can call the HelpComment
-function to retrieve a pointer to a comment associated with the
-specified help window. The Quincy tutorial uses it to record script
-commands associated with specific tutorial help windows.
-
-13. The Search and Replace code did not work properly if you tried to
-replace, for example, "void" with "(void)" and chose to change every
-occurrence. The program went into a loop replacing first "void" with
-"(void)", then "(void)" with "((void))", and so on.
-
-14. Removed much of the heap usage in the helpbox window.
-Applications would sometimes crash unexpectedly upon exit after you
-used a lot of help window navigation. These changes seem to have
-corrected the problem and made the code simpler, too.
+7. Non-Borland compilers would not compile direct.c because of
+non-standard FA_DIREC global.
 
 ----------------------------------------------------------------------
 Calendar of D-Flat Source Code Published in the C Programming Column

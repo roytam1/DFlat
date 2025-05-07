@@ -232,7 +232,7 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 		case MOVE:
 		case SIZE:
 		    rtn = BaseWndProc(DIALOG, wnd, msg, p1, p2);
-			if (wnd->dfocus != NULL)
+			if (wnd->dfocus != NULL && isVisible(wnd))
 				SendMessage(wnd->dfocus, SETFOCUS, TRUE, 0);
 			return rtn;
         case CLOSE_WINDOW:

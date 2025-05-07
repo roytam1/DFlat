@@ -4,17 +4,28 @@
 
 int WatchIconProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
-    int rtn;
+    int rtn, i;
+	static int tick = 0;
+	static char *hands[] = {
+		" À ", " Ú ", " ¿ ", " Ù "
+	};
     switch (msg)    {
         case CREATE_WINDOW:
+			tick = 0;
             rtn = DefaultWndProc(wnd, msg, p1, p2);
             SendMessage(wnd, CAPTURE_MOUSE, 0, 0);
             SendMessage(wnd, HIDE_MOUSE, 0, 0);
             SendMessage(wnd, CAPTURE_KEYBOARD, 0, 0);
+            SendMessage(wnd, CAPTURE_CLOCK, 0, 0);
             return rtn;
+		case CLOCKTICK:
+			++tick;
+			tick &= 3;
+			SendMessage(wnd->PrevClock, msg, p1, p2);
+			/* (fall through and paint) */
         case PAINT:
             SetStandardColor(wnd);
-            writeline(wnd, " À ", 1, 1, FALSE);
+            writeline(wnd, hands[tick], 1, 1, FALSE);
             return TRUE;
         case BORDER:
             rtn = DefaultWndProc(wnd, msg, p1, p2);
@@ -26,6 +37,7 @@ int WatchIconProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             SendMessage(wnd, SHOW_WINDOW, 0, 0);
             return TRUE;
         case CLOSE_WINDOW:
+            SendMessage(wnd, RELEASE_CLOCK, 0, 0);
             SendMessage(wnd, RELEASE_MOUSE, 0, 0);
             SendMessage(wnd, RELEASE_KEYBOARD, 0, 0);
             SendMessage(wnd, SHOW_MOUSE, 0, 0);

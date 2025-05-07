@@ -19,7 +19,7 @@ TESTING = TESTING_DFLAT
 #-------------------------------------------------------------------
 MODEL = l
 #------------------------------------------------
-COMPILE = wcl /os /c /dWATCOM /d$(FULL) /d$(TESTING) /j /c /w4 /s /m$(MODEL)
+COMPILE = wcl386 /os /c /dWATCOM /d$(FULL) /d$(TESTING) /j /c /w4 /s /m$(MODEL)
 #------------------------------------------------
 
 .c.obj:

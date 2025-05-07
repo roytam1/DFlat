@@ -22,7 +22,7 @@ struct htr    {
 extern struct htr *HelpTree;
 
 void buildtree(void);
-FILE *OpenHelpFile(void);
+FILE *OpenHelpFile(const char *fn, const char *md);
 void HelpFilePosition(long *, int *);
 void *GetHelpLine(char *);
 void SeekHelpLine(long, int);
