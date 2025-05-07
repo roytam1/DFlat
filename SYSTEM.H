@@ -90,7 +90,7 @@ void Set43(void);
 void Set50(void);
 
 #ifndef TURBOC
-#ifndef BCCP
+#ifndef BCPP
 /* ============= Color Macros ============ */
 #define BLACK         0
 #define BLUE          1

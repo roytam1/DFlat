@@ -15,17 +15,20 @@
 #include <sys\stat.h>
 #include <time.h>
 
-#define VERSION "Version 8"
+#define VERSION "Version 9.x"
 
 #define TRUE 1
 #define FALSE 0
-
-extern char DFlatApplication[];
 
 #define MAXMESSAGES 50
 #define DELAYTICKS 1
 #define FIRSTDELAY 7
 #define DOUBLETICKS 5
+
+#define MAXTEXTLEN 65000U /* maximum text buffer            */
+#define EDITLEN     1024  /* starting length for multiliner */
+#define ENTRYLEN     256  /* starting length for one-liner  */
+#define GROWLENGTH    64  /* buffers grow by this much      */
 
 #include "system.h"
 #include "config.h"
@@ -96,6 +99,7 @@ typedef struct window {
     int DeletedLength; /* Length of deleted field           */
 	int InsertMode;    /* TRUE or FALSE for text insert     */
 	int WordWrapMode;  /* TRUE or FALSE for word wrap       */
+	unsigned int MaxTextLength; /* maximum text length      */
     /* ---------------- dialog box fields ----------------- */
     void *dFocus;          /* control that has the focus    */
     int ReturnCode;        /* return code from a dialog box */
@@ -197,7 +201,7 @@ RECT AdjustRectangle(WINDOW, RECT);
 int isDerivedFrom(WINDOW, CLASS);
 WINDOW GetAncestor(WINDOW);
 void PutWindowChar(WINDOW,int,int,int);
-void PutWindowLine(WINDOW, void *, int, int);
+#define PutWindowLine(w,s,x,y) wputs(w,s,x+BorderAdj(w),y+TopBorderAdj(w))
 #define BaseWndProc(class,wnd,msg,p1,p2)    \
     (*classdefs[(classdefs[class].base)].wndproc)(wnd,msg,p1,p2)
 #define DefaultWndProc(wnd,msg,p1,p2)         \
@@ -223,6 +227,8 @@ extern char *Clipboard;
 extern int ClipboardLength;
 extern int VSliding;
 extern int HSliding;
+extern char DFlatApplication[];
+extern int ClipString;
 /* --------- space between menubar labels --------- */
 #define MSPACE 2
 /* --------------- border characters ------------- */

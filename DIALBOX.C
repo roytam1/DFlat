@@ -52,7 +52,7 @@ int DialogProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 					 		attrib);
 				if ((ct->class == EDITBOX || ct->class == COMBOBOX) &&
 						ct->itext != NULL)
-					SendMessage(cwnd, EB_PUTTEXT, (PARAM) ct->itext, 0);
+					SendMessage(cwnd, ADDTEXT, (PARAM) ct->itext, 0);
 				if (ct->class != BOX &&
 					ct->class != TEXT &&
 						wnd->dFocus == NULL)
@@ -427,7 +427,8 @@ void PutItemText(WINDOW wnd, enum commands cmd, char *text)
 		switch (ct->class)	{
 			case COMBOBOX:
 			case EDITBOX:
-				SendMessage(cwnd, EB_PUTTEXT, (PARAM) text, 0);
+				SendMessage(cwnd, CLEARTEXT, 0, 0);
+				SendMessage(cwnd, ADDTEXT, (PARAM) text, 0);
 				if (!isMultiLine(cwnd))
 					SendMessage(cwnd, PAINT, 0, 0);
 				Scrollers(cwnd);
@@ -479,7 +480,7 @@ void GetItemText(WINDOW wnd, enum commands cmd, char *text, int len)
 					break;
 				case COMBOBOX:
 				case EDITBOX:
-					SendMessage(cwnd, EB_GETTEXT, (PARAM) text, len);
+					SendMessage(cwnd, GETTEXT, (PARAM) text, len);
 					break;
 				default:
 					break;

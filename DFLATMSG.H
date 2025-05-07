@@ -61,15 +61,15 @@ DFlatMsg(RELEASE_MOUSE)      /* release the mouse to system  */
 /* ---------------- text box messages ---------------------- */
 DFlatMsg(ADDTEXT)            /* add text to the text box     */
 DFlatMsg(CLEARTEXT)          /* clear the edit box           */
-DFlatMsg(SETTEXT)            /* set address of text buffer   */
+DFlatMsg(SETTEXT)            /* copy text to text buffer     */
 DFlatMsg(SCROLL)             /* vertical line scroll         */
 DFlatMsg(HORIZSCROLL)        /* horizontal column scroll     */
 DFlatMsg(SCROLLPAGE)         /* vertical page scroll         */
 DFlatMsg(HORIZPAGE)          /* horizontal page scroll       */
 DFlatMsg(SCROLLDOC)          /* scroll to beginning/end      */
 /* ---------------- edit box messages ---------------------- */
-DFlatMsg(EB_GETTEXT)         /* get text from an edit box    */
-DFlatMsg(EB_PUTTEXT)         /* put text into an edit box    */
+DFlatMsg(GETTEXT)            /* get text from an edit box    */
+DFlatMsg(SETTEXTLENGTH)		 /* set maximum text length      */
 /* ---------------- menubar messages ----------------------- */
 DFlatMsg(BUILDMENU)          /* build the menu display       */
 DFlatMsg(SELECTION)          /* menubar selection            */

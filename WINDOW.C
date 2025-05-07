@@ -203,7 +203,7 @@ static void near shadow_char(WINDOW wnd, int y)
 
     if (TestAttribute(wnd, SHADOW) == 0)
         return;
-    foreground = DARKGRAY;
+    foreground = LIGHTGRAY;
     background = BLACK;
     wputch(wnd, c, x, y);
     foreground = fg;
@@ -223,13 +223,15 @@ static void near shadowline(WINDOW wnd, RECT rc)
     for (i = 0; i < WindowWidth(wnd)+1; i++)
         line[i] = videochar(GetLeft(wnd)+i, y);
     line[i] = '\0';
-    foreground = DARKGRAY;
+    foreground = LIGHTGRAY;
     background = BLACK;
     line[RectRight(rc)+1] = '\0';
     if (RectLeft(rc) == 0)
         rc.lf++;
+	ClipString++;
     wputs(wnd, line+RectLeft(rc), RectLeft(rc),
         WindowHeight(wnd));
+	--ClipString;
     foreground = fg;
     background = bg;
 }
@@ -481,13 +483,5 @@ void PutWindowChar(WINDOW wnd, int c, int x, int y)
 		wputch(wnd, c, x+BorderAdj(wnd), y+TopBorderAdj(wnd));
 }
 
-void PutWindowLine(WINDOW wnd, void *s, int x, int y)
-{
-	if (x < ClientWidth(wnd) && y < ClientHeight(wnd))	{
-		strncpy(line, s, 299);
-		line[ClientWidth(wnd)-x] = '\0';
-		wputs(wnd, line, x+BorderAdj(wnd), y+TopBorderAdj(wnd));
-	}
-}
 
 

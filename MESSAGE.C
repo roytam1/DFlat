@@ -398,7 +398,14 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 rtn = mouse_installed();
                 break;
 			case MOUSE_TRAVEL:	{
-				RECT rc = *(RECT *)p1;
+				RECT rc;
+				if (!p1)	{
+        			rc.lf = rc.tp = 0;
+        			rc.rt = SCREENWIDTH-1;
+        			rc.bt = SCREENHEIGHT-1;
+				}
+				else 
+					rc = *(RECT *)p1;
 				set_mousetravel(rc.lf, rc.rt, rc.tp, rc.bt);
 				break;
 			}

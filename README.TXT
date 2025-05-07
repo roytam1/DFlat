@@ -1,6 +1,6 @@
-October, 1991
+November, 1991
 
-D-Flat Version 8
+D-Flat Version 9
 
 The source files in the DFLAT archive constitute the D-Flat windowing
 system. This is public domain code. You may use it in your
@@ -21,28 +21,22 @@ from your comments.
 
 ======== Turbo C 2.0 =========
 
-To build with the Turbo C 2.0 make utility, change the
-three lines in the makefile so that they look like this:
+To build with the Turbo C 2.0 make utility:
 
-    MSC = 0
-    BORLAND_CPP = 0
-    TURBOC = 1
-
-Set the DRIVE macro in the makefile to the drive where your compiler
+Set the DRIVE macro in makefile.tc2 to the drive where your compiler
 is installed.
 
 Type this command:
 
-    C>make
+    C>make -fmakefile.tc2
 
 ============== Microsoft C 6.0
 
-To build with the Microsoft C nmake utility, make the first three
+To build with the Microsoft C nmake utility, make the first
 lines of the makefile look like this:
 
     MSC = 1
     BORLAND_CPP = 0
-    TURBOC = 0
 
 Set the DRIVE macro in the makefile to the drive where your compiler
 is installed.
@@ -53,12 +47,11 @@ Type this command:
 
 ========== Borland C++ 2.0 ============
 
-To build with the Borland C++ 2.0 make utility, make the first three
+To build with the Borland C++ 2.0 make utility, make the first 
 lines of the makefile look like this:
 
     MSC = 0
     BORLAND_CPP = 1
-    TURBOC = 0
 
 Set the DRIVE macro in the makefile to the drive where your compiler
 is installed.
@@ -66,10 +59,6 @@ is installed.
 Type this command:
 
     C>make
-
-NOTE: I have seen some odd compiled code when you compile with
-Borland C++. In one instance, argv and argc were 0000:0000 and 0 upon
-entry to main.
 
 ========== WATCOM C 8.0 ============
 
@@ -97,85 +86,74 @@ To compress the help file type this on the command line:
 
 ===============================================
 
-This is version 8. It includes these improvements:
+This is version 9. It includes these improvements:
 
-1. Many of the big switch statements in window-processing modules are
-chopped into function calls from the cases. This permits some
-compilers to do a better job with optimizing.
+1. Added the SETTEXTLENGTH message. It sets the maximum length of an
+EDITBOX's text buffer. The Filename field on the file open and file
+save dialog boxes now allow only 64 characters input. 
 
-2. There is a new window class, the PICTUREBOX, derived from the
-TEXTBOX. You can draw horizontal and vertical lines and bar-charts.
-See the files calendar.c and barchart.c for examples. The new
-messages are DRAWVECTOR, DRAWBOX, and DRAWBAR. The new functions are
-DrawVector, DrawBox, and DrawBar. DLFLAT.DOC describes these
-functions and messages.
-
-3. More advancements in modeless dialog boxes.
-
-4. The window clipping logic is now all done in video.c.
-
-5. I removed all the #ifdef INCLUDE_xxxx tests. They were becoming
-impossible to manage. My plan is to reinstate the conditional compile
-feature after the library is complete.
-
-6. Removed Clipboard and Text Search code from the main EDITBOX class
-module. That code is now in CLIPBORD.C and SEARCH.C. Their commands are
-now intercepted and processed by MEMOPAD.C rather than EDITBOX.C
+2. Fixed some problems with PutWindowLine where it overwrote some
+overlapping windows.
 
 ----------------------------------------------------------------------
 Calendar of D-Flat Source Code Published in the C Programming Column
-
-             1991                            1992
-             May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar Apr May Jun Jul
- APPLICAT.C                                               x
- BUTTON.C                                                         x
- CLASSDEF.C       x
- CLASSDEF.H       x
- CLASSES.H                    x
- CLIPBORD.C  (unscheduled)
- COMBOBOX.C                                                       x
- COMMANDS.H                       x
- CONFIG.C         x           x
- CONFIG.H         x       x
- CONSOLE.C    x               
- DFLAT.H          x       x
- DFLATMSG.H                       x
- DIALBOX.C                                                    x
- DIALBOX.H                    x
- DIALOGS.C                    x
- EDITBOX.C                                    x
- FILEOPEN.C                                                       x
- HELPBOX.C                                                            x
-             1991                            1992
-             May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar Apr May Jun Jul
- KEYS.C                       x
- KEYS.H       x
- LISTBOX.C                                        x
- LISTS.C                          x
- LOG.C                                                                x
- MEMOPAD.C                        x
- MENU.C                                               x
- MENU.H                       x
- MENUBAR.C                                            x
- MENUS.C                      x
- MESSAGE.C            x
- MESSAGE.H            x      
- MOUSE.C      x
- MSGBOX.C                                                         x
- NORMAL.C                             x
- POPDOWN.C                                            x
- RECT.C                           x
- RECT.H       x
- SEARCH.C    (unscheduled)
-             1991                            1992
-             May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar Apr May Jun Jul
- STATBAR.C                                                          x
- SYSMENU.C                                            x
- SYSTEM.H    x
- TEXTBOX.C                                x
- VIDEO.C     x
- VIDEO.H     x
- WINDOW.C         x       x
+ We are here: ----------------------\/--------------------------------------
+             1991                    |       1992
+             May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar Apr May Jun Jul Aug
+ APPLICAT.C                          |                        x
+ BARCHART.C                          |            x
+ BUTTON.C                            |                                x
+ CALENDAR.C                          |            x
+ CLASSDEF.C       x                  |
+ CLASSDEF.H       x                  |
+ CLASSES.H                    x      |
+ CLIPBORD.C                          |            x
+ COMBOBOX.C                          |                                x
+ COMMANDS.H                       x  |
+ CONFIG.C         x           x      |
+ CONFIG.H         x       x          |
+ CONSOLE.C    x                      |
+ DFLAT.H          x       x          |
+ DFLATMSG.H                       x  |
+ DIALBOX.C                           |                            x
+ DIALBOX.H                    x      |
+ DIALOGS.C                    x      |
+ EDITBOX.C                           |        x
+             1991                    |       1992
+             May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar Apr May Jun Jul Aug
+ FILEOPEN.C                          |                                x
+ HELPBOX.C                           |                                    x
+ KEYS.C                       x      |
+ KEYS.H       x                      |
+ LISTBOX.C                           |                x
+ LISTS.C                          x  |
+ LOG.C                               |                                    x
+ MEMOPAD.C                        x  |
+ MENU.C                              |                    x
+ MENU.H                       x      |
+ MENUBAR.C                           |                    x
+ MENUS.C                      x      |
+ MESSAGE.C            x              |
+ MESSAGE.H            x              |
+ MOUSE.C      x                      |
+ MSGBOX.C                            |                            x
+ NORMAL.C                            |x
+ PICTBOX.C                           |            x
+ POPDOWN.C                           |                    x
+             1991                    |       1992
+             May Jun Jul Aug Sep Oct Nov Dec Jan Feb Mar Apr May Jun Jul Aug
+ RECT.C                           x  |
+ RECT.H       x                      |
+ SEARCH.C                            |            x 
+ STATBAR.C                           |                                    x
+ SYSMENU.C                           |                x
+ SYSTEM.H    x                       |
+ TEXTBOX.C                           |    x
+ VIDEO.C     x                       |
+ VIDEO.H     x                       |
+ WINDOW.C         x       x          |
+                                     |
+ We are here: ----------------------/\--------------------------------------
 
 ---------------------------------------------------------------------
 Calendar of D-Flat Topics in the C Programming Column
@@ -192,12 +170,14 @@ December:  The TEXTBOX window class
 
 1992
 January:   The EDITBOX window class
-February:  The LISTBOX window class
-March:     The MENUBAR and POPDOWN window classes, the system menu
-April:     The APPLICATION window class
-May:       The DIALBOX window class
-June:      BUTTON, RADIOBUTTON, CHECKBOX, COMBOBOX, SPINBUTTON, 
+February:  The PICTUREBOX window class, the Clipboard, text searching
+March:     The LISTBOX window class
+April:     The MENUBAR and POPDOWN window classes, the system menu
+May:       The APPLICATION window class
+June:      The DIALBOX window class
+July:      BUTTON, RADIOBUTTON, CHECKBOX, COMBOBOX, SPINBUTTON, 
            MESSAGEBOX, ERRORBOX, File Open and File Save dialog boxes.
-July:      The HELPBOX window class and message logging
+August:    The HELPBOX window class and message logging
 
 
+

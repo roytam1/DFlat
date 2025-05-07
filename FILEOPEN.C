@@ -74,6 +74,13 @@ static int DlgFileOpen(char *Fpath, char *Fname, DBOX *db)
 static int DlgFnOpen(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 {
 	switch (msg)	{
+		case CREATE_WINDOW:	{
+			int rtn = DefaultWndProc(wnd, msg, p1, p2);
+			DBOX *db = wnd->extension;
+			WINDOW cwnd = ControlWindow(db, ID_FILENAME);
+			SendMessage(cwnd, SETTEXTLENGTH, 64, 0);
+			return rtn;
+		}
 		case INITIATE_DIALOG:
 			InitDlgBox(wnd);
 			break;

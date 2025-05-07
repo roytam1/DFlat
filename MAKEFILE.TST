@@ -2,14 +2,16 @@
 #                   D - F L A T   M A K E F I L E
 #-------------------------------------------------------------------
 
-all : memopad.exe huffc.exe
+all : test.exe
 
 #-------------------------------------------------------------------
 #  Set BORLAND_CPP = 1 to compile with Borland C++ 2.0
 #  Set MSC = 1 to compile with Microsoft C
+#  Set TURBOC = 1 to compile with Turbo C 2.0
 #-------------------------------------------------------------------
 BORLAND_CPP = 1
 MSC = 0
+TURBOC = 0
 #------------------------------------------------
 # NOTE: Set DRIVE to match where you installed your compiler
 #------------------------------------------------
@@ -65,10 +67,29 @@ LIBS= $(DRIVE)\borlandc\lib\c$(MODEL)
 #------------------------------------------------
 !endif
 
+!if $(TURBOC) == 1
+
+#------------------------------------------------
+#  Turbo C 2.0
+#------------------------------------------------
+MODEL = l
+#------------------------------------------------
+# NOTE: Delete the DEBUG and LINKDEBUG macros to 
+# build without debugging information in the .EXE
+#------------------------------------------------
+DEBUG = -v
+LINKDEBUG = /m /v
+COMPILE = tcc $(DEBUG) -DTURBOC -D$(TESTING) -c -d -m$(MODEL)
+LINK= tlink $(LINKDEBUG) $(DRIVE)\tc\lib\c0$(MODEL) 
+LIBS= $(DRIVE)\tc\lib\c$(MODEL)
+#------------------------------------------------
+
+!endif
+
 .c.obj:
     $(COMPILE) $*.c
 
-memopad.exe : memopad.obj window.obj video.obj message.obj             \
+test.exe : test.obj window.obj video.obj message.obj             \
               mouse.obj console.obj textbox.obj listbox.obj            \
               normal.obj config.obj menu.obj menubar.obj popdown.obj   \
               rect.obj applicat.obj keys.obj sysmenu.obj menus.obj     \
@@ -78,9 +99,9 @@ memopad.exe : memopad.obj window.obj video.obj message.obj             \
               pictbox.obj calendar.obj barchart.obj clipbord.obj       \
               search.obj
 !if $(MSC)
-    $(LINK) @memopad.lnk,$*,$*;
+    $(LINK) @test.lnk,$*,$*;
 !else
-    $(LINK) @memopad.lnk,$*.exe,$*,$(LIBS)
+    $(LINK) @test.lnk,$*.exe,$*,$(LIBS)
 !endif
 
 huffc.exe : huffc.obj htree.obj

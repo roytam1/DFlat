@@ -203,14 +203,9 @@ static int MouseMovedMsg(WINDOW wnd, PARAM p1, PARAM p2)
 static void ButtonReleasedMsg(WINDOW wnd)
 {
     if (HSliding || VSliding)    {
-        RECT rc;
-        rc.lf = rc.tp = 0;
-        rc.rt = SCREENWIDTH-1;
-        rc.bt = SCREENHEIGHT-1;
         /* release the mouse ouside the scroll bar */
-        SendMessage(NULL, MOUSE_TRAVEL, (PARAM) &rc, 0);
-            VSliding ? ComputeWindowTop(wnd) :
-                            ComputeWindowLeft(wnd);
+        SendMessage(NULL, MOUSE_TRAVEL, 0, 0);
+        VSliding ? ComputeWindowTop(wnd):ComputeWindowLeft(wnd);
         SendMessage(wnd, PAINT, 0, 0);
         SendMessage(wnd, KEYBOARD_CURSOR, 0, 0);
         VSliding = HSliding = FALSE;
@@ -238,20 +233,24 @@ static int ScrollMsg(WINDOW wnd, PARAM p1)
         rc = ClipRectangle(wnd, ClientRect(wnd));
         if (ValidRect(rc))    {
             /* ---- scroll the window ----- */
-			if (wnd != inFocus)
-			    SendMessage(wnd, PAINT, 0, 0);
-			else	{
-            	scroll_window(wnd, rc, (int)p1);
-            	if (!(int)p1)
-                	/* -- write top line (down) -- */
-                	WriteTextLine(wnd,NULL,wnd->wtop,FALSE);
-            	else    {
-                	/* -- write bottom line (up) -- */
-                	int y=RectBottom(rc)-GetClientTop(wnd);
-                	WriteTextLine(wnd, NULL,
-                    	wnd->wtop+y, FALSE);
-            	}
-			}
+            if (wnd != inFocus)    {
+                int sv = ClipString;
+                ClipString = TRUE;
+                SendMessage(wnd, PAINT, 0, 0);
+                ClipString = sv;
+            }
+            else    {
+                scroll_window(wnd, rc, (int)p1);
+                if (!(int)p1)
+                    /* -- write top line (down) -- */
+                    WriteTextLine(wnd,NULL,wnd->wtop,FALSE);
+                else    {
+                    /* -- write bottom line (up) -- */
+                    int y=RectBottom(rc)-GetClientTop(wnd);
+                    WriteTextLine(wnd, NULL,
+                        wnd->wtop+y, FALSE);
+                }
+            }
         }
         /* ---- reset the scroll box ---- */
         if (TestAttribute(wnd, VSCROLLBAR))    {
@@ -265,20 +264,23 @@ static int ScrollMsg(WINDOW wnd, PARAM p1)
 }
 
 /* ------------ HORIZSCROLL Message -------------- */
-static void HorizScrollMsg(WINDOW wnd, PARAM p1)
+static int HorizScrollMsg(WINDOW wnd, PARAM p1)
 {
     /* --- horizontal scroll one column --- */
     if (p1)    {
         /* --- scroll left --- */
-        if (wnd->wleft + ClientWidth(wnd)-1 <
-                    wnd->textwidth)
-            wnd->wleft++;
+        if (wnd->wleft + ClientWidth(wnd)-1 >= wnd->textwidth)
+			return FALSE;
+        wnd->wleft++;
     }
-    else 
+    else	{
         /* --- scroll right --- */
-        if (wnd->wleft > 0)
-            --wnd->wleft;
+        if (wnd->wleft == 0)
+			return FALSE;
+        --wnd->wleft;
+	}
     SendMessage(wnd, PAINT, 0, 0);
+	return TRUE;
 }
 
 /* ------------  SCROLLPAGE Message -------------- */
@@ -445,11 +447,9 @@ int TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             ButtonReleasedMsg(wnd);
             break;
         case SCROLL:
-            ScrollMsg(wnd, p1);
-            return TRUE;
+            return ScrollMsg(wnd, p1);
         case HORIZSCROLL:
-            HorizScrollMsg(wnd, p1);
-            return TRUE;
+            return HorizScrollMsg(wnd, p1);
         case SCROLLPAGE:
             ScrollPageMsg(wnd, p1);
             return TRUE;
@@ -791,9 +791,9 @@ void MarkTextBlock(WINDOW wnd, int BegLine, int BegCol,
                                int EndLine, int EndCol)
 {
     wnd->BlkBegLine = BegLine;
-	wnd->BlkEndLine = EndLine;
+    wnd->BlkEndLine = EndLine;
     wnd->BlkBegCol = BegCol;
-	wnd->BlkEndCol = EndCol;
+    wnd->BlkEndCol = EndCol;
 }
 
 /* ----- clear and initialize text line pointer array ----- */
@@ -848,16 +848,16 @@ static void MoveScrollBox(WINDOW wnd, int vscrollbox)
 
 int TextLineNumber(WINDOW wnd, char *lp)
 {
-	int lineno;
-	char *cp;
-	for (lineno = 0; lineno < wnd->wlines; lineno++)	{
-		cp = wnd->text + *((wnd->TextPointers) + lineno);
-		if (cp == lp)
-			return lineno;
-		if (cp > lp)
-			break;
-	}
-	return lineno-1;
+    int lineno;
+    char *cp;
+    for (lineno = 0; lineno < wnd->wlines; lineno++)    {
+        cp = wnd->text + *((wnd->TextPointers) + lineno);
+        if (cp == lp)
+            return lineno;
+        if (cp > lp)
+            break;
+    }
+    return lineno-1;
 }
 
 
