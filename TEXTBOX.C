@@ -404,7 +404,7 @@ static void PaintMsg(WINDOW wnd, PARAM p1, PARAM p2)
             /* ---- paint a blank line ---- */
             SetStandardColor(wnd);
             writeline(wnd, blankline+RectLeft(rcc),
-                    RectLeft(rcc)+1, y, FALSE);
+                    RectLeft(rcc)+BorderAdj(wnd), y, FALSE);
         }
     }
     /* ------- position the scroll box ------- */
@@ -487,7 +487,7 @@ int TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             ScrollDocMsg(wnd, p1);
             return TRUE;
         case PAINT:
-            if (isVisible(wnd) && wnd->wlines)    {
+            if (isVisible(wnd))    {
                 PaintMsg(wnd, p1, p2);
                 return FALSE;
             }

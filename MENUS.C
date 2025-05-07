@@ -9,7 +9,7 @@ DEFMENU(MainMenu)
         SELECTION( "~New",        ID_NEW,          0, 0 )
         SELECTION( "~Open...",    ID_OPEN,         0, 0 )
         SEPARATOR
-        SELECTION( "Sa~ve",       ID_SAVE,     ALT_V, INACTIVE)
+        SELECTION( "~Save",       ID_SAVE,         0, INACTIVE)
         SELECTION( "Save ~as...", ID_SAVEAS,       0, INACTIVE)
         SELECTION( "D~elete",     ID_DELETEFILE,   0, INACTIVE)
         SEPARATOR
@@ -89,10 +89,6 @@ DEFMENU(MainMenu)
         SELECTION(  "Help ~index...",     ID_HELPINDEX, 0, 0 )
         SEPARATOR
         SELECTION(  "~About...",          ID_ABOUT,     0, 0 )
-#ifdef TESTING_DFLAT
-        SEPARATOR
-        SELECTION(  "~Reload help database",ID_LOADHELP,0, 0 )
-#endif
     ENDPOPDOWN
 
 	/* ----- cascaded pulldown from Tabs... above ----- */

@@ -1,6 +1,9 @@
-D-Flat Version 16
+March, 1994
 
-The D-Flat windowing system is public domain code. You may use it in your
+D-Flat Version 18
+
+The source files in the DFLAT archive constitute the D-Flat windowing
+system. This is public domain code. You may use it in your
 applications without restriction. You may freely distribute source
 code. It would be nice if you would give credit to Dr. Dobb's Journal
 as the original publisher of the source code.
@@ -23,10 +26,10 @@ To build with Microsoft C 7.0, type this command
 
 ========== Borland C++ 3.0 ============
 
-To build with the Borland C++ 3.0 make utility:
+To build with the Borland C++ 3.1 or 4.0 make utility:
 
-Set the DRIVE macro in the makefile to the drive where your compiler
-is installed.
+Set the DRIVE macro in the makefile to the drive and directory 
+where your compiler is installed.
 
 Type this command:
 
@@ -42,37 +45,76 @@ To build with Watcom C 8.0, type this command
 
 D-Flat uses Compressed help files. It uses an adaptation of the
 Huffman compression programs from the Dr. Dobb's Journal C
-Programming Column of early 1991. If the program finds the compressed
-MEMOPAD.HLP, it loads it. Otherwise, it looks for MEMOPAD.TXT, the
-ASCII version of the file, and loads that file instead. When you
-execute the Reload Help command on the Help menu, the program loads
-the same way. To test changes to the help file that you make from the
-MEMOPAD program, delete the MEMOPAD.HLP file so that the reload
-command loads the MEMOPAD.TXT file. You can compress MEMOPAD.TXT into
-MEMOPAD.HLP later. The program starts faster without compressed
-help.
+Programming Column of early 1991. 
 
-To compress the help file type this on the command line:
+The makefile compresses the help file with these commands:
 
    C>huffc memopad.txt memopad.hlp
+   C>fixhelp memopad.hlp
 
-Note that the makefile automatically rebuilds the help database.
-If you are making source code changes and updating the help database
-during the same development cycle, disable the automatic building of
-the help database so that you may continue to change memopad.txt from
-the memopad program and reload it immediately.
+Both of the programs must be run in order for the help system to work
+properly. Note that .hlp files from previous versions are not
+compatible with version. The .txt files are, however, so you can use
+the huffc and fixhelp programs to rebuild the .hlp file.
 
 ===============================================
 
-This is version 16. It fixes these problems:
+This is version 18. It fixes these problems:
 
-1. Changing focus on a dialog box caused all controls to be
-repainted.
+1. Changing screen modes did not work with all systems.
 
-2. Menubar labels could not have shortcut keys other than the first
-letter of the label.
+2. Selecting text and scrolling with the keyboard sent the cursor off
+of the screen.
 
-3. SetDlgTextString did not work for a dialog box that was active.
+3. The PAINT message did not repaint (clear) the screen after a
+CLEARTEXT message.
+
+4. Overhauled the File Open and Save As dialog boxes. Note that these
+DBs now return the file name only and have changed the drive and 
+subdirectory to what the user chooses. The application window saves
+and restores the drive and subdirectory on open and close, but your
+application needs to know that the log-on could be different after
+using the dialog boxes.
+
+5. Added an EDITOR class that manages tabs on input and output. This
+class does not do paragraph reforming.
+
+6. Added the wd parameter to the InputBox function.
+
+7. Clicking a box frame in a dialog box disabled the radio buttons,
+checkboxes, etc. inside the box.
+
+8. Dialog box unnecessarily repainted when changing focus among controls.
+
+9. Padding blank lines when painting a textbox used a line that was one
+character too short.
+
+10. Help windows would be overwritten by the borders of the current
+in-focus window.
+
+11. Large help files took a long time to load, particularly on slower
+processors. This was because the load process read the entire
+compressed database to build an internal list of help windows. I added
+a program (fixhelp.c) that puts the list at the end of the database.
+The load process now seeks to the end and reads the list instead of
+computing it. I removed the feature that let D-Flat applications load
+the uncompressed text version of the help file.
+
+12. Added a [*] comment token to the help database. The memopad
+doesn't use it, but Quincy does. A program can call the HelpComment
+function to retrieve a pointer to a comment associated with the
+specified help window. The Quincy tutorial uses it to record script
+commands associated with specific tutorial help windows.
+
+13. The Search and Replace code did not work properly if you tried to
+replace, for example, "void" with "(void)" and chose to change every
+occurrence. The program went into a loop replacing first "void" with
+"(void)", then "(void)" with "((void))", and so on.
+
+14. Removed much of the heap usage in the helpbox window.
+Applications would sometimes crash unexpectedly upon exit after you
+used a lot of help window navigation. These changes seem to have
+corrected the problem and made the code simpler, too.
 
 ----------------------------------------------------------------------
 Calendar of D-Flat Source Code Published in the C Programming Column
@@ -172,9 +214,10 @@ September: The HELPBOX window class
 October:   Help Database compression, File Open and File Save dialog boxes.
 November:  Official launch of D-Flat++
 
-The complete D-Flat narrative runs in my columns from May '91 to 
-October '92. These columns describe the development of D-Flat and 
-serve as a tutorial on its use. The D-Flat reference manual is DFLAT.DOC.
+Buy back issues or the CD-ROM from Miller-Freeman to get the complete D-Flat
+narrative from May '91 to October '92. These columns describe the
+development of D-Flat and serve as a tutorial on its use. The D-Flat
+reference manual is DFLAT.DOC.
 
 
-
+

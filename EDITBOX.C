@@ -3,7 +3,8 @@
 
 #define EditBufLen(wnd) (isMultiLine(wnd) ? EDITLEN : ENTRYLEN)
 #define SetLinePointer(wnd, ln) (wnd->CurrLine = ln)
-#define isWhite(c)     ((c)==' '||(c)=='\n')
+#define Ch(c) ((c)&0x7f)
+#define isWhite(c) (Ch(c)==' '||Ch(c)=='\n'||Ch(c)=='\f'||Ch(c)=='\t')
 /* ---------- local prototypes ----------- */
 static void SaveDeletedText(WINDOW, char *, int);
 static void Forward(WINDOW);
@@ -37,8 +38,10 @@ static int CreateWindowMsg(WINDOW wnd)
 static int SetTextMsg(WINDOW wnd, PARAM p1)
 {
     int rtn = FALSE;
-    if (strlen((char *)p1) <= wnd->MaxTextLength)
+    if (strlen((char *)p1) <= wnd->MaxTextLength)	{
         rtn = BaseWndProc(EDITBOX, wnd, SETTEXT, p1, 0);
+	    wnd->TextChanged = FALSE;
+	}
     return rtn;
 }
 /* ----------- CLEARTEXT Message ------------ */
@@ -222,7 +225,6 @@ static void ExtendBlock(WINDOW wnd, int x, int y)
 	y = max(0, y);
     wnd->BlkEndCol = min(len, x+wnd->wleft);
     wnd->BlkEndLine = y+wnd->wtop;
-	SendMessage(wnd, KEYBOARD_CURSOR, wnd->BlkEndCol, wnd->BlkEndLine);
     bbl = min(wnd->BlkBegLine, wnd->BlkEndLine);
     bel = max(wnd->BlkBegLine, wnd->BlkEndLine);
     while (ptop < bbl)    {
@@ -610,7 +612,9 @@ static void DoKeyStroke(WINDOW wnd, int c, PARAM p2)
         case RUBOUT:
 			if (wnd->CurrCol == 0 && wnd->CurrLine == 0)
 				break;
-            Backward(wnd);
+			SendMessage(wnd, KEYBOARD, BS, 0);
+			SendMessage(wnd, KEYBOARD, DEL, 0);
+			break;
         case DEL:
             DelKey(wnd);
             break;
@@ -983,9 +987,8 @@ static void Downward(WINDOW wnd)
             wnd->WndRow+wnd->wtop+1 < wnd->wlines)  {
         wnd->CurrLine++;
         if (wnd->WndRow == ClientHeight(wnd)-1)
-            BaseWndProc(EDITBOX, wnd, SCROLL, TRUE, 0);
-        else
-            wnd->WndRow++;
+			SendMessage(wnd, SCROLL, TRUE, 0);
+        wnd->WndRow++;
         StickEnd(wnd);
     }
 }
@@ -995,9 +998,8 @@ static void Upward(WINDOW wnd)
     if (isMultiLine(wnd) && wnd->CurrLine != 0)    {
         --wnd->CurrLine;
         if (wnd->WndRow == 0)
-            BaseWndProc(EDITBOX, wnd, SCROLL, FALSE, 0);
-        else
-            --wnd->WndRow;
+			SendMessage(wnd, SCROLL, FALSE, 0);
+        --wnd->WndRow;
         StickEnd(wnd);
     }
 }

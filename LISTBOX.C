@@ -145,9 +145,6 @@ static void KeyPress(WINDOW wnd, PARAM p1, PARAM p2)
         if (isMultiLine(wnd))
             cp++;
 #endif
-        /* --- special for directory list box --- */
-        if (*cp == '[')
-            cp++;
         if (tolower(*cp) == (int)p1)    {
             SendMessage(wnd, LB_SELECTION, sel,
                 isMultiLine(wnd) ? p2 : FALSE);
@@ -312,7 +309,12 @@ int ListBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             break;
         case PAINT:
             BaseWndProc(LISTBOX, wnd, msg, p1, p2);
-            WriteSelection(wnd, wnd->selection, TRUE, (RECT *)p1);
+			if (wnd == inFocus)
+	            WriteSelection(wnd, wnd->selection, TRUE, (RECT *)p1);
+            return TRUE;
+		case SETFOCUS:
+            BaseWndProc(LISTBOX, wnd, msg, p1, p2);
+            WriteSelection(wnd, wnd->selection, p1, NULL);
             return TRUE;
         case SCROLL:
         case HORIZSCROLL:

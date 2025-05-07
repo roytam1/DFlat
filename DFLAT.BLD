@@ -27,17 +27,18 @@
 +search		&
 +fileopen	&
 +dfalloc	&
-+log		&
-+pictbox	&
-+calendar	&
-+barchart	&
 +checkbox	&
 +text		&
 +radio		&
 +box		&
-+spinbutt	&
 +watch		&
 +slidebox	&
-+direct
++spinbutt	&
++direct		&
++barchart	&
++log		&
++calendar	&
++pictbox	&
++editor
 
 

@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------
-#        D - F L A T   M A K E F I L E  -  Borland C++ 3.0
+#        D - F L A T   M A K E F I L E  -  Borland C++ 3.1 and 4.0
 #-------------------------------------------------------------------
 
 all : memopad.exe memopad.hlp
@@ -7,7 +7,7 @@ all : memopad.exe memopad.hlp
 #------------------------------------------------
 # NOTE: Set DRIVE to match where you installed your compiler
 #------------------------------------------------
-DRIVE = c:
+DRIVE = d:\bc4
 #-------------------------------------------------------------------
 #  Delete the TESTING macro to eliminate the Reload
 #  Help file selection on the Help menu.
@@ -35,8 +35,8 @@ LINKDEBUG = /m /v
 HEADERS=c:\temp\tcdef.sym
 #------------------------------------------------
 COMPILE = bcc -Od $(DEBUG) -D$(TESTING) -D$(FULL) -DBCPP -c -d -m$(MODEL) -H=$(HEADERS)
-LINK= tlink $(LINKDEBUG) $(DRIVE)\borlandc\lib\c0$(MODEL) 
-LIBS= $(DRIVE)\borlandc\lib\c$(MODEL)
+LINK= tlink $(LINKDEBUG) $(DRIVE)\lib\c0$(MODEL) 
+LIBS= $(DRIVE)\lib\c$(MODEL)
 #------------------------------------------------
 
 .c.obj:
@@ -54,14 +54,17 @@ dflat.lib :   window.obj video.obj message.obj                         \
               combobox.obj pictbox.obj calendar.obj barchart.obj       \
               clipbord.obj search.obj dfalloc.obj checkbox.obj         \
               text.obj radio.obj box.obj spinbutt.obj  watch.obj       \
-              slidebox.obj direct.obj
+              slidebox.obj direct.obj editor.obj
 	del dflat.lib
 	tlib dflat @dflat.bld
 
 huffc.exe : huffc.obj htree.obj
     $(LINK) huffc htree,$*.exe,$*,$(LIBS)
 
-memopad.hlp : memopad.txt huffc.exe
-	huffc memopad.txt memopad.hlp
+fixhelp.exe : fixhelp.obj decomp.obj
+    $(LINK) fixhelp decomp,$*.exe,$*,$(LIBS)
 
-
+memopad.hlp : memopad.txt huffc.exe fixhelp.exe
+    huffc memopad.txt memopad.hlp
+    fixhelp memopad.hlp
+

@@ -267,7 +267,9 @@ BOOL DialogBox(WINDOW wnd, DBOX *db, BOOL Modal,
                         db,
                         wnd,
                         wndproc,
-                        Modal ? SAVESELF : 0);
+                        (Modal ? SAVESELF : 0));
+	SendMessage(DialogWnd, SETFOCUS, TRUE, 0);
+	SendMessage(DialogWnd, SHOW_WINDOW, 0, 0);
     DialogWnd->Modal = Modal;
 	FirstFocus(db);
     PostMessage(DialogWnd, INITIATE_DIALOG, 0, 0);
@@ -562,6 +564,9 @@ static BOOL CtlKeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
     if (GetClass(wnd) == EDITBOX)
         if (isMultiLine(wnd))
             return FALSE;
+    if (GetClass(wnd) == TEXTBOX)
+        if (WindowHeight(wnd) > 1)
+            return FALSE;
     switch ((int) p1)    {
         case UP:
             if (!isDerivedFrom(wnd, LISTBOX))    {
@@ -589,6 +594,8 @@ static BOOL CtlKeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
                 if (isMultiLine(wnd))
                     break;
             if (isDerivedFrom(wnd, BUTTON))
+                break;
+            if (isDerivedFrom(wnd, LISTBOX))
                 break;
             SendMessage(GetParent(wnd), COMMAND, ID_OK, 0);
             return TRUE;
@@ -627,11 +634,11 @@ static void FixColors(WINDOW wnd)
     CTLWINDOW *ct = wnd->ct;
 	if (ct->class != BUTTON)	{
 		if (ct->class != SPINBUTTON && ct->class != COMBOBOX)	{
-			wnd->WindowColors[FRAME_COLOR][FG] = 
-				GetParent(wnd)->WindowColors[FRAME_COLOR][FG];
-			wnd->WindowColors[FRAME_COLOR][BG] = 
-				GetParent(wnd)->WindowColors[FRAME_COLOR][BG];
 			if (ct->class != EDITBOX && ct->class != LISTBOX)	{
+				wnd->WindowColors[FRAME_COLOR][FG] = 
+					GetParent(wnd)->WindowColors[FRAME_COLOR][FG];
+				wnd->WindowColors[FRAME_COLOR][BG] = 
+					GetParent(wnd)->WindowColors[FRAME_COLOR][BG];
 				wnd->WindowColors[STD_COLOR][FG] = 
 					GetParent(wnd)->WindowColors[STD_COLOR][FG];
 				wnd->WindowColors[STD_COLOR][BG] = 

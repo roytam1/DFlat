@@ -5,6 +5,7 @@ extern DBOX SearchTextDB;
 extern DBOX ReplaceTextDB;
 static int CheckCase = TRUE;
 static int Replacing = FALSE;
+static int lastsize;
 
 /* - case-insensitive, white-space-normalized char compare - */
 static BOOL SearchCmp(int a, int b)
@@ -24,6 +25,7 @@ static void replacetext(WINDOW wnd, char *cp1, DBOX *db)
     int oldlen = strlen(cp); /* length of text being replaced */
     int newlen = strlen(cr); /* length of replacing text      */
     int dif;
+	lastsize = newlen;
     if (oldlen < newlen)    {
         /* ---- new text expands text size ---- */
         dif = newlen-oldlen;
@@ -63,7 +65,7 @@ static void SearchTextBox(WINDOW wnd, int incr)
         /* search for a match starting at cursor position */
         cp1 = CurrChar;
         if (incr)
-            cp1++;    /* start past the last hit */
+            cp1 += lastsize;    /* start past the last hit */
         /* --- compare at each character position --- */
         while (*cp1)    {
             s1 = cp;
@@ -96,6 +98,9 @@ static void SearchTextBox(WINDOW wnd, int incr)
             wnd->CurrLine = wnd->BlkBegLine;
             wnd->WndRow = wnd->CurrLine - wnd->wtop;
 
+			/* -- remember the size of the matching text -- */
+			lastsize = strlen(cp);
+
             /* align the window scroll to matching text */
             if (WndCol > ClientWidth(wnd)-1)
                 wnd->wleft = wnd->CurrCol;
@@ -113,10 +118,10 @@ static void SearchTextBox(WINDOW wnd, int incr)
                     replacetext(wnd, cp1, db);
                     wnd->TextChanged = TRUE;
                     BuildTextPointers(wnd);
-                }
-                if (rpl)    {
-                    incr = TRUE;
-                    continue;
+                	if (rpl)    {
+                    	incr = TRUE;
+                    	continue;
+                	}
                 }
                 ClearTextBlock(wnd);
                 SendMessage(wnd, PAINT, 0, 0);
@@ -134,6 +139,7 @@ static void SearchTextBox(WINDOW wnd, int incr)
 void ReplaceText(WINDOW wnd)
 {
 	Replacing = TRUE;
+	lastsize = 0;
     if (CheckCase)
         SetCheckBox(&ReplaceTextDB, ID_MATCHCASE);
     if (DialogBox(NULL, &ReplaceTextDB, TRUE, NULL))    {
@@ -146,6 +152,7 @@ void ReplaceText(WINDOW wnd)
 void SearchText(WINDOW wnd)
 {
 	Replacing = FALSE;
+	lastsize = 0;
     if (CheckCase)
         SetCheckBox(&SearchTextDB, ID_MATCHCASE);
     if (DialogBox(NULL, &SearchTextDB, TRUE, NULL))    {
@@ -159,4 +166,4 @@ void SearchNext(WINDOW wnd)
 {
     SearchTextBox(wnd, TRUE);
 }
-
+

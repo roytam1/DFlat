@@ -53,7 +53,6 @@ enum commands {
     ID_KEYSHELP,
     ID_HELPINDEX,
     ID_ABOUT,
-    ID_LOADHELP,
     /* --------------- System menu -------------- */
 #ifdef INCLUDE_RESTORE
     ID_SYSRESTORE,
@@ -70,6 +69,7 @@ enum commands {
     /* ---- FileOpen and SaveAs dialog boxes ---- */
     ID_FILENAME,
     ID_FILES,
+    ID_DIRECTORY,
     ID_DRIVE,
     ID_PATH,
     /* ----- Search and Replace dialog boxes ---- */

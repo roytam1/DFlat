@@ -894,7 +894,7 @@ multiple-line selection listbox is selected.
 int DialogBox(
   WINDOW wnd,        /* parent window of the dialog box        */
   DBOX *db,          /* address of dialog box definition array */
-  int Modal,         /* trus if it is a modal dialog box       */
+  int Modal,         /* true if it is a modal dialog box       */
   int (*wndproc)(struct window *, MESSAGE, PARAM, PARAM)
                      /* the window processing function or NULL */
 )
@@ -911,23 +911,6 @@ WINDOW ControlWindow(DBOX *db, enum commands cmd)
 
 This function returns the WINDOW handle of the control specified by
 the cmd parameter.
--------------------------------------------------------------------
-int DlgOpenFile(char *filespec, char *filename)
-
-This function operates the Open File dialog box. The filespec pointer
-points to a default file path specification that the dialog box uses
-to display files, for example, *.DOC. If the function returns true,
-the space pointed to by the filename pointer will contain the path
-and filename selected by the user to be read.
-
--------------------------------------------------------------------
-int DlgSaveAs(char *filename)
-
-This function operates the Save As dialog box. If the function returns
-true, the space pointed to by the filename pointer will contain the
-path and filename selected by the user where the file will be
-written.
-
 -------------------------------------------------------------------
 void MessageBox(char *title, char *message)
 void CancelBox(wnd, char *message)
@@ -972,7 +955,7 @@ consuming process is underway and then erase the message after the
 process is done but without any action required from the user.
 
 -------------------------------------------------------------------
-int InputBox(WINDOW wnd, char *ttl, char *msg, char *text, int len)
+int InputBox(WINDOW wnd, char *ttl, char *msg, char *text, int len, int wd)
 
 This function executes a generic one-line user input dialog box. The
 wnd parameter is the parent window of the dialog box. The ttl
@@ -980,7 +963,9 @@ parameter points to a title string for the dialog box. The msg
 parameter points to a prompting text message. The text parameter
 points to the string that will receive the user's input. The len
 parameter is the length of the input string not including the null
-terminator.
+terminator. The wd parameter is the width of the string display. If
+the wd parameter is 0, the function computes a width based on the len
+parameter.
 
 The function returns a true value if the user chooses the OK command
 button and false if the user selects Cancel.
@@ -1148,7 +1133,23 @@ This function loads the help file named by the DFLAT_APPLICATION
 global constant with the .HLP file extension. The expath parameter
 points to the DOS path where the file can be found.
 
-Call this function at the beginning of an application program.
+Call this function at the beginning of an application program or to
+change the help file midstream.
+
+-------------------------------------------------------------------
+void DisplayHelp(WINDOW wnd, char *Help)
+
+Display the help window identified by the Help parameter. See the
+comments in memopad.txt for the format of a help database. You can
+get the same effect by sending the DISPLAY_HELP message with a
+pointer to the Help string as the first parameter after the message
+id.
+
+-------------------------------------------------------------------
+char *HelpComment(char *Help)
+
+Retrieve a pointer to the comment text associated with the specified
+Help parameter.
 
 -------------------------------------------------------------------
 void UnLoadHelpFile(void);
@@ -1334,4 +1335,4 @@ EDITLEN       DFLAT.H  1024   Starting length for multiline EDITBOX
 ENTRYLEN      DFLAT.H   256   Starting length for single-line EDITBOX
 GROWLENGTH    DFLAT.H    64   EDITBOX buffers grow by this much
 
-
+

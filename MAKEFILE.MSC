@@ -40,14 +40,19 @@ dflat.lib :   window.obj video.obj message.obj                         \
               combobox.obj pictbox.obj calendar.obj barchart.obj       \
               clipbord.obj search.obj dfalloc.obj checkbox.obj         \
               text.obj radio.obj box.obj spinbutt.obj  watch.obj       \
-              slidebox.obj direct.obj
+              slidebox.obj direct.obj editor.obj
 	del dflat.lib
 	lib dflat @dflat.bld
 
 huffc.exe : huffc.obj htree.obj
     $(LINK) huffc htree,$*,$*;
 
-memopad.hlp : memopad.txt huffc.exe
-	huffc memopad.txt memopad.hlp
+fixhelp.exe : fixhelp.obj decomp.obj
+    $(LINK) fixhelp decomp,$*,$*;
 
-
+memopad.hlp : memopad.txt huffc.exe fixhelp.exe
+    huffc memopad.txt memopad.hlp
+    fixhelp memopad.hlp
+
+
+

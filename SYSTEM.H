@@ -60,6 +60,8 @@ void normalcursor(void);
 void set_cursor_type(unsigned t);
 void videomode(void);
 void SwapCursorStack(void);
+/* --------- screen prototpyes -------- */
+void clearscreen(void);
 /* ---------- mouse prototypes ---------- */
 BOOL mouse_installed(void);
 int mousebuttons(void);

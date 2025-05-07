@@ -153,7 +153,10 @@ void wputs(WINDOW wnd, void *s, int x, int y)
                 str++;
                 continue;
             }
-   	        *cp1 = (*str & 255) | (clr(foreground, background) << 8);
+			if (*str == ('\t' | 0x80) || *str == ('\f' | 0x80))
+	   	        *cp1 = ' ' | (clr(foreground, background) << 8);
+			else 
+	   	        *cp1 = (*str & 255) | (clr(foreground, background) << 8);
 			if (ClipString)
 				if (!CharInView(wnd, x, y))
 					*cp1 = peek(video_address, vad(x2,y1));

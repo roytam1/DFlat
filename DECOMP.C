@@ -13,7 +13,6 @@ static int in8;
 static int ct8 = 8;
 static FILE *fi;
 static BYTECOUNTER bytectr;
-static int LoadingASCII;
 struct htr *HelpTree;
 static int root;
 
@@ -26,32 +25,23 @@ FILE *OpenHelpFile(void)
 
     /* -------- get the name of the help file ---------- */
     BuildFileName(helpname, ".hlp");
-    LoadingASCII = FALSE;
-    if ((fi = fopen(helpname, "rb")) == NULL)    {
-        /* ---- no .hlp file, look for .txt file ---- */
-        if ((cp = strrchr(helpname, '.')) != NULL)    {
-            strcpy(cp, ".TXT");
-            fi = fopen(helpname, "rt");
-        }
-        if (fi == NULL)
-            return NULL;
-        LoadingASCII = TRUE;
-    }
+    if ((fi = fopen(helpname, "r+b")) == NULL)
+        return NULL;
 
-    if (!LoadingASCII && HelpTree == NULL)    {
-           /* ----- read the byte count ------ */
-           fread(&bytectr, sizeof bytectr, 1, fi);
-           /* ----- read the frequency count ------ */
-           fread(&treect, sizeof treect, 1, fi);
-           /* ----- read the root offset ------ */
-           fread(&root, sizeof root, 1, fi);
-        HelpTree = DFcalloc(treect-256, sizeof(struct htr));
-        /* ---- read in the tree --- */
-        for (i = 0; i < treect-256; i++)    {
-               fread(&HelpTree[i].left,  sizeof(int), 1, fi);
-            fread(&HelpTree[i].right, sizeof(int), 1, fi);
-        }
-    }
+    /* ----- read the byte count ------ */
+    fread(&bytectr, sizeof bytectr, 1, fi);
+    /* ----- read the frequency count ------ */
+    fread(&treect, sizeof treect, 1, fi);
+    /* ----- read the root offset ------ */
+    fread(&root, sizeof root, 1, fi);
+    HelpTree = calloc(treect-256, sizeof(struct htr));
+	if (HelpTree != NULL)	{
+    	/* ---- read in the tree --- */
+    	for (i = 0; i < treect-256; i++)    {
+        	fread(&HelpTree[i].left,  sizeof(int), 1, fi);
+        	fread(&HelpTree[i].right, sizeof(int), 1, fi);
+    	}
+	}
     return fi;
 }
 
@@ -59,13 +49,6 @@ FILE *OpenHelpFile(void)
 void *GetHelpLine(char *line)
 {
     int h;
-    if (LoadingASCII)	{
-		void *hp;
-		do
-			hp = fgets(line, 160, fi);
-		while (*line == ';');
-		return hp;
-	}
     *line = '\0';
     while (TRUE)    {
         /* ----- decompress a line from the file ------ */
@@ -107,25 +90,19 @@ void *GetHelpLine(char *line)
 void HelpFilePosition(long *offset, int *bit)
 {
     *offset = ftell(fi);
-    if (LoadingASCII)
-        *bit = 0;
-    else    {
-        if (ct8 < 8)
-            --*offset;
-        *bit = ct8;
-    }
+    if (ct8 < 8)
+        --*offset;
+    *bit = ct8;
 }
 
 /* -- position the database to the specified byte and bit -- */
 void SeekHelpLine(long offset, int bit)
 {
     fseek(fi, offset, 0);
-    if (!LoadingASCII)    {
-        ct8 = bit;
-        if (ct8 < 8)    {
-            in8 = fgetc(fi);
-			in8 <<= bit;
-        }
+    ct8 = bit;
+    if (ct8 < 8)    {
+        in8 = fgetc(fi);
+		in8 <<= bit;
     }
 }
 

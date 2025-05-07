@@ -29,7 +29,7 @@
 #include <setjmp.h>
 
 #ifndef VERSION
-#define VERSION "Version 17"
+#define VERSION "Version 18"
 #endif
 
 void *DFcalloc(size_t, size_t);
@@ -55,6 +55,7 @@ typedef enum {FALSE, TRUE} BOOL;
 #include "keys.h"
 #include "commands.h"
 #include "dialbox.h"
+#include "helpbox.h"
 
 /* ------ integer type for message parameters ----- */
 typedef long PARAM;
@@ -134,10 +135,6 @@ typedef struct window {
 	MENU *mnu;		/* points to menu structure             */
 	MBAR *holdmenu; /* previous active menu                 */
 	struct window *oldFocus;
-	/* --------------- help box fields -------------------- */
-	void *firstword; /* -> first in list of key words       */
-	void *lastword;  /* -> last in list of key words        */
-	void *thisword;  /* -> current in list of key words     */
 	/* -------------- status bar fields ------------------- */
 	BOOL TimePosted; /* True if time has been posted        */
 #ifdef INCLUDE_PICTUREBOX
@@ -292,6 +289,7 @@ int NormalProc(WINDOW, MESSAGE, PARAM, PARAM);
 int TextBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int ListBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int EditBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
+int EditorProc(WINDOW, MESSAGE, PARAM, PARAM);
 int PictureProc(WINDOW, MESSAGE, PARAM, PARAM);
 int MenuBarProc(WINDOW, MESSAGE, PARAM, PARAM);
 int PopDownProc(WINDOW, MESSAGE, PARAM, PARAM);
@@ -353,6 +351,8 @@ void WriteTextLine(WINDOW, RECT *, int, BOOL);
 void MarkTextBlock(WINDOW, int, int, int, int);
 #define ClearTextBlock(wnd) wnd->BlkBegLine = wnd->BlkEndLine =  \
                         wnd->BlkBegCol  = wnd->BlkEndCol = 0;
+#define TextBlockBegin(wnd) (TextLine(wnd,wnd->BlkBegLine)+wnd->BlkBegCol)
+#define TextBlockEnd(wnd)   (TextLine(wnd,wnd->BlkEndLine)+wnd->BlkEndCol)
 #define GetText(w)        ((w)->text)
 #define GetTextLines(w)   ((w)->wlines)
 void ClearTextPointers(WINDOW);
@@ -390,9 +390,12 @@ BOOL ItemSelected(WINDOW, int);
 void SearchText(WINDOW);
 void ReplaceText(WINDOW);
 void SearchNext(WINDOW);
+/* ------------- editor prototypes ----------- */
+void CollapseTabs(WINDOW wnd);
+void ExpandTabs(WINDOW wnd);
 /* --------- message box prototypes -------- */
 WINDOW SliderBox(int, char *, char *);
-BOOL InputBox(WINDOW, char *, char *, char *, int);
+BOOL InputBox(WINDOW, char *, char *, char *, int, int);
 BOOL GenericMessage(WINDOW, char *, char *, int,
 	int (*)(struct window *, enum messages, PARAM, PARAM),
 	char *, char *, int, int, int);
@@ -421,10 +424,8 @@ BOOL DialogBox(WINDOW, DBOX *, BOOL,
        int (*)(struct window *, enum messages, PARAM, PARAM));
 void ClearDialogBoxes(void);
 BOOL OpenFileDialogBox(char *, char *);
-BOOL SaveAsDialogBox(char *);
+BOOL SaveAsDialogBox(char *, char *);
 void GetDlgListText(WINDOW, char *, enum commands);
-BOOL DlgDirList(WINDOW, char *, enum commands,
-                            enum commands, unsigned);
 BOOL RadioButtonSetting(DBOX *, enum commands);
 void PushRadioButton(DBOX *, enum commands);
 void PutItemText(WINDOW, enum commands, char *);
@@ -468,10 +469,11 @@ WINDOW WatchIcon(void);
 void LoadHelpFile(void);
 void UnLoadHelpFile(void);
 BOOL DisplayHelp(WINDOW, char *);
+char *HelpComment(char *);
 
 extern char *ClassNames[];
 
 void BuildFileName(char *, char *);
 
 #endif
-
+

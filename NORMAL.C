@@ -260,13 +260,13 @@ static void SetFocusMsg(WINDOW wnd, PARAM p1)
 				}
 			}
 		}
-		if (that != NULL && !ValidRect(rc) && isVisible(wnd))	{
-		    SendMessage(wnd, BORDER, 0, 0);
+		if (that != NULL && !ValidRect(rc) && isVisible(wnd))
 			this = NULL;
-		}
 		ReFocus(wnd);
-		if (this != NULL)
+		if (this != NULL && !TestAttribute(this, SAVESELF))
 	        SendMessage(this, SHOW_WINDOW, 0, 0);
+		else 
+		    SendMessage(wnd, BORDER, 0, 0);
     }
     else if (!p1 && inFocus == wnd)    {
         /* -------- clearing focus --------- */
@@ -615,9 +615,12 @@ int NormalProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             break;
         case PAINT:
             if (isVisible(wnd))	{
+#ifdef INCLUDE_MULTI_WINDOWS
 				if (wnd->wasCleared)
 					PaintUnderLappers(wnd);
-				else	{
+				else
+#endif
+				{
 					wnd->wasCleared = TRUE;
 	                ClearWindow(wnd, (RECT *)p1, ' ');
 				}

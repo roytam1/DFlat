@@ -47,6 +47,8 @@ ClassDef(  HELPBOX,     DIALOG,  HelpBoxProc,     MOVEABLE  |
                                                   CONTROLBOX )
 ClassDef(  STATUSBAR,   TEXTBOX, StatusBarProc,   NOCLIP     )
 
+ClassDef(  EDITOR,      EDITBOX, EditorProc,	  0			 )
+
 /*
  *  ========> Add new classes here <========
  */

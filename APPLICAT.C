@@ -48,12 +48,15 @@ static char *Menus[9] = {
 };
 #endif
 
+static char Cwd[65];
+
 /* --------------- CREATE_WINDOW Message -------------- */
 static int CreateWindowMsg(WINDOW wnd)
 {
     int rtn;
 	ApplicationWindow = wnd;
     ScreenHeight = SCREENHEIGHT;
+	getcwd(Cwd, 64);
     if (!DisplayModified)    {
        	int i;
        	CTLWINDOW *ct, *ct1;
@@ -65,13 +68,16 @@ static int CreateWindowMsg(WINDOW wnd)
         	else    {
             	CTLWINDOW *ct2;
             	ct2 = FindCommand(&Display,ID_COLOR,RADIOBUTTON)-1;
-            	ct2->dwnd.w++;
-            	for (i = 0; i < 7; i++)
-                	(ct2+i)->dwnd.x += 8;
+				if (ct2)	{
+	            	ct2->dwnd.w++;
+    	        	for (i = 0; i < 7; i++)
+        	        	(ct2+i)->dwnd.x += 8;
+				}
             	ct1 = FindCommand(&Display,ID_25LINES,RADIOBUTTON)-1;
         	}
-        	for (i = 0; i < 6; i++)
-            	*ct1++ = *ct++;
+			if (ct && ct1)
+	        	for (i = 0; i < 6; i++)
+    	        	*ct1++ = *ct++;
 		}
     	if (isVGA() || isEGA())    {
 			/* ------ eliminate the snowy check box ----- */
@@ -176,7 +182,8 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
         return BaseWndProc(APPLICATION, wnd, KEYBOARD, p1, p2);
     switch ((int) p1)    {
         case ALT_F4:
-            PostMessage(wnd, CLOSE_WINDOW, 0, 0);
+			if (TestAttribute(wnd, CONTROLBOX))
+	            PostMessage(wnd, CLOSE_WINDOW, 0, 0);
             return TRUE;
 #ifdef INCLUDE_MULTI_WINDOWS
         case ALT_F6:
@@ -184,7 +191,8 @@ static int KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
             return TRUE;
 #endif
         case ALT_HYPHEN:
-            BuildSystemMenu(wnd);
+			if (TestAttribute(wnd, CONTROLBOX))
+	            BuildSystemMenu(wnd);
             return TRUE;
         default:
             break;
@@ -226,11 +234,6 @@ static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
         case ID_HELPINDEX:
             DisplayHelp(wnd, "HelpIndex");
             break;
-#ifdef TESTING_DFLAT
-        case ID_LOADHELP:
-            LoadHelpFile();
-            break;
-#endif
 #ifdef INCLUDE_LOGGING
         case ID_LOG:
             MessageLog(wnd);
@@ -315,6 +318,8 @@ static int CloseWindowMsg(WINDOW wnd)
     UnLoadHelpFile();
 	DisplayModified = FALSE;
 	ApplicationWindow = NULL;
+	setdisk(toupper(*Cwd) - 'A');
+	chdir(Cwd+2);
     return rtn;
 }
 

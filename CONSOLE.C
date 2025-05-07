@@ -20,6 +20,19 @@ static int cs;
 
 static union REGS regs;
 
+/* ------------- clear the screen -------------- */
+void clearscreen(void)
+{
+	int ht = SCREENHEIGHT;
+	int wd = SCREENWIDTH;
+	cursor(0, 0);
+	regs.h.al = ' ';
+	regs.h.ah = 9;
+	regs.x.bx = 7;
+	regs.x.cx = ht * wd;
+	int86(VIDEO, &regs, &regs);
+}
+
 void SwapCursorStack(void)
 {
 	if (cs > 1)	{
@@ -204,12 +217,20 @@ static void Scan350(void)
     regs.x.ax = 0x1201;
     regs.h.bl = 0x30;
     int86(VIDEO, &regs, &regs);
+	regs.h.ah = 0x0f;
+    int86(VIDEO, &regs, &regs);
+	regs.h.ah = 0x00;
+    int86(VIDEO, &regs, &regs);
 }
 
 static void Scan400(void)
 {
     regs.x.ax = 0x1202;
     regs.h.bl = 0x30;
+    int86(VIDEO, &regs, &regs);
+	regs.h.ah = 0x0f;
+    int86(VIDEO, &regs, &regs);
+	regs.h.ah = 0x00;
     int86(VIDEO, &regs, &regs);
 }
 
@@ -222,7 +243,7 @@ void Set25(void)
 	}
 	else
 		regs.x.ax = 0x1111;
-    regs.x.bx = 0;
+    regs.h.bl = 0;
     int86(VIDEO, &regs, &regs);
 }
 
@@ -232,7 +253,7 @@ void Set43(void)
     if (isVGA())
         Scan350();
     regs.x.ax = 0x1112;
-    regs.x.bx = 0;
+    regs.h.bl = 0;
     int86(VIDEO, &regs, &regs);
 }
 
@@ -242,7 +263,7 @@ void Set50(void)
     if (isVGA())
         Scan400();
     regs.x.ax = 0x1112;
-    regs.x.bx = 0;
+    regs.h.bl = 0;
     int86(VIDEO, &regs, &regs);
 }
 

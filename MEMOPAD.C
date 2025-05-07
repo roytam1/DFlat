@@ -67,7 +67,7 @@ static void PadWindow(WINDOW wnd, char *FileName)
 {
     int ax, criterr = 1;
     struct ffblk ff;
-    char path[64];
+    char path[MAXPATH+1];
     char *cp;
 
     CreatePath(path, FileName, FALSE, FALSE);
@@ -189,8 +189,8 @@ static void NewFile(WINDOW wnd)
 /* --- The Open... command. Select a file  --- */
 static void SelectFile(WINDOW wnd)
 {
-    char FileName[64];
-    if (OpenFileDialogBox("*.PAD", FileName))    {
+    char FileName[15];
+    if (OpenFileDialogBox("*.*", FileName))    {
         /* --- see if the document is already in a window --- */
         WINDOW wnd1 = FirstWindow(wnd);
         while (wnd1 != NULL)    {
@@ -345,8 +345,8 @@ static void SaveFile(WINDOW wnd, int Saveas)
 {
     FILE *fp;
     if (wnd->extension == NULL || Saveas)    {
-        char FileName[64];
-        if (SaveAsDialogBox(FileName))    {
+        char FileName[15];
+        if (SaveAsDialogBox("*.*", FileName))    {
             if (wnd->extension != NULL)
                 free(wnd->extension);
             wnd->extension = DFmalloc(strlen(FileName)+1);
@@ -626,4 +626,4 @@ void PrepEditMenu(void *w, struct Menu *mnu)
 	}
 }
 
-
+

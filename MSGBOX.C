@@ -106,6 +106,8 @@ int InputBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             rtn = DefaultWndProc(wnd, msg, p1, p2);
             SendMessage(ControlWindow(&InputBoxDB,ID_INPUTTEXT),
                         SETTEXTLENGTH, TextLength, 0);
+            SendMessage(ControlWindow(&InputBoxDB,ID_INPUTTEXT),
+                        ADDTEXT, (PARAM) InputText, 0);
             return rtn;
         case COMMAND:
             if ((int) p1 == ID_OK && (int) p2 == 0)
@@ -118,17 +120,19 @@ int InputBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
     return DefaultWndProc(wnd, msg, p1, p2);
 }
 
-BOOL InputBox(WINDOW wnd,char *ttl,char *msg,char *text,int len)
+BOOL InputBox(WINDOW wnd,char *ttl,char *msg,char *text,int len,int wd)
 {
+	int ln = wd ? wd : len;
+	ln = min(SCREENWIDTH-8, ln);
     InputText = text;
     TextLength = len;
     InputBoxDB.dwnd.title = ttl;
-    InputBoxDB.dwnd.w = 4 + 
-        max(20, max(len, max(strlen(ttl), strlen(msg))));
-    InputBoxDB.ctl[1].dwnd.x = (InputBoxDB.dwnd.w-2-len)/2;
+    InputBoxDB.dwnd.w = 4 + max(20, max(ln, max(strlen(ttl), strlen(msg))));
+    InputBoxDB.ctl[1].dwnd.x = (InputBoxDB.dwnd.w-2-ln)/2;
     InputBoxDB.ctl[0].dwnd.w = strlen(msg);
     InputBoxDB.ctl[0].itext = msg;
-    InputBoxDB.ctl[1].dwnd.w = len;
+    InputBoxDB.ctl[1].itext = NULL;
+    InputBoxDB.ctl[1].dwnd.w = ln;
     InputBoxDB.ctl[2].dwnd.x = (InputBoxDB.dwnd.w - 20) / 2;
     InputBoxDB.ctl[3].dwnd.x = InputBoxDB.ctl[2].dwnd.x + 10;
     InputBoxDB.ctl[2].isetting = ON;

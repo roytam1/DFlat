@@ -25,12 +25,12 @@ unsigned char color[CLASSCOUNT] [4] [2] = {
     /* ------------ LISTBOX ----------- */
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
     {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
-    {LIGHTGRAY, BLUE},  /* FRAME_COLOR  */
+    {BLACK, LIGHTGRAY},  /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
     /* ----------- EDITBOX ------------ */
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
-    {LIGHTGRAY, BLUE},  /* SELECT_COLOR */
+    {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
     {LIGHTGRAY, BLUE},  /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
@@ -127,6 +127,12 @@ unsigned char color[CLASSCOUNT] [4] [2] = {
     {BLACK, CYAN},      /* SELECT_COLOR */
     {BLACK, CYAN},      /* FRAME_COLOR  */
     {BLACK, CYAN}},     /* HILITE_COLOR */
+
+    /* ----------- EDITOR ------------ */
+   {{LIGHTGRAY, BLUE},  /* STD_COLOR    */
+    {BLACK, LIGHTGRAY},  /* SELECT_COLOR */
+    {LIGHTGRAY, BLUE},  /* FRAME_COLOR  */
+    {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
     /* ---------- TITLEBAR ------------ */
    {{BLACK, CYAN},      /* STD_COLOR    */
@@ -267,6 +273,12 @@ unsigned char bw[CLASSCOUNT] [4] [2] = {
     {BLACK, LIGHTGRAY}, /* FRAME_COLOR  */
     {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
+    /* ----------- EDITOR ------------ */
+   {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
+    {LIGHTGRAY, BLACK}, /* SELECT_COLOR */
+    {BLACK, LIGHTGRAY}, /* FRAME_COLOR  */
+    {LIGHTGRAY, BLACK}},/* HILITE_COLOR */
+
     /* ---------- TITLEBAR ------------ */
    {{BLACK, LIGHTGRAY}, /* STD_COLOR    */
     {BLACK, LIGHTGRAY}, /* SELECT_COLOR */
@@ -404,6 +416,12 @@ unsigned char reverse[CLASSCOUNT] [4] [2] = {
     {LIGHTGRAY, BLACK},      /* SELECT_COLOR */
     {LIGHTGRAY, BLACK},      /* FRAME_COLOR  */
     {LIGHTGRAY, BLACK}},     /* HILITE_COLOR */
+
+    /* ----------- EDITOR ------------ */
+   {{LIGHTGRAY, BLACK}, /* STD_COLOR    */
+    {BLACK, LIGHTGRAY}, /* SELECT_COLOR */
+    {LIGHTGRAY, BLACK}, /* FRAME_COLOR  */
+    {BLACK, LIGHTGRAY}},/* HILITE_COLOR */
 
     /* ---------- TITLEBAR ------------ */
    {{LIGHTGRAY, BLACK},      /* STD_COLOR    */
