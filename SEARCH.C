@@ -30,9 +30,7 @@ static void replacetext(WINDOW wnd, char *cp1, DBOX *db)
             /* ---- need to reallocate the text buffer ---- */
             int offset = (int)(cp1-wnd->text);
             wnd->textlen += dif;
-            wnd->text = realloc(wnd->text, wnd->textlen+2);
-            if (wnd->text == NULL)
-                return;
+            wnd->text = DFrealloc(wnd->text, wnd->textlen+2);
             cp1 = wnd->text + offset;
         }
         memmove(cp1+dif, cp1, strlen(cp1)+1);

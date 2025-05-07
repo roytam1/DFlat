@@ -25,13 +25,13 @@ static BOOL AddTextMsg(WINDOW wnd, char *txt)
         if ((long)txln+adln > (unsigned) 0xfff0)
             return FALSE;
         if (txln+adln > wnd->textlen)    {
-            wnd->text = realloc(wnd->text, txln+adln+3);
+            wnd->text = DFrealloc(wnd->text, txln+adln+3);
             wnd->textlen = txln+adln+1;
         }
     }
     else    {
         /* ------ 1st text appended ------ */
-        wnd->text = calloc(1, adln+3);
+        wnd->text = DFcalloc(1, adln+3);
         wnd->textlen = adln+1;
     }
     if (wnd->text != NULL)    {
@@ -71,19 +71,16 @@ static void InsertTextMsg(WINDOW wnd, char *txt, int lno)
 }
 
 /* ------------ SETTEXT Message -------------- */
-static BOOL SetTextMsg(WINDOW wnd, char *txt)
+static void SetTextMsg(WINDOW wnd, char *txt)
 {
     /* -- assign new text value to textbox buffer -- */
     unsigned int len = strlen(txt)+1;
 	SendMessage(wnd, CLEARTEXT, 0, 0);
     wnd->textlen = len;
-    if ((wnd->text=realloc(wnd->text, len+1)) == NULL)
-        return FALSE;
+    wnd->text=DFrealloc(wnd->text, len+1);
     wnd->text[len] = '\0';
     strcpy(wnd->text, txt);
     BuildTextPointers(wnd);
-    wnd->wtop = wnd->wleft = 0;
-	return TRUE;
 }
 
 /* ------------ CLEARTEXT Message -------------- */
@@ -450,7 +447,8 @@ int TextBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
             InsertTextMsg(wnd, (char *) p1, (int) p2);
             return TRUE;
         case SETTEXT:
-            return SetTextMsg(wnd, (char *) p1);
+            SetTextMsg(wnd, (char *) p1);
+			return TRUE;
         case CLEARTEXT:
             ClearTextMsg(wnd);
             break;
@@ -609,11 +607,9 @@ static char *GetTextLine(WINDOW wnd, int selection)
         len++;
         cp++;
     }
-    line = malloc(len+6);
-    if (line != NULL)    {
-        memmove(line, cp1, len);
-        line[len] = '\0';
-    }
+    line = DFmalloc(len+6);
+    memmove(line, cp1, len);
+    line[len] = '\0';
     return line;
 }
 
@@ -823,9 +819,8 @@ void MarkTextBlock(WINDOW wnd, int BegLine, int BegCol,
 /* ----- clear and initialize text line pointer array ----- */
 void ClearTextPointers(WINDOW wnd)
 {
-    wnd->TextPointers = realloc(wnd->TextPointers, sizeof(int));
-    if (wnd->TextPointers != NULL)
-        *(wnd->TextPointers) = 0;
+    wnd->TextPointers = DFrealloc(wnd->TextPointers, sizeof(int));
+    *(wnd->TextPointers) = 0;
 }
 
 #define INITLINES 100
@@ -840,10 +835,8 @@ void BuildTextPointers(WINDOW wnd)
     while (*cp)    {
         if (incrs == INITLINES)    {
             incrs = 0;
-            wnd->TextPointers = realloc(wnd->TextPointers,
+            wnd->TextPointers = DFrealloc(wnd->TextPointers,
                     (wnd->wlines + INITLINES) * sizeof(int));
-            if (wnd->TextPointers == NULL)
-                break;
         }
         off = (unsigned int) (cp - wnd->text);
         *((wnd->TextPointers) + wnd->wlines) = off;

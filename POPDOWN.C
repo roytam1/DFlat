@@ -243,11 +243,12 @@ static BOOL KeyboardMsg(WINDOW wnd, PARAM p1, PARAM p2)
 static int CloseWindowMsg(WINDOW wnd)
 {
     int rtn;
+	WINDOW pwnd = GetParent(wnd);
     SendMessage(wnd, RELEASE_MOUSE, 0, 0);
     SendMessage(wnd, RELEASE_KEYBOARD, 0, 0);
     SendMessage(NULL, RESTORE_CURSOR, 0, 0);
     rtn = BaseWndProc(POPDOWNMENU, wnd, CLOSE_WINDOW, 0, 0);
-    SendMessage(GetParent(wnd), CLOSE_POPDOWN, 0, 0);
+    SendMessage(pwnd, CLOSE_POPDOWN, 0, 0);
     return rtn;
 }
 

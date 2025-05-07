@@ -19,7 +19,7 @@ WINDOW CreateWindow(
     int (*wndproc)(struct window *,enum messages,PARAM,PARAM),
     int attrib)               /* window attribute           */
 {
-    WINDOW wnd = calloc(1, sizeof(struct window));
+    WINDOW wnd = DFcalloc(1, sizeof(struct window));
     get_videomode();
     if (wnd != NULL)    {
         int base;
@@ -86,8 +86,8 @@ void AddTitle(WINDOW wnd, char *ttl)
 /* ----- insert a title into a window ---------- */
 void InsertTitle(WINDOW wnd, char *ttl)
 {
-    if ((wnd->title=realloc(wnd->title,strlen(ttl)+1)) != NULL)
-        strcpy(wnd->title, ttl);
+    wnd->title=DFrealloc(wnd->title,strlen(ttl)+1);
+    strcpy(wnd->title, ttl);
 }
 
 static unsigned char line[300];
@@ -248,6 +248,30 @@ static void near shadowline(WINDOW wnd, RECT rc)
     background = bg;
 }
 
+static RECT ParamRect(WINDOW wnd, RECT *rcc)
+{
+	RECT rc;
+    if (rcc == NULL)    {
+        rc = RelativeWindowRect(wnd, WindowRect(wnd));
+	    if (TestAttribute(wnd, SHADOW))    {
+    	    rc.rt++;
+        	rc.bt++;
+	    }
+    }
+    else
+        rc = *rcc;
+	return rc;
+}
+
+void PaintShadow(WINDOW wnd)
+{
+	int y;
+	RECT rc = ParamRect(wnd, NULL);
+	for (y = 1; y < WindowHeight(wnd); y++)
+		shadow_char(wnd, y);
+    shadowline(wnd, rc);
+}
+
 /* ------- display a window's border ----- */
 void RepaintBorder(WINDOW wnd, RECT *rcc)
 {
@@ -257,15 +281,7 @@ void RepaintBorder(WINDOW wnd, RECT *rcc)
 
     if (!TestAttribute(wnd, HASBORDER))
         return;
-    if (rcc == NULL)    {
-        rc = RelativeWindowRect(wnd, WindowRect(wnd));
-	    if (TestAttribute(wnd, SHADOW) || cfg.mono == 0)    {
-    	    rc.rt++;
-        	rc.bt++;
-	    }
-    }
-    else
-        rc = *rcc;
+	rc = ParamRect(wnd, rcc);
     clrc = AdjustRectangle(wnd, rc);
 
     if (wnd == inFocus)    {
@@ -420,46 +436,6 @@ void ClearWindow(WINDOW wnd, RECT *rcc, int clrchar)
                 y,
                 FALSE);
         }
-    }
-}
-
-/* -- adjust a window's rectangle to clip it to its parent - */
-static RECT near ClipRect(WINDOW wnd)
-{
-    RECT rc;
-    rc = WindowRect(wnd);
-    if (TestAttribute(wnd, SHADOW) || cfg.mono == 0)    {
-        RectBottom(rc)++;
-        RectRight(rc)++;
-    }
-	return ClipRectangle(wnd, rc);
-}
-
-/* -- get the video memory that is to be used by a window -- */
-void GetVideoBuffer(WINDOW wnd)
-{
-    RECT rc;
-    int ht;
-    int wd;
-
-    rc = ClipRect(wnd);
-    ht = RectBottom(rc) - RectTop(rc) + 1;
-    wd = RectRight(rc) - RectLeft(rc) + 1;
-    wnd->videosave = realloc(wnd->videosave, (ht * wd * 2));
-    get_videomode();
-    if (wnd->videosave != NULL)
-        getvideo(rc, wnd->videosave);
-}
-
-/* --- restore the video memory that was used by a window -- */
-void RestoreVideoBuffer(WINDOW wnd)
-{
-    if (wnd->videosave != NULL)    {
-        RECT rc;
-        rc = ClipRect(wnd);
-        storevideo(rc, wnd->videosave);
-        free(wnd->videosave);
-        wnd->videosave = NULL;
     }
 }
 

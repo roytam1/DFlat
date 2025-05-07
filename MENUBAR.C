@@ -41,7 +41,7 @@ static void BuildMenuMsg(WINDOW wnd, PARAM p1)
         if (strlen(GetText(wnd)+offset) <
                 strlen(ActiveMenu->Title)+3)
             break;
-        GetText(wnd) = realloc(GetText(wnd),
+        GetText(wnd) = DFrealloc(GetText(wnd),
             strlen(GetText(wnd))+5);
         memmove(GetText(wnd) + offset+4, GetText(wnd) + offset,
                 strlen(GetText(wnd))-offset+1);
@@ -70,30 +70,30 @@ static void PaintMsg(WINDOW wnd)
     wputs(wnd, GetText(wnd), 0, 0);
     if (ActiveMenuBar->ActiveSelection != -1 &&
             (wnd == inFocus || mwnd != NULL))    {
-        char *sel;
-        char *cp;
-        if ((sel = malloc(200)) != NULL)    {
-            int offset=menu[ActiveMenuBar->ActiveSelection].x1;
-            int offset1=menu[ActiveMenuBar->ActiveSelection].x2;
-            GetText(wnd)[offset1] = '\0';
-            SetReverseColor(wnd);
-            memset(sel, '\0', 200);
-            strcpy(sel, GetText(wnd)+offset);
-            cp = strchr(sel, CHANGECOLOR);
-            if (cp != NULL)
-                *(cp + 2) = background | 0x80;
-            wputs(wnd, sel,
-                offset-ActiveMenuBar->ActiveSelection*4, 0);
-            GetText(wnd)[offset1] = ' ';
-            if (mwnd == NULL && wnd == inFocus) {
-                char *st = ActiveMenu
-                    [ActiveMenuBar->ActiveSelection].StatusText;
-                if (st != NULL)
-                    SendMessage(GetParent(wnd), ADDSTATUS,
-                        (PARAM)st, 0);
-            }
-            free(sel);
+        char *sel, *cp;
+        int offset, offset1;
+
+        sel = DFmalloc(200);
+        offset=menu[ActiveMenuBar->ActiveSelection].x1;
+        offset1=menu[ActiveMenuBar->ActiveSelection].x2;
+        GetText(wnd)[offset1] = '\0';
+        SetReverseColor(wnd);
+        memset(sel, '\0', 200);
+        strcpy(sel, GetText(wnd)+offset);
+        cp = strchr(sel, CHANGECOLOR);
+        if (cp != NULL)
+            *(cp + 2) = background | 0x80;
+        wputs(wnd, sel,
+            offset-ActiveMenuBar->ActiveSelection*4, 0);
+        GetText(wnd)[offset1] = ' ';
+        if (mwnd == NULL && wnd == inFocus) {
+            char *st = ActiveMenu
+                [ActiveMenuBar->ActiveSelection].StatusText;
+            if (st != NULL)
+                SendMessage(GetParent(wnd), ADDSTATUS,
+                    (PARAM)st, 0);
         }
+        free(sel);
     }
 }
 
@@ -182,7 +182,8 @@ static void KeyboardMsg(WINDOW wnd, PARAM p1)
                 SendMessage(wnd, PAINT, 0, 0);
             break;
         case BS:
-            if (ActiveMenuBar->ActiveSelection == 0)
+            if (ActiveMenuBar->ActiveSelection == 0 ||
+					ActiveMenuBar->ActiveSelection == -1)
                 ActiveMenuBar->ActiveSelection = mctr;
             --ActiveMenuBar->ActiveSelection;
             if (mwnd != NULL)
@@ -386,10 +387,8 @@ static WINDOW GetDocFocus(WINDOW wnd)
 /* ------------- reset the MENUBAR -------------- */
 static void reset_menubar(WINDOW wnd)
 {
-    if ((GetText(wnd) =
-            realloc(GetText(wnd), SCREENWIDTH+5)) != NULL)    {
-        memset(GetText(wnd), ' ', SCREENWIDTH);
-        *(GetText(wnd)+WindowWidth(wnd)) = '\0';
-    }
+    GetText(wnd) = DFrealloc(GetText(wnd), SCREENWIDTH+5);
+    memset(GetText(wnd), ' ', SCREENWIDTH);
+    *(GetText(wnd)+WindowWidth(wnd)) = '\0';
 }
 

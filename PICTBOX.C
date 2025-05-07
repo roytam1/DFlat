@@ -188,15 +188,13 @@ static void PaintMsg(WINDOW wnd)
 static void DrawVectorMsg(WINDOW wnd,PARAM p1,enum VectTypes vt)
 {
     if (p1)    {
-        wnd->VectorList = realloc(wnd->VectorList,
+        VECT vc;
+        wnd->VectorList = DFrealloc(wnd->VectorList,
                 sizeof(VECT) * (wnd->VectorCount + 1));
-        if (wnd->VectorList != NULL)    {
-            VECT vc;
-            vc.vt = vt;
-            vc.rc = *(RECT *)p1;
-            *(((VECT *)(wnd->VectorList))+wnd->VectorCount)=vc;
-            wnd->VectorCount++;
-        }
+        vc.vt = vt;
+        vc.rc = *(RECT *)p1;
+        *(((VECT *)(wnd->VectorList))+wnd->VectorCount)=vc;
+        wnd->VectorCount++;
     }
 }
 

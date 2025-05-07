@@ -373,19 +373,25 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 NoChildCaptureKeyboard = (int)p1;
                 break;
             case RELEASE_KEYBOARD:
-				if (CaptureKeyboard == wnd || (int)p1)
-	                CaptureKeyboard = wnd->PrevKeyboard;
-				else	{
-					WINDOW twnd = CaptureKeyboard;
-					while (twnd != NULL)	{
-						if (twnd->PrevKeyboard == wnd)	{
-							twnd->PrevKeyboard = wnd->PrevKeyboard;
-							break;
+				if (wnd != NULL)	{
+					if (CaptureKeyboard == wnd || (int)p1)
+	                	CaptureKeyboard = wnd->PrevKeyboard;
+					else	{
+						WINDOW twnd = CaptureKeyboard;
+						while (twnd != NULL)	{
+							if (twnd->PrevKeyboard == wnd)	{
+								twnd->PrevKeyboard = wnd->PrevKeyboard;
+								break;
+							}
+							twnd = twnd->PrevKeyboard;
 						}
-						twnd = twnd->PrevKeyboard;
+						if (twnd == NULL)
+							CaptureKeyboard = NULL;
 					}
+                	wnd->PrevKeyboard = NULL;
 				}
-                wnd->PrevKeyboard = NULL;
+				else
+					CaptureKeyboard = NULL;
                 NoChildCaptureKeyboard = FALSE;
                 break;
             case CURRENT_KEYBOARD_CURSOR:
@@ -460,19 +466,25 @@ int SendMessage(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 NoChildCaptureMouse = (int)p1;
                 break;
             case RELEASE_MOUSE:
-				if (CaptureMouse == wnd || (int)p1)
-	                CaptureMouse = wnd->PrevMouse;
-				else	{
-					WINDOW twnd = CaptureMouse;
-					while (twnd != NULL)	{
-						if (twnd->PrevMouse == wnd)	{
-							twnd->PrevMouse = wnd->PrevMouse;
-							break;
+				if (wnd != NULL)	{
+					if (CaptureMouse == wnd || (int)p1)
+	                	CaptureMouse = wnd->PrevMouse;
+					else	{
+						WINDOW twnd = CaptureMouse;
+						while (twnd != NULL)	{
+							if (twnd->PrevMouse == wnd)	{
+								twnd->PrevMouse = wnd->PrevMouse;
+								break;
+							}
+							twnd = twnd->PrevMouse;
 						}
-						twnd = twnd->PrevMouse;
+						if (twnd == NULL)
+							CaptureMouse = NULL;
 					}
+                	wnd->PrevMouse = NULL;
 				}
-                wnd->PrevMouse = NULL;
+				else
+					CaptureMouse = NULL;
                 NoChildCaptureMouse = FALSE;
                 break;
             default:
@@ -486,7 +498,7 @@ static WINDOW MouseWindow(int x, int y)
 {
     /* ------ get the window in which a
                     mouse event occurred ------ */
-    WINDOW Mwnd = inWindow(x, y);
+    WINDOW Mwnd = inWindow(NULL, x, y);
 
     /* ---- process mouse captures ----- */
     if (CaptureMouse != NULL)

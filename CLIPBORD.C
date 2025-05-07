@@ -7,7 +7,7 @@ unsigned ClipboardLength;
 void CopyTextToClipboard(char *text)
 {
     ClipboardLength = strlen(text);
-    Clipboard = realloc(Clipboard, ClipboardLength);
+    Clipboard = DFrealloc(Clipboard, ClipboardLength);
     memmove(Clipboard, text, ClipboardLength);
 }
 
@@ -17,7 +17,7 @@ void CopyToClipboard(WINDOW wnd)
         char *bbl=TextLine(wnd,wnd->BlkBegLine)+wnd->BlkBegCol;
         char *bel=TextLine(wnd,wnd->BlkEndLine)+wnd->BlkEndCol;
         ClipboardLength = (int) (bel - bbl);
-        Clipboard = realloc(Clipboard, ClipboardLength);
+        Clipboard = DFrealloc(Clipboard, ClipboardLength);
         memmove(Clipboard, bbl, ClipboardLength);
     }
 }
@@ -38,7 +38,7 @@ BOOL PasteText(WINDOW wnd, char *SaveTo, unsigned len)
 
 		if (plen <= wnd->MaxTextLength)	{
         	if (plen > wnd->textlen)    {
-            	wnd->text = realloc(wnd->text, plen+3);
+            	wnd->text = DFrealloc(wnd->text, plen+3);
             	wnd->textlen = plen+1;
         	}
           	memmove(CurrChar+len, CurrChar, strlen(CurrChar)+1);

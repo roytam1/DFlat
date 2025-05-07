@@ -202,7 +202,7 @@ void set_cursor_type(unsigned t)
 BOOL isEGA(void)
 {
     if (isVGA())
-        return 0;
+        return FALSE;
     regs.h.ah = 0x12;
     regs.h.bl = 0x10;
     int86(VIDEO, &regs, &regs);

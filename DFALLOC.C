@@ -2,9 +2,6 @@
 
 #include "dflat.h"
 
-#undef malloc
-#undef calloc
-#undef realloc
 
 static void AllocationError(void)
 {

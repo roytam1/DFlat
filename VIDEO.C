@@ -7,12 +7,13 @@ BOOL ClipString;
 static unsigned video_address;
 
 /* -- swap a rectangle of video memory with a save buffer -- */
-void swapvideo(WINDOW wnd, void far *bf)
+void swapvideo(WINDOW wnd, void far *bf, BOOL Hiding, BOOL Noload)
 {
-	char *hd;
-    int ht, bytes_row, bufferwidth;
+	char *hd, *hadr;
+    int ht, bytes_row, bytestobuf, bytesfrbuf, bufferwidth;
 	RECT rc = WindowRect(wnd);
     unsigned vadr = vad(RectLeft(rc), RectTop(rc));
+	BOOL TopLine = TRUE, Htrimmed, Vtrimmed;
 
     if (TestAttribute(wnd, SHADOW))    {
         RectBottom(rc)++;
@@ -20,28 +21,61 @@ void swapvideo(WINDOW wnd, void far *bf)
     }
     ht = RectBottom(rc)-RectTop(rc)+1;
 
-	if (RectTop(rc) + ht > SCREENHEIGHT)
+	if ((Vtrimmed = RectTop(rc) + ht > SCREENHEIGHT) == TRUE)
 		ht = SCREENHEIGHT - RectTop(rc);
 
     bufferwidth = bytes_row = (RectRight(rc)-RectLeft(rc)+1) * 2;
 
-	if (RectLeft(rc) + bytes_row/2 > SCREENWIDTH)
+	if ((Htrimmed = RectLeft(rc) + bytes_row/2 > SCREENWIDTH) == TRUE)
 		bytes_row = (SCREENWIDTH - RectLeft(rc)) * 2;
 
-	hd = malloc(bytes_row);
+	hd = hadr = DFmalloc(bytes_row);
 
     hide_mousecursor();
     while (ht--)    {
-        movedata(video_address, vadr, FP_SEG(hd),
-                FP_OFF(hd), bytes_row);
-        movedata(FP_SEG(bf), FP_OFF(bf), video_address,
-                vadr, bytes_row);
-        movedata(FP_SEG(hd), FP_OFF(hd), FP_SEG(bf),
-                FP_OFF(bf), bytes_row);
+		bytestobuf = bytesfrbuf = bytes_row;
+		if (TestAttribute(wnd, SHADOW))	{
+			if (TopLine)	{
+				if (!Htrimmed)	{
+					bytestobuf -= 2;
+					bytesfrbuf -= 2;
+				}
+			}
+			else if (ht == 0 && !Vtrimmed)	{
+				bytestobuf -= 2;
+				bytesfrbuf -= 2;
+				vadr += 2;
+				hadr += 2;
+				bf = (char far *)bf + 2;
+			}
+			if (!TopLine && !Hiding && !Htrimmed)
+				bytesfrbuf -= 2;
+			TopLine = FALSE;
+		}
+		else
+			bytestobuf = bytesfrbuf = bytes_row;
+		/* ----- getvideo | swapvideo ------- */
+		if (!Noload)
+	        movedata(video_address, vadr, FP_SEG(hadr),
+                FP_OFF(hadr), bytestobuf);
+		/* ----- storevideo | swapvideo ------- */
+		if (ht || Hiding || !TestAttribute(wnd, SHADOW) || Vtrimmed)
+	        movedata(FP_SEG(bf), FP_OFF(bf), video_address,
+                vadr, bytesfrbuf);
+		/* ----- swapvideo ------- */
+		if (!Noload)
+	        movedata(FP_SEG(hadr), FP_OFF(hadr), FP_SEG(bf),
+                FP_OFF(bf), bytestobuf);
         vadr += SCREENWIDTH*2;
         bf = (char far *)bf + bufferwidth;
     }
 	free(hd);
+	if (Noload)	{
+        free(wnd->videosave);
+        wnd->videosave = NULL;
+	}
+	if (!Hiding)
+		PaintShadow(wnd);
     show_mousecursor();
 }
 

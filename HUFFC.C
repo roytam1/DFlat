@@ -1,19 +1,31 @@
 /* ------------------- huffc.c -------------------- */
 
-#include <stdio.h>
-#include <stdlib.h>
-
+#include "dflat.h"
 #include "htree.h"
+
+extern struct htree *ht;
+extern int root;
+extern int treect;
 
 static void compress(FILE *, int, int);
 static void outbit(FILE *fo, int bit);
+
+int fgetcx(FILE *fi)
+{
+	int c;
+
+	/* ------- bypass comments ------- */
+	if ((c = fgetc(fi)) == '#')
+		while (c != '\n' && c != EOF)
+			c = fgetc(fi);
+	return c;
+}
 
 void main(int argc, char *argv[])
 {
     FILE *fi, *fo;
     int c;
     BYTECOUNTER bytectr = 0;
-    int freqctr = 0;
 
     if (argc < 3)   {
         printf("\nusage: huffc infile outfile");
@@ -33,40 +45,41 @@ void main(int argc, char *argv[])
 	ht = calloc(256, sizeof(struct htree));
 
     /* - read the input file and count character frequency - */
-    while ((c = fgetc(fi)) != EOF)   {
+    while ((c = fgetcx(fi)) != EOF)   {
         c &= 255;
-        if (ht[c].cnt == 0)   {
-            freqctr++;
-            ht[c].ch = c;
-        }
         ht[c].cnt++;
         bytectr++;
-    }
-
-    /* --- write the byte count to the output file --- */
-    fwrite(&bytectr, sizeof bytectr, 1, fo);
-
-    /* --- write the frequency count to the output file --- */
-    fwrite(&freqctr, sizeof freqctr, 1, fo);
-
-    /* -- write the frequency array to the output file -- */
-    for (c = 0; c < 256; c++)   {
-        if (ht[c].cnt > 0)    {
-            fwrite(&ht[c].ch, sizeof(char), 1, fo);
-            fwrite(&ht[c].cnt, sizeof(BYTECOUNTER), 1, fo);
-        }
     }
 
     /* ---- build the huffman tree ---- */
     buildtree();
 
+    /* --- write the byte count to the output file --- */
+    fwrite(&bytectr, sizeof bytectr, 1, fo);
+
+    /* --- write the tree count to the output file --- */
+    fwrite(&treect, sizeof treect, 1, fo);
+
+    /* --- write the root offset to the output file --- */
+    fwrite(&root, sizeof root, 1, fo);
+
+    /* -- write the tree to the output file -- */
+    for (c = 256; c < treect; c++)   {
+		int lf = ht[c].left;
+		int rt = ht[c].right;
+        fwrite(&lf, sizeof lf, 1, fo);
+        fwrite(&rt, sizeof rt, 1, fo);
+    }
+
     /* ------ compress the file ------ */
     fseek(fi, 0L, 0);
-    while ((c = fgetc(fi)) != EOF)
+    while ((c = fgetcx(fi)) != EOF)
         compress(fo, (c & 255), 0);
     outbit(fo, -1);
     fclose(fi);
     fclose(fo);
+	free(ht);
+	exit(0);
 }
 
 /* ---- compress a character value into a bit stream ---- */

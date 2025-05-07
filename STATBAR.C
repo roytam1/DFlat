@@ -17,8 +17,7 @@ int StatusBarProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 		case PAINT:	
 			if (!isVisible(wnd))
 				break;
-			if ((statusbar = calloc(1, WindowWidth(wnd)+1)) == NULL)
-				break;
+			statusbar = DFcalloc(1, WindowWidth(wnd)+1);
 			memset(statusbar, ' ', WindowWidth(wnd));
 			*(statusbar+WindowWidth(wnd)) = '\0';
 			strncpy(statusbar+1, "F1=Help", 7);

@@ -34,5 +34,12 @@ combobox+
 pictbox+
 clipbord+
 search+
-dfalloc
+dfalloc+
+checkbox.obj+
+text.obj+
+radio.obj+
+box.obj+
+spinbutt.obj+
+watch.obj+
+slidebox.obj+
 

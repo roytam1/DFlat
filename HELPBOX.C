@@ -73,6 +73,7 @@ int HelpBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 		case CREATE_WINDOW:
 			Helping = TRUE;
 			GetClass(wnd) = HELPBOX;
+			ClearAttribute(wnd, SHADOW);
 			InitWindowColors(wnd);
 			if (ThisHelp != NULL)
 				ThisHelp->hwnd = wnd;
@@ -302,21 +303,19 @@ static void ReadHelp(WINDOW wnd)
 					cp++;
 					continue;
 				}
-				thisword = calloc(1, sizeof(struct keywords));
-				if (thisword != NULL)	{
-					if (cwnd->firstword == NULL)
-						cwnd->firstword = thisword;
-					if (cwnd->lastword != NULL)	{
-						((struct keywords *)
-							(cwnd->lastword))->nextword = thisword;
-						thisword->prevword = cwnd->lastword;
-					}
-					cwnd->lastword = thisword;
-					thisword->lineno = cwnd->wlines;
-					thisword->off1 = (int) (cp - hline);
-					thisword->off2 = thisword->off1 - colorct * 4;
-					thisword->isDefinition = *(cp+1) == '*';
+				thisword = DFcalloc(1, sizeof(struct keywords));
+				if (cwnd->firstword == NULL)
+					cwnd->firstword = thisword;
+				if (cwnd->lastword != NULL)	{
+					((struct keywords *)
+						(cwnd->lastword))->nextword = thisword;
+					thisword->prevword = cwnd->lastword;
 				}
+				cwnd->lastword = thisword;
+				thisword->lineno = cwnd->wlines;
+				thisword->off1 = (int) (cp - hline);
+				thisword->off2 = thisword->off1 - colorct * 4;
+				thisword->isDefinition = *(cp+1) == '*';
 				colorct++;
 				*cp++ = CHANGECOLOR;
 				*cp++ = (wnd->WindowColors [HILITE_COLOR] [FG] & 255) | 0x80;
@@ -331,8 +330,8 @@ static void ReadHelp(WINDOW wnd)
 					char *cp1 = strchr(cp, '>');
 					if (cp1 != NULL)	{
 						int len = (int) (cp1 - cp);
-						if ((thisword->hname = calloc(1, len)) != NULL)	
-							strncpy(thisword->hname, cp+1, len-1);
+						thisword->hname = DFcalloc(1, len);
+						strncpy(thisword->hname, cp+1, len-1);
 						memmove(cp, cp1+1, strlen(cp1));
 					}
 				}
@@ -388,9 +387,7 @@ void LoadHelpFile()
         if (strncmp(hline, "<end>", 5) == 0)
             break;
 
-		if ((ThisHelp = calloc(1, sizeof(struct helps))) == NULL)
-			break;
-
+		ThisHelp = DFcalloc(1, sizeof(struct helps));
 		if (FirstHelp == NULL)
 			FirstHelp = ThisHelp;
 
@@ -398,8 +395,7 @@ void LoadHelpFile()
 		if ((cp = strchr(hline, '>')) == NULL)
 			continue;
 		*cp = '\0';
-		if ((ThisHelp->hname=malloc(strlen(hline+1)+1))==NULL)
-			break;
+		ThisHelp->hname=DFmalloc(strlen(hline+1)+1);
         strcpy(ThisHelp->hname, hline+1);
 
 		HelpFilePosition(&ThisHelp->hptr, &ThisHelp->bit);
@@ -417,9 +413,8 @@ void LoadHelpFile()
 					char *cp1 = strchr(cp, '>');
 					if (cp1 != NULL)	{
 						int len = (int) (cp1-cp);
-						ThisHelp->PrevName = calloc(1, len);
-						if (ThisHelp->PrevName != NULL)
-							strncpy(ThisHelp->PrevName, cp+1, len-1);
+						ThisHelp->PrevName = DFcalloc(1, len);
+						strncpy(ThisHelp->PrevName, cp+1, len-1);
 					}
 				}
 			    if (fgetshelp() == NULL)
@@ -433,9 +428,8 @@ void LoadHelpFile()
 					char *cp1 = strchr(cp, '>');
 					if (cp1 != NULL)	{
 						int len = (int) (cp1-cp);
-						ThisHelp->NextName = calloc(1, len);
-						if (ThisHelp->NextName != NULL)
-							strncpy(ThisHelp->NextName, cp+1, len-1);
+						ThisHelp->NextName = DFcalloc(1, len);
+						strncpy(ThisHelp->NextName, cp+1, len-1);
 					}
 				}
 			    if (fgetshelp() == NULL)
@@ -483,6 +477,7 @@ void UnLoadHelpFile(void)
 		free(ThisHelp);
 	}
 	ThisHelp = LastHelp = NULL;
+	free(HelpTree);
 }
 
 /* ------------ display help text ----------- */
@@ -493,46 +488,43 @@ BOOL DisplayHelp(WINDOW wnd, char *Help)
 	FindHelp(Help);
     if (ThisHelp != NULL)    {
 		if (LastStack == NULL || stricmp(Help, LastStack->hname))	{
-			ThisStack = calloc(1,sizeof(struct HelpStack));
-			if (ThisStack != NULL)	{
-				ThisStack->hname = malloc(strlen(Help)+1);
-				if (ThisStack->hname != NULL)
-					strcpy(ThisStack->hname, Help);
-				ThisStack->PrevStack = LastStack;
-				LastStack = ThisStack;
-			}
+			ThisStack = DFcalloc(1,sizeof(struct HelpStack));
+			ThisStack->hname = DFmalloc(strlen(Help)+1);
+			if (ThisStack->hname != NULL)
+				strcpy(ThisStack->hname, Help);
+			ThisStack->PrevStack = LastStack;
+			LastStack = ThisStack;
 		}
 	    if ((helpfp = OpenHelpFile()) != NULL)	{
 			DBOX *db;
 			int offset, i;
 
-			if ((db = calloc(1,sizeof HelpBox)) != NULL)	{
-				memcpy(db, &HelpBox, sizeof HelpBox);
-				SeekHelpLine(ThisHelp->hptr, ThisHelp->bit);
-       			fgetshelp();
-				hline[strlen(hline)-1] = '\0';
-				if ((db->dwnd.title = malloc(strlen(hline)+1)) != NULL)
-					strcpy(db->dwnd.title, hline);
-				db->dwnd.h = min(ThisHelp->hheight, MAXHEIGHT)+7;
-				db->dwnd.w = max(45, ThisHelp->hwidth+6);
-				BestFit(wnd, &db->dwnd);
-				db->ctl[0].dwnd.w = max(40, ThisHelp->hwidth+2);
-				db->ctl[0].dwnd.h = min(ThisHelp->hheight, MAXHEIGHT)+2;
-				offset = (db->dwnd.w-40) / 2;
-				for (i = 1; i < 5; i++)	{
-					db->ctl[i].dwnd.y = min(ThisHelp->hheight, MAXHEIGHT)+3;
-					db->ctl[i].dwnd.x += offset;
-				}
-				if (ThisStack != NULL)
-					if (ThisStack->PrevStack == NULL)
-						DisableButton(db, ID_BACK);
-				if (ThisHelp->NextName == NULL)
-					DisableButton(db, ID_NEXT);
-				if (ThisHelp->PrevName == NULL)
-					DisableButton(db, ID_PREV);
-				DialogBox(wnd, db, TRUE, HelpBoxProc);
-				free(db);
+			db = DFcalloc(1,sizeof HelpBox);
+			memcpy(db, &HelpBox, sizeof HelpBox);
+			SeekHelpLine(ThisHelp->hptr, ThisHelp->bit);
+       		fgetshelp();
+			hline[strlen(hline)-1] = '\0';
+			db->dwnd.title = DFmalloc(strlen(hline)+1);
+			strcpy(db->dwnd.title, hline);
+			db->dwnd.h = min(ThisHelp->hheight, MAXHEIGHT)+7;
+			db->dwnd.w = max(45, ThisHelp->hwidth+6);
+			BestFit(wnd, &db->dwnd);
+			db->ctl[0].dwnd.w = max(40, ThisHelp->hwidth+2);
+			db->ctl[0].dwnd.h = min(ThisHelp->hheight, MAXHEIGHT)+2;
+			offset = (db->dwnd.w-40) / 2;
+			for (i = 1; i < 5; i++)	{
+				db->ctl[i].dwnd.y = min(ThisHelp->hheight, MAXHEIGHT)+3;
+				db->ctl[i].dwnd.x += offset;
 			}
+			if (ThisStack != NULL)
+				if (ThisStack->PrevStack == NULL)
+					DisableButton(db, ID_BACK);
+			if (ThisHelp->NextName == NULL)
+				DisableButton(db, ID_NEXT);
+			if (ThisHelp->PrevName == NULL)
+				DisableButton(db, ID_PREV);
+			DialogBox(wnd, db, TRUE, HelpBoxProc);
+			free(db);
 			fclose(helpfp);
 			return TRUE;
 		}

@@ -45,7 +45,7 @@ static int ClearTextMsg(WINDOW wnd)
 {
     int rtn = BaseWndProc(EDITBOX, wnd, CLEARTEXT, 0, 0);
     unsigned blen = EditBufLen(wnd)+2;
-    wnd->text = realloc(wnd->text, blen);
+    wnd->text = DFrealloc(wnd->text, blen);
     memset(wnd->text, 0, blen);
     wnd->wlines = 0;
     wnd->CurrLine = 0;
@@ -98,12 +98,11 @@ static int SetTextLengthMsg(WINDOW wnd, unsigned int len)
     if (++len < MAXTEXTLEN)    {
         wnd->MaxTextLength = len;
         if (len < wnd->textlen)    {
-            if ((wnd->text=realloc(wnd->text, len+2)) != NULL) {
-                wnd->textlen = len;
-                *((wnd->text)+len) = '\0';
-                *((wnd->text)+len+1) = '\0';
-                BuildTextPointers(wnd);
-            }
+            wnd->text=DFrealloc(wnd->text, len+2);
+            wnd->textlen = len;
+            *((wnd->text)+len) = '\0';
+            *((wnd->text)+len+1) = '\0';
+            BuildTextPointers(wnd);
         }
         return TRUE;
     }
@@ -547,7 +546,7 @@ static void KeyTyped(WINDOW wnd, int c)
             /* --- but not above maximum size --- */
             if (wnd->textlen > wnd->MaxTextLength)
                 wnd->textlen = wnd->MaxTextLength;
-            wnd->text = realloc(wnd->text, wnd->textlen+2);
+            wnd->text = DFrealloc(wnd->text, wnd->textlen+2);
             wnd->text[wnd->textlen-1] = '\0';
             currchar = CurrChar;
         }
@@ -903,11 +902,18 @@ static int CommandMsg(WINDOW wnd, PARAM p1)
     return FALSE;
 }
 /* ---------- CLOSE_WINDOW Message ----------- */
-static void CloseWindowMsg(WINDOW wnd)
+static int CloseWindowMsg(WINDOW wnd, PARAM p1, PARAM p2)
 {
+	int rtn;
     SendMessage(NULL, HIDE_CURSOR, 0, 0);
     if (wnd->DeletedText != NULL)
         free(wnd->DeletedText);
+    rtn = BaseWndProc(EDITBOX, wnd, CLOSE_WINDOW, p1, p2);
+	if (wnd->text != NULL)	{
+		free(wnd->text);
+		wnd->text = NULL;
+	}
+    return rtn;
 }
 /* ------- Window processing module for EDITBOX class ------ */
 int EditBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
@@ -971,8 +977,7 @@ int EditBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
                 return TRUE;
             break;
         case CLOSE_WINDOW:
-            CloseWindowMsg(wnd);
-            break;
+            return CloseWindowMsg(wnd, p1, p2);
         default:
             break;
     }
@@ -982,8 +987,8 @@ int EditBoxProc(WINDOW wnd, MESSAGE msg, PARAM p1, PARAM p2)
 static void SaveDeletedText(WINDOW wnd, char *bbl, int len)
 {
     wnd->DeletedLength = len;
-    if ((wnd->DeletedText=realloc(wnd->DeletedText,len))!=NULL)
-        memmove(wnd->DeletedText, bbl, len);
+    wnd->DeletedText=DFrealloc(wnd->DeletedText,len);
+    memmove(wnd->DeletedText, bbl, len);
 }
 /* ---- cursor right key: right one character position ---- */
 static void Forward(WINDOW wnd)

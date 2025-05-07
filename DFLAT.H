@@ -28,16 +28,11 @@
 #include <time.h>
 #include <setjmp.h>
 
-#define VERSION "Version 11"
-
-#define malloc DFmalloc
-#define calloc DFcalloc
-#define realloc DFrealloc
+#define VERSION "Version 12"
 
 void *DFcalloc(size_t, size_t);
 void *DFmalloc(size_t);
 void *DFrealloc(void *, size_t);
-void free(void *);
 
 typedef enum {FALSE, TRUE} BOOL;
 
@@ -194,6 +189,7 @@ void AddTitle(WINDOW, char *);
 void InsertTitle(WINDOW, char *);
 void DisplayTitle(WINDOW, RECT *);
 void RepaintBorder(WINDOW, RECT *);
+void PaintShadow(WINDOW);
 void ClearWindow(WINDOW, RECT *, int);
 void writeline(WINDOW, char *, int, int, BOOL);
 void InitWindowColors(WINDOW);
@@ -212,10 +208,8 @@ WINDOW GetFirstFocusChild(WINDOW);
 WINDOW GetNextFocusChild(WINDOW, WINDOW);
 
 BOOL CharInView(WINDOW, int, int);
-void GetVideoBuffer(WINDOW);
-void RestoreVideoBuffer(WINDOW);
 void CreatePath(char *, char *, int, int);
-#define SwapVideoBuffer(wnd) swapvideo(wnd, wnd->videosave)
+#define SwapVideoBuffer(wnd, ish, fh) swapvideo(wnd, wnd->videosave, ish, fh)
 int LineLength(char *);
 RECT AdjustRectangle(WINDOW, RECT);
 BOOL isDerivedFrom(WINDOW, CLASS);
@@ -316,7 +310,7 @@ int YesNoBoxProc(WINDOW, MESSAGE, PARAM, PARAM);
 int StatusBarProc(WINDOW, MESSAGE, PARAM, PARAM);
 int WatchIconProc(WINDOW, MESSAGE, PARAM, PARAM);
 /* ------------- normal box prototypes ------------- */
-WINDOW inWindow(int, int);
+WINDOW inWindow(WINDOW, int, int);
 void SetStandardColor(WINDOW);
 void SetReverseColor(WINDOW);
 #define HitControlBox(wnd, p1, p2)     \
@@ -445,6 +439,9 @@ WINDOW ControlWindow(DBOX *, enum commands);
 void EnableButton(DBOX *, enum commands);
 void DisableButton(DBOX *, enum commands);
 void SetScrollBars(WINDOW);
+void SetRadioButton(DBOX *, CTLWINDOW *);
+void ControlSetting(DBOX *, enum commands, int, int);
+void SetFocusCursor(WINDOW);
 
 #define GetControl(wnd)             (wnd->ct)
 #define GetDlgText(db, cmd)         GetDlgTextString(db, cmd, TEXT)
@@ -456,6 +453,10 @@ void SetScrollBars(WINDOW);
 #define SetEditBoxText(db, cmd, s)  SetDlgTextString(db, cmd, s, EDITBOX)
 #define SetComboBoxText(db, cmd, s) SetDlgTextString(db, cmd, s, COMBOBOX)
 #define SetDlgTitle(db, ttl)        ((db)->dwnd.title = ttl)
+#define SetCheckBox(db, cmd)        ControlSetting(db, cmd, CHECKBOX, ON)
+#define ClearCheckBox(db, cmd)      ControlSetting(db, cmd, CHECKBOX, OFF)
+#define EnableButton(db, cmd)       ControlSetting(db, cmd, BUTTON, ON)
+#define DisableButton(db, cmd)      ControlSetting(db, cmd, BUTTON, OFF)
 
 /* ---- types of vectors that can be in a picture box ------- */
 enum VectTypes {VECTOR, SOLIDBAR, HEAVYBAR, CROSSBAR, LIGHTBAR};

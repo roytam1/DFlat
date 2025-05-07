@@ -15,37 +15,41 @@ static int ct8 = 8;
 static FILE *fi;
 static BYTECOUNTER bytectr;
 
-static BOOL LoadingASCII;
+static int LoadingASCII;
+
+struct htr *HelpTree;
+static int root;
 
 FILE *OpenHelpFile(void)
 {
-    unsigned char c;
-    int freqctr;
-	char path[65];
+    char *cp;
+    int treect, i;
+	char helpname[65];
 
-	BuildFileName(path, ".hlp");
+	BuildFileName(helpname, ".hlp");
 
-    if ((fi = fopen(path, "rb")) == NULL)	{
-		BuildFileName(path, ".txt");
-	    if ((fi = fopen(path, "rt")) == NULL)
+    if ((fi = fopen(helpname, "rb")) == NULL)	{
+		if ((cp = strrchr(helpname, '.')) != NULL)	{
+			strcpy(cp, ".TXT");
+		    fi = fopen(helpname, "rt");
+		}
+	    if (fi == NULL)
 			return NULL;
 		LoadingASCII = TRUE;
 	}
 
-	if (!LoadingASCII && ht == NULL)	{
-		if ((ht = calloc(256, sizeof(struct htree))) != NULL)	{
-    		/* ----- read the byte count ------ */
-    		fread(&bytectr, sizeof bytectr, 1, fi);
-    		/* ----- read the frequency count ------ */
-    		fread(&freqctr, sizeof freqctr, 1, fi);
-			/* -------- read the characters ---------- */
-    		while (freqctr--)   {
-        		fread(&c, sizeof(char), 1, fi);
-	        	ht[c].ch = c;
-    	    	fread(&ht[c].cnt, sizeof(BYTECOUNTER), 1, fi);
-    		}
-    		/* ---- build the huffman tree ----- */
-    		buildtree();
+	if (!LoadingASCII && HelpTree == NULL)	{
+   		/* ----- read the byte count ------ */
+   		fread(&bytectr, sizeof bytectr, 1, fi);
+   		/* ----- read the frequency count ------ */
+   		fread(&treect, sizeof treect, 1, fi);
+   		/* ----- read the root offset ------ */
+   		fread(&root, sizeof root, 1, fi);
+		HelpTree = DFcalloc(treect-256, sizeof(struct htr));
+		/* ---- read in the tree --- */
+		for (i = 0; i < treect-256; i++)	{
+       		fread(&HelpTree[i].left,  sizeof(int), 1, fi);
+	        fread(&HelpTree[i].right, sizeof(int), 1, fi);
 		}
 	}
 	return fi;
@@ -61,7 +65,7 @@ void *GetHelpLine(char *line)
     	/* ----- decompress a line from the file ------ */
 		h = root;
 		/* ----- first get a character ----- */
-    	while (ht[h].right != -1)	{
+    	while (h > 255)	{
     		if (ct8 == 8)   {
         		if ((in8 = fgetc(fi)) == EOF)	{
 					*line = '\0';
@@ -70,19 +74,19 @@ void *GetHelpLine(char *line)
         		ct8 = 0;
     		}
     		if (in8 & 0x80)
-            	h = ht[h].left;
+            	h = HelpTree[h-256].left;
         	else
-            	h = ht[h].right;
+            	h = HelpTree[h-256].right;
     		in8 <<= 1;
     		ct8++;
 		}
-	    if ((*line = ht[h].ch) == '\r')
+	    if (h == '\r')
 			continue;
-		if (*line == '\n')
+		*line++ = h;
+		if (h == '\n')
 			break;
-		line++;
 	}
-	*++line = '\0';
+	*line = '\0';
 	return line;
 }
 

@@ -1,18 +1,18 @@
 /* ------------------- htree.c -------------------- */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "dflat.h"
 #include "htree.h"
 
 struct htree *ht;
 int root;
+int treect;
 
 /* ------ build a Huffman tree from a frequency array ------ */
 void buildtree(void)
 {
-    int treect = 256;
     int i;
 
+	treect = 256;
 	for (i = 0; i < treect; i++)	{
 		ht[i].parent = -1;
 		ht[i].right  = -1;
@@ -43,7 +43,8 @@ void buildtree(void)
         /* --- combine two nodes and add one --- */
         ht[h1].parent = treect;
         ht[h2].parent = treect;
-		ht = realloc(ht, (treect+1) * sizeof(struct htree));
+		if ((ht = realloc(ht, (treect+1) * sizeof(struct htree))) == NULL)
+			break;
         ht[treect].cnt = ht[h1].cnt + ht[h2].cnt;
         ht[treect].right = h1;
         ht[treect].left = h2;

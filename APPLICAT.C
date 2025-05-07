@@ -28,12 +28,12 @@ static void SelectTitle(WINDOW);
 static void SelectStatusBar(WINDOW);
 #endif
 
+static WINDOW oldFocus;
 #ifdef INCLUDE_MULTI_WINDOWS
 static void CloseAll(WINDOW, int);
 static void MoreWindows(WINDOW);
 static void ChooseWindow(WINDOW, int);
 static int WindowSel;
-static WINDOW oldFocus;
 static char *Menus[9] = {
     "~1.                      ",
     "~2.                      ",
@@ -140,7 +140,10 @@ static void SetFocusMsg(WINDOW wnd, BOOL p1)
     /* --- move window to end/beginning of list --- */
     p1 ? AppendFocusWindow(wnd) : PrependFocusWindow(wnd);
     inFocus = p1 ? wnd : NULL;
-    SendMessage(wnd, BORDER, 0, 0);
+	if (isVisible(wnd))
+	    SendMessage(wnd, BORDER, 0, 0);
+	else 
+	    SendMessage(wnd, SHOW_WINDOW, 0, 0);
 }
 
 /* ------- SIZE Message -------- */
@@ -238,7 +241,8 @@ static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
             break;
         case ID_DISPLAY:
             if (DialogBox(wnd, &Display, TRUE, NULL))    {
-                SendMessage(wnd, HIDE_WINDOW, 0, 0);
+				oldFocus = inFocus;
+                SendMessage(wnd, HIDE_WINDOW, TRUE, 0);
                 SelectColors(wnd);
                 SelectLines(wnd);
 #ifdef INCLUDE_WINDOWOPTIONS
@@ -250,6 +254,7 @@ static void CommandMsg(WINDOW wnd, PARAM p1, PARAM p2)
                 CreateMenu(wnd);
                 CreateStatusBar(wnd);
                 SendMessage(wnd, SHOW_WINDOW, 0, 0);
+			    SendMessage(oldFocus, SETFOCUS, TRUE, 0);
             }
             break;
         case ID_SAVEOPTIONS:

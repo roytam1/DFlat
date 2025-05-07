@@ -48,6 +48,7 @@ void main(int argc, char *argv[])
                         MOVEABLE  |
                         SIZEABLE  |
                         HASBORDER |
+						MINMAXBOX |
                         HASSTATUSBAR
                         );
 
@@ -201,21 +202,22 @@ static void SelectFile(WINDOW wnd)
 static void OpenPadWindow(WINDOW wnd, char *FileName)
 {
     static WINDOW wnd1 = NULL;
+	WINDOW wwnd;
     struct stat sb;
     char *Fname = FileName;
     char *ermsg;
     if (strcmp(FileName, Untitled))    {
         if (stat(FileName, &sb))    {
-            if ((ermsg = malloc(strlen(FileName)+20)) != NULL) {
-                strcpy(ermsg, "No such file as\n");
-                strcat(ermsg, FileName);
-                ErrorMessage(ermsg);
-                free(ermsg);
-            }
+            ermsg = DFmalloc(strlen(FileName)+20);
+            strcpy(ermsg, "No such file as\n");
+            strcat(ermsg, FileName);
+            ErrorMessage(ermsg);
+            free(ermsg);
             return;
         }
         Fname = NameComponent(FileName);
     }
+	wwnd = WatchIcon();
     wndpos += 2;
     if (wndpos == 20)
         wndpos = 2;
@@ -234,11 +236,11 @@ static void OpenPadWindow(WINDOW wnd, char *FileName)
                 MULTILINE
     );
     if (strcmp(FileName, Untitled))    {
-        if ((wnd1->extension = malloc(strlen(FileName)+1)) != NULL)    {
-            strcpy(wnd1->extension, FileName);
-            LoadFile(wnd1);
-        }
+        wnd1->extension = DFmalloc(strlen(FileName)+1);
+        strcpy(wnd1->extension, FileName);
+        LoadFile(wnd1);
     }
+	SendMessage(wwnd, CLOSE_WINDOW, 0, 0);
     SendMessage(wnd1, SETFOCUS, TRUE, 0);
 }
 /* --- Load the notepad file into the editor text buffer --- */
@@ -249,16 +251,13 @@ static void LoadFile(WINDOW wnd)
     FILE *fp;
 
     if ((fp = fopen(wnd->extension, "rt")) != NULL)    {
-		WINDOW wwnd = WatchIcon();
 		while (!feof(fp))	{
 			handshake();
-			if ((Buf = realloc(Buf, recptr+150)) == NULL)
-				break;
+			Buf = DFrealloc(Buf, recptr+150);
         	fgets(Buf+recptr, 150, fp);
 			recptr += strlen(Buf+recptr);
 		}
         fclose(fp);
-		SendMessage(wwnd, CLOSE_WINDOW, 0, 0);
 		if (Buf != NULL)	{
 	        SendMessage(wnd, SETTEXT, (PARAM) Buf, 0);
 		    free(Buf);
@@ -342,12 +341,10 @@ static void SaveFile(WINDOW wnd, int Saveas)
         if (SaveAsDialogBox(FileName))    {
             if (wnd->extension != NULL)
                 free(wnd->extension);
-            if ((wnd->extension =
-                    malloc(strlen(FileName)+1)) != NULL)    {
-                strcpy(wnd->extension, FileName);
-                AddTitle(wnd, NameComponent(FileName));
-                SendMessage(wnd, BORDER, 0, 0);
-            }
+            wnd->extension = DFmalloc(strlen(FileName)+1);
+            strcpy(wnd->extension, FileName);
+            AddTitle(wnd, NameComponent(FileName));
+            SendMessage(wnd, BORDER, 0, 0);
         }
         else
             return;
@@ -450,16 +447,14 @@ static int EditorProc(WINDOW wnd,MESSAGE msg,PARAM p1,PARAM p2)
             break;
         case CLOSE_WINDOW:
             if (wnd->TextChanged)    {
-                char *cp = malloc(25+strlen(GetTitle(wnd)));
+                char *cp = DFmalloc(25+strlen(GetTitle(wnd)));
                 SendMessage(wnd, SETFOCUS, TRUE, 0);
-                if (cp != NULL)    {
-                    strcpy(cp, GetTitle(wnd));
-                    strcat(cp, "\nText changed. Save it?");
-                    if (YesNoBox(cp))
-                        SendMessage(GetParent(wnd),
-                            COMMAND, ID_SAVE, 0);
-                    free(cp);
-                }
+                strcpy(cp, GetTitle(wnd));
+                strcat(cp, "\nText changed. Save it?");
+                if (YesNoBox(cp))
+                    SendMessage(GetParent(wnd),
+                        COMMAND, ID_SAVE, 0);
+                free(cp);
             }
             wndpos = 0;
             if (wnd->extension != NULL)    {

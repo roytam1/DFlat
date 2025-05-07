@@ -1,15 +1,9 @@
 #-------------------------------------------------------------------
-#                   D - F L A T   M A K E F I L E
+#        D - F L A T   M A K E F I L E  -  Borland C++ 3.0
 #-------------------------------------------------------------------
 
-all : memopad.exe huffc.exe
+all : memopad.exe memopad.hlp
 
-#-------------------------------------------------------------------
-#  Set BORLAND_CPP = 1 to compile with Borland C++ 3.0
-#  Set MSC = 1 to compile with Microsoft C
-#-------------------------------------------------------------------
-BORLAND_CPP = 1
-MSC = 0
 #------------------------------------------------
 # NOTE: Set DRIVE to match where you installed your compiler
 #------------------------------------------------
@@ -27,30 +21,6 @@ TESTING = TESTING_DFLAT
 FULL = BUILD_FULL_DFLAT
 #-------------------------------------------------------------------
 
-!if $(MSC) == 1
-
-#------------------------------------------------
-#  Microsoft C 6.0
-#------------------------------------------------
-MODEL = L
-#------------------------------------------------
-# NOTE: Delete the DEBUG and LINKDEBUG macros to 
-# build without debugging information in the .EXE
-#------------------------------------------------
-DEBUG = /Zi
-LINKDEBUG = /CO
-COMPILE = cl $(DEBUG) /DMSC /D$(TESTING) /D$(FULL) /c /W4 /Gs /A$(MODEL)
-LINK = link $(LINKDEBUG) /ST:8192
-#------------------------------------------------
-.c.obj:
-    $(COMPILE) $*.c
-!endif
-
-!if $(BORLAND_CPP) == 1
-
-#------------------------------------------------
-#  Borland C++ 2.0
-#------------------------------------------------
 MODEL = l
 #------------------------------------------------
 # NOTE: Delete the DEBUG and LINKDEBUG macros to 
@@ -71,29 +41,27 @@ LIBS= $(DRIVE)\borlandc\lib\c$(MODEL)
 
 .c.obj:
     $(COMPILE) {$*.c }
-!endif
 
+memopad.exe : memopad.obj dialogs.obj menus.obj dflat.lib
+    $(LINK) memopad dialogs menus,memopad.exe,memopad,dflat $(LIBS)
 
-memopad.exe : memopad.obj window.obj video.obj message.obj             \
+dflat.lib :   window.obj video.obj message.obj                         \
               mouse.obj console.obj textbox.obj listbox.obj            \
               normal.obj config.obj menu.obj menubar.obj popdown.obj   \
-              rect.obj applicat.obj keys.obj sysmenu.obj menus.obj     \
-              editbox.obj dialogs.obj dialbox.obj button.obj           \
-              fileopen.obj msgbox.obj helpbox.obj log.obj lists.obj    \
-              statbar.obj decomp.obj htree.obj combobox.obj            \
-              pictbox.obj calendar.obj barchart.obj clipbord.obj       \
-              search.obj dfalloc.obj
-!if $(MSC)
-    $(LINK) @memopad.lnk,$*,$*;
-!else
-    $(LINK) @memopad.lnk,$*.exe,$*,$(LIBS)
-!endif
+              rect.obj applicat.obj keys.obj sysmenu.obj editbox.obj   \
+              dialbox.obj button.obj fileopen.obj msgbox.obj           \
+              helpbox.obj log.obj lists.obj statbar.obj decomp.obj     \
+              combobox.obj pictbox.obj calendar.obj barchart.obj       \
+              clipbord.obj search.obj dfalloc.obj checkbox.obj         \
+              text.obj radio.obj box.obj spinbutt.obj  watch.obj       \
+              slidebox.obj direct.obj
+	del dflat.lib
+	tlib dflat @dflat.bld
 
 huffc.exe : huffc.obj htree.obj
-!if $(MSC)
-    $(LINK) huffc htree,$*,$*;
-!else
     $(LINK) huffc htree,$*.exe,$*,$(LIBS)
-!endif
+
+memopad.hlp : memopad.txt huffc.exe
+	huffc memopad.txt memopad.hlp
 
 
