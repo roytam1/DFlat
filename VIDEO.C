@@ -309,7 +309,7 @@ asm             jz              loop1
 }
 
 #if defined (__WATCOMC__) && defined (__386__)
-void movetoscreen(void *bf, short offset, short len)
+void movetoscreen(void *bf, int offset, int len)
 {
   if (snowy)
 	waitforretrace();
@@ -325,7 +325,7 @@ void movetoscreen(void *bf, int offset, int len)
 }
 
 #if defined (__WATCOMC__) && defined (__386__)
-void movefromscreen(void *bf, short offset, short len)
+void movefromscreen(void *bf, int offset, int len)
 {
 
   if (snowy)

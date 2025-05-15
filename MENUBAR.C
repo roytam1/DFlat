@@ -408,4 +408,3 @@ static WINDOW GetDocFocus(void)
 	return wnd ? wnd : ApplicationWindow;
 }
 
-

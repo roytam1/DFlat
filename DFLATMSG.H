@@ -105,5 +105,3 @@ DFlatMsg(DRAWBAR)
 /* --------------- Value box messages --------------------   */
 DFlatMsg(ADDMINMAX)          /* Set Min/Max/Int Pointer      */   
 DFlatMsg(GETMINMAX)          /* Set Min/Max/Int Pointer      */   
-
-

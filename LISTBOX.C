@@ -470,4 +470,3 @@ static void near ChangeSelection(WINDOW wnd,int sel,int shift)
 }
 
 
-

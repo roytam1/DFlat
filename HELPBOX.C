@@ -620,4 +620,3 @@ static void BestFit(WINDOW wnd, DIALOGWINDOW *dwnd)
         dwnd->x = -1;
 }
 
-

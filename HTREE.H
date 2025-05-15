@@ -29,4 +29,3 @@ void SeekHelpLine(long, int);
 
 #endif
 
-

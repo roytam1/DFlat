@@ -524,4 +524,3 @@ void PutWindowLine(WINDOW wnd, void *s, int x, int y)
 	}
 }
 
-
